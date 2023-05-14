@@ -23,7 +23,7 @@ contract MarginalV1Factory {
 
         // populate in reverse for key (token0, token1, maintenance)
         getPool[token0][token1][maintenance] = pool;
-        getPool[token0][token1][maintenance] = pool;
+        getPool[token1][token0][maintenance] = pool;
 
         emit PoolCreated(token0, token1, maintenance, pool);
     }
