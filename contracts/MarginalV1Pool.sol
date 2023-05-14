@@ -2,5 +2,9 @@
 pragma solidity 0.8.17;
 
 contract MarginalV1Pool {
-    constructor() {}
+    address public immutable factory;
+
+    constructor() {
+        factory = msg.sender;
+    }
 }
