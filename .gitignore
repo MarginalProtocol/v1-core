@@ -6,6 +6,7 @@
 .env
 .venv
 .pytest_cache
+.hypothesis
 __pycache__
 
 # node
