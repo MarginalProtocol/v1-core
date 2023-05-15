@@ -5,6 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Position} from "./libraries/Position.sol";
+import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCallback.sol";
@@ -36,6 +37,8 @@ contract MarginalV1Pool is ERC20 {
 
     event Open(
         uint256 id,
+        uint256 liquidityBefore,
+        uint256 sqrtPriceBefore,
         uint256 liquidityDelta,
         bool zeroForOne,
         uint256 margin
@@ -66,17 +69,24 @@ contract MarginalV1Pool is ERC20 {
         require(liquidityDelta < _liquidity); // TODO: min liquidity
 
         // TODO: require debt in long token > 0
+        uint256 sqrtPriceNext = SqrtPriceMath.sqrtPriceNext(
+            _liquidity,
+            _sqrtPrice,
+            liquidityDelta,
+            zeroForOne,
+            maintenance
+        );
         Position.Info memory pos = Position.Info({
-            liquidity: _liquidity,
-            sqrtPrice: sqrtPrice,
-            fundingIndex: fundingIndex,
+            sqrtPriceBefore: _sqrtPrice,
+            sqrtPriceAfter: sqrtPriceNext,
+            fundingIndexBefore: fundingIndex,
             liquidityDelta: liquidityDelta,
             zeroForOne: zeroForOne,
             margin: 0
         });
 
         liquidity -= liquidityDelta;
-        sqrtPrice = pos.sqrtPriceNext(maintenance);
+        sqrtPrice = sqrtPriceNext;
 
         // callback for margin amount
         uint256 margin;
@@ -110,6 +120,13 @@ contract MarginalV1Pool is ERC20 {
         uint256 id = totalPositions;
         positions[++totalPositions] = pos;
 
-        emit Open(id, liquidityDelta, zeroForOne, margin);
+        emit Open(
+            id,
+            _liquidity,
+            _sqrtPrice,
+            liquidityDelta,
+            zeroForOne,
+            margin
+        );
     }
 }
