@@ -68,6 +68,18 @@ def test_create_pool_emits_pool_created(
     assert event.pool == tx.return_value
 
 
+def test_create_pool_deletes_params(
+    factory, alice, rando_token_a_address, rando_token_b_address
+):
+    _ = factory.createPool(
+        rando_token_a_address, rando_token_b_address, 2500, sender=alice
+    )
+    params = factory.params()
+    assert params.token0 == ZERO_ADDRESS
+    assert params.token1 == ZERO_ADDRESS
+    assert params.maintenance == 0
+
+
 def test_create_pool_reverts_when_same_token(factory, alice, rando_token_a_address):
     with reverts("A == B"):
         factory.createPool(

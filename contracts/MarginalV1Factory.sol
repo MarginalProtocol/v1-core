@@ -8,6 +8,13 @@ contract MarginalV1Factory {
         public getPool;
     mapping(uint256 => uint256) public getLeverage;
 
+    struct Params {
+        address token0;
+        address token1;
+        uint256 maintenance;
+    }
+    Params public params;
+
     event PoolCreated(
         address token0,
         address token1,
@@ -29,7 +36,7 @@ contract MarginalV1Factory {
         address tokenA,
         address tokenB,
         uint256 maintenance
-    ) external returns (address poolAddress) {
+    ) external returns (address pool) {
         require(tokenA != tokenB, "A == B");
         (address token0, address token1) = tokenA < tokenB
             ? (tokenA, tokenB)
@@ -37,16 +44,22 @@ contract MarginalV1Factory {
         require(token0 != address(0), "token0 == address(0)");
         require(getLeverage[maintenance] > 0, "leverage not enabled");
 
-        MarginalV1Pool pool = new MarginalV1Pool{
-            salt: keccak256(abi.encode(token0, token1, maintenance))
-        }();
-        pool.initialize(token0, token1, maintenance);
+        params = Params({
+            token0: token0,
+            token1: token1,
+            maintenance: maintenance
+        });
+        pool = address(
+            new MarginalV1Pool{
+                salt: keccak256(abi.encode(token0, token1, maintenance))
+            }()
+        );
+        delete params;
 
         // populate in reverse for key (token0, token1, maintenance)
-        poolAddress = address(pool);
-        getPool[token0][token1][maintenance] = poolAddress;
-        getPool[token1][token0][maintenance] = poolAddress;
+        getPool[token0][token1][maintenance] = pool;
+        getPool[token1][token0][maintenance] = pool;
 
-        emit PoolCreated(token0, token1, maintenance, poolAddress);
+        emit PoolCreated(token0, token1, maintenance, pool);
     }
 }
