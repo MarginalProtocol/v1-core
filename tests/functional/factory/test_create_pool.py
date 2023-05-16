@@ -1,11 +1,5 @@
-import pytest
 from ape import project, reverts
 from ape.utils import ZERO_ADDRESS
-
-
-@pytest.fixture
-def factory(project, deployer):
-    return project.MarginalV1Factory.deploy(sender=deployer)
 
 
 def test_create_pool_deploys_pool_contract(

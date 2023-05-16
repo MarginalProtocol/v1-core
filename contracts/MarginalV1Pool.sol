@@ -82,7 +82,7 @@ contract MarginalV1Pool is ERC20 {
             sqrtPriceX96Next,
             liquidityDelta,
             zeroForOne
-        ); // TODO: add funding index
+        ); // TODO: add funding index, fees
 
         liquidity -= liquidityDelta;
         sqrtPriceX96 = sqrtPriceX96Next;
