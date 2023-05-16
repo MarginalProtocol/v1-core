@@ -11,7 +11,7 @@ import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCallback.sol";
 
 contract MarginalV1Pool is ERC20 {
-    using Position for Position.Info;
+    using Position for mapping(uint256 => Position.Info);
 
     address public immutable factory;
 
@@ -20,8 +20,9 @@ contract MarginalV1Pool is ERC20 {
     uint256 public immutable maintenance;
 
     // TODO: group in pool state struct
-    uint256 public liquidity; // TODO: fix type
-    uint256 public sqrtPrice; // TODO: fix type
+    // @dev Pool state represented in (L, sqrtP) space
+    uint256 public liquidity; // TODO: fix type (uint128)
+    uint256 public sqrtPrice; // TODO: fix type (uint96)
     uint256 public fundingIndex;
 
     mapping(uint256 => Position.Info) public positions;
@@ -66,7 +67,7 @@ contract MarginalV1Pool is ERC20 {
     function open(uint256 liquidityDelta, bool zeroForOne) external lock {
         uint256 _sqrtPrice = sqrtPrice;
         uint256 _liquidity = liquidity;
-        require(liquidityDelta < _liquidity); // TODO: min liquidity
+        require(liquidityDelta < _liquidity); // TODO: min liquidity, min liquidity delta (size)
 
         uint256 sqrtPriceNext = SqrtPriceMath.sqrtPriceNext(
             _liquidity,
@@ -75,15 +76,13 @@ contract MarginalV1Pool is ERC20 {
             zeroForOne,
             maintenance
         );
-        Position.Info memory pos = Position.Info({
-            liquidityBefore: _liquidity,
-            sqrtPriceBefore: _sqrtPrice,
-            sqrtPriceAfter: sqrtPriceNext,
-            fundingIndexBefore: fundingIndex,
-            liquidityDelta: liquidityDelta,
-            zeroForOne: zeroForOne,
-            margin: 0
-        });
+        Position.Info memory position = Position.assemble(
+            _liquidity,
+            _sqrtPrice,
+            sqrtPriceNext,
+            liquidityDelta,
+            zeroForOne
+        ); // TODO: add funding index
 
         liquidity -= liquidityDelta;
         sqrtPrice = sqrtPriceNext;
@@ -93,7 +92,10 @@ contract MarginalV1Pool is ERC20 {
         if (zeroForOne) {
             // long token0 relative to token1; margin in token0
             uint256 balance0Before = balance0();
-            uint256 margin0Minimum = pos.marginMinimum(maintenance); // TODO: oracle input?
+            uint256 margin0Minimum = Position.marginMinimum(
+                position.size0,
+                maintenance
+            );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 margin0Minimum,
                 0
@@ -101,10 +103,14 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance0() - balance0Before;
             require(margin >= margin0Minimum, "margin0 < min"); // TODO: possibly relax so swaps can happen
+            position.size0 += margin;
         } else {
             // long token1 relative to token0; margin in token1
             uint256 balance1Before = balance1();
-            uint256 margin1Minimum = pos.marginMinimum(maintenance); // TODO: oracle input?
+            uint256 margin1Minimum = Position.marginMinimum(
+                position.size1,
+                maintenance
+            );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
                 margin1Minimum
@@ -112,13 +118,14 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance1() - balance1Before;
             require(margin >= margin1Minimum, "margin1 < min"); // TODO: possibly relax so swaps can happen
+            position.size1 += margin;
         }
-        pos.margin = margin;
 
         // store position info
         // TODO: figure out what to use for positions key
         uint256 id = totalPositions;
-        positions[++totalPositions] = pos;
+        positions.set(id, position);
+        totalPositions++;
 
         emit Open(
             id,
