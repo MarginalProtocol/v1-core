@@ -32,6 +32,7 @@ contract MarginalV1Factory {
         emit LeverageEnabled(10000, 20000);
     }
 
+    // TODO: fee input param to choose which uni pool to use for twap oracle
     function createPool(
         address tokenA,
         address tokenB,

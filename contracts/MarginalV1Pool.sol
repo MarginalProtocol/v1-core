@@ -68,7 +68,6 @@ contract MarginalV1Pool is ERC20 {
         uint256 _liquidity = liquidity;
         require(liquidityDelta < _liquidity); // TODO: min liquidity
 
-        // TODO: require debt in long token > 0
         uint256 sqrtPriceNext = SqrtPriceMath.sqrtPriceNext(
             _liquidity,
             _sqrtPrice,
@@ -77,6 +76,7 @@ contract MarginalV1Pool is ERC20 {
             maintenance
         );
         Position.Info memory pos = Position.Info({
+            liquidityBefore: _liquidity,
             sqrtPriceBefore: _sqrtPrice,
             sqrtPriceAfter: sqrtPriceNext,
             fundingIndexBefore: fundingIndex,
@@ -93,7 +93,7 @@ contract MarginalV1Pool is ERC20 {
         if (zeroForOne) {
             // long token0 relative to token1; margin in token0
             uint256 balance0Before = balance0();
-            uint256 margin0Minimum = pos.marginMinimum(maintenance);
+            uint256 margin0Minimum = pos.marginMinimum(maintenance); // TODO: oracle input?
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 margin0Minimum,
                 0
@@ -104,7 +104,7 @@ contract MarginalV1Pool is ERC20 {
         } else {
             // long token1 relative to token0; margin in token1
             uint256 balance1Before = balance1();
-            uint256 margin1Minimum = pos.marginMinimum(maintenance);
+            uint256 margin1Minimum = pos.marginMinimum(maintenance); // TODO: oracle input?
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
                 margin1Minimum
