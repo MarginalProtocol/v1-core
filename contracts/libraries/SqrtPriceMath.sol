@@ -24,10 +24,18 @@ library SqrtPriceMath {
         uint256 under = liquidity ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
 
-        uint256 numerator = liquidity + root;
-        uint256 denominator = 2 * (liquidity - liquidityDelta);
-
         // guaranteed to fit in uint160 (?) TODO: verify/test
-        return uint160(Math.mulDiv(sqrtPriceX96, numerator, denominator));
+        uint256 nextX96 = zeroForOne
+            ? Math.mulDiv(
+                sqrtPriceX96,
+                liquidity + root,
+                2 * (liquidity - liquidityDelta)
+            )
+            : Math.mulDiv(
+                sqrtPriceX96,
+                2 * (liquidity - liquidityDelta),
+                liquidity + root
+            );
+        return uint160(nextX96);
     }
 }
