@@ -122,7 +122,8 @@ contract MarginalV1Pool is ERC20 {
         }
 
         // store position info
-        // TODO: figure out what to use for positions key
+        // TODO: figure out what to use for positions key and remove totalPositions given gas expenditure + totalPositions can overflow
+        // TODO: key should use msg.sender
         uint256 id = totalPositions;
         positions.set(id, position);
         totalPositions++;
