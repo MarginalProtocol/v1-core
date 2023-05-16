@@ -2,5 +2,5 @@
 pragma solidity 0.8.17;
 
 library MaintenanceMath {
-    uint256 internal constant unit = 10000;
+    uint16 internal constant unit = 10000;
 }

@@ -6,22 +6,22 @@ import {MarginalV1Pool} from "./MarginalV1Pool.sol";
 contract MarginalV1Factory {
     mapping(address => mapping(address => mapping(uint256 => address)))
         public getPool;
-    mapping(uint256 => uint256) public getLeverage;
+    mapping(uint16 => uint256) public getLeverage;
 
     struct Params {
         address token0;
         address token1;
-        uint256 maintenance;
+        uint16 maintenance;
     }
     Params public params;
 
     event PoolCreated(
         address token0,
         address token1,
-        uint256 maintenance,
+        uint16 maintenance,
         address pool
     );
-    event LeverageEnabled(uint256 maintenance, uint256 leverage);
+    event LeverageEnabled(uint16 maintenance, uint256 leverage);
 
     constructor() {
         getLeverage[2500] = 50000; // precision of 1e4
@@ -36,7 +36,7 @@ contract MarginalV1Factory {
     function createPool(
         address tokenA,
         address tokenB,
-        uint256 maintenance
+        uint16 maintenance
     ) external returns (address pool) {
         require(tokenA != tokenB, "A == B");
         (address token0, address token1) = tokenA < tokenB

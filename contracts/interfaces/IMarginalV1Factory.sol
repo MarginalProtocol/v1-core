@@ -5,13 +5,13 @@ interface IMarginalV1Factory {
     function getPool(
         address tokenA,
         address tokenB,
-        uint256 maintenance
+        uint16 maintenance
     ) external view returns (address);
 
-    function getLeverage(uint256 maintenance) external view returns (uint256);
+    function getLeverage(uint16 maintenance) external view returns (uint256);
 
     function params()
         external
         view
-        returns (address token0, address token1, uint256 maintenance);
+        returns (address token0, address token1, uint16 maintenance);
 }

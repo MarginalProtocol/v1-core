@@ -17,7 +17,7 @@ contract MarginalV1Pool is ERC20 {
 
     address public immutable token0;
     address public immutable token1;
-    uint256 public immutable maintenance;
+    uint16 public immutable maintenance;
 
     // TODO: group in pool state struct
     // @dev Pool state represented in (L, sqrtP) space

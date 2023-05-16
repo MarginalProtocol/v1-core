@@ -131,8 +131,8 @@ library Position {
 
     /// @notice Absolute minimum margin requirement
     function marginMinimum(
-        uint256 size,
-        uint256 maintenance
+        uint128 size,
+        uint16 maintenance
     ) internal view returns (uint256) {
         return Math.mulDiv(size, maintenance, MaintenanceMath.unit);
     }
