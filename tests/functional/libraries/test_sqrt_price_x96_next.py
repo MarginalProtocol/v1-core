@@ -122,15 +122,11 @@ def test_sqrt_price_math_x96_next__with_fuzz(
     )
     sqrt_price_next = sqrt_price_x96_next >> 96
 
-    try:
-        # Q: is this rel tol enough?
-        result_x96 = sqrt_price_math_lib.sqrtPriceX96Next(
-            liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-        )
-        result = result_x96 >> 96
-        assert pytest.approx(result_x96, rel=1e-15) == sqrt_price_x96_next
-        assert pytest.approx(result, rel=1e-15) == sqrt_price_next
-    except ape.exceptions.ProviderError:
-        # some issues with anvil and fuzzing sometimes; ignore these runs
-        # TODO: fix
-        return
+    result_x96 = sqrt_price_math_lib.sqrtPriceX96Next(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
+    )
+    result = result_x96 >> 96
+
+    # TODO: fix for anvil errors
+    assert pytest.approx(result_x96, rel=1e-15) == sqrt_price_x96_next
+    assert pytest.approx(result, rel=1e-15) == sqrt_price_next
