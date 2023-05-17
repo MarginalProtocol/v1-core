@@ -1,6 +1,10 @@
 import pytest
 
+from hypothesis import given
+from hypothesis import strategies as st
 from math import sqrt
+
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_sqrt_price_x96_next
 
 
@@ -56,3 +60,33 @@ def test_position_sizes__with_one_for_zero(position_lib):
     )
     assert result[0] == size0
     assert pytest.approx(result[1], rel=1e-15) == size1
+
+
+@pytest.mark.fuzzing
+@given(
+    liquidity=st.integers(
+        min_value=1000, max_value=2**128 - 1
+    ),  # TODO: fix min value
+    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
+    sqrt_price_x96_next=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
+    zero_for_one=st.booleans(),
+)
+def test_position_sizes__with_fuzz(
+    position_lib, liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
+):
+    result = position_lib.sizes(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
+    )
+
+    if zero_for_one:
+        size0 = int(liquidity * (1 << 96) / sqrt_price_x96) - int(
+            liquidity * (1 << 96) / sqrt_price_x96_next
+        )
+        size1 = 0
+        assert pytest.approx(result[0], rel=1e-15) == size0
+        assert result[1] == size1
+    else:
+        size0 = 0
+        size1 = int((liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) / (1 << 96))
+        assert result[0] == size0
+        assert pytest.approx(result[1], rel=1e-15) == size1
