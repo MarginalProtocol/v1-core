@@ -122,25 +122,14 @@ def test_sqrt_price_math_x96_next__with_fuzz(
     )
     sqrt_price_next = sqrt_price_x96_next >> 96
 
-    # try the fail case to see if just some memory issue
-    liquidity = 11288999497670762496
-    liquidity_delta = 11220249490729947552
-    maintenance = 2500
-    sqrt_price_x96 = 8944066868249076982367438385206228204600164352
-    zero_for_one = True
-
     try:
         # Q: is this rel tol enough?
-        assert pytest.approx(
-            sqrt_price_math_lib.sqrtPriceX96Next(
-                liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-            ), rel=1e-15) == sqrt_price_x96_next
-        assert pytest.approx(
-            sqrt_price_math_lib.sqrtPriceX96Next(
-                liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-            ) >> 96,
-            rel=1e-15
-        ) == sqrt_price_next
+        result_x96 = sqrt_price_math_lib.sqrtPriceX96Next(
+            liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
+        )
+        result = result_x96 >> 96
+        assert pytest.approx(result_x96, rel=1e-15) == sqrt_price_x96_next
+        assert pytest.approx(result, rel=1e-15) == sqrt_price_next
     except ape.exceptions.ProviderError:
         # some issues with anvil and fuzzing sometimes; ignore these runs
         # TODO: fix

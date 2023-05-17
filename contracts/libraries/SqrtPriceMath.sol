@@ -2,9 +2,13 @@
 pragma solidity 0.8.17;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
 import {MaintenanceMath} from "./MaintenanceMath.sol";
 
 library SqrtPriceMath {
+    using SafeCast for uint256;
+
     /// @notice Calculates sqrtP after assembling a position
     /// @dev Choice of insurance function made in this function
     function sqrtPriceX96Next(
@@ -18,13 +22,12 @@ library SqrtPriceMath {
         prod = Math.mulDiv(
             prod,
             MaintenanceMath.unit,
-            MaintenanceMath.unit + maintenance
+            (MaintenanceMath.unit + maintenance)
         );
 
         uint256 under = liquidity ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
 
-        // guaranteed to fit in uint160 (?) TODO: verify/test
         uint256 nextX96 = zeroForOne
             ? Math.mulDiv(
                 sqrtPriceX96,
@@ -36,6 +39,6 @@ library SqrtPriceMath {
                 2 * (liquidity - liquidityDelta),
                 liquidity + root
             );
-        return uint160(nextX96);
+        return nextX96.toUint160();
     }
 }
