@@ -2,12 +2,13 @@
 pragma solidity 0.8.17;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import {MaintenanceMath} from "./MaintenanceMath.sol";
 
 library SqrtPriceMath {
-    using SafeCast for uint256;
+    /// @dev Adopts Uni V3 tick limits of (-887272, 887272)
+    uint160 internal constant MIN_SQRT_RATIO = 4295128739;
+    uint160 internal constant MAX_SQRT_RATIO =
+        1461446703485210103287273052203988822378723970342;
 
     /// @notice Calculates sqrtP after assembling a position
     /// @dev Choice of insurance function made in this function
@@ -39,6 +40,10 @@ library SqrtPriceMath {
                 2 * (liquidity - liquidityDelta),
                 liquidity + root
             );
-        return nextX96.toUint160();
+        require(
+            nextX96 >= MIN_SQRT_RATIO && nextX96 <= MAX_SQRT_RATIO,
+            "sqrtPriceX96Next exceeds limits"
+        );
+        return uint160(nextX96);
     }
 }

@@ -24,3 +24,8 @@ def rando_token_a_address():
 @pytest.fixture(scope="session")
 def rando_token_b_address():
     return "0x000000000000000000000000000000000000000b"
+
+
+@pytest.fixture(scope="session")
+def factory(project, accounts):
+    return project.MarginalV1Factory.deploy(sender=accounts[0])
