@@ -2,7 +2,7 @@ from ape import project, reverts
 from ape.utils import ZERO_ADDRESS
 
 
-def test_create_pool_deploys_pool_contract(
+def test_create_pool__deploys_pool_contract(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     tx = factory.createPool(
@@ -16,7 +16,7 @@ def test_create_pool_deploys_pool_contract(
     assert pool.maintenance() == 2500
 
 
-def test_create_pool_stores_pool_address(
+def test_create_pool__stores_pool_address(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     tx = factory.createPool(
@@ -33,7 +33,7 @@ def test_create_pool_stores_pool_address(
     )
 
 
-def test_create_pool_orders_tokens(
+def test_create_pool__orders_tokens(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     tx = factory.createPool(
@@ -45,7 +45,7 @@ def test_create_pool_orders_tokens(
     assert pool.token1() == rando_token_b_address
 
 
-def test_create_pool_emits_pool_created(
+def test_create_pool__emits_pool_created(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     tx = factory.createPool(
@@ -62,7 +62,7 @@ def test_create_pool_emits_pool_created(
     assert event.pool == tx.return_value
 
 
-def test_create_pool_deletes_params(
+def test_create_pool__deletes_params(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     _ = factory.createPool(
@@ -74,14 +74,14 @@ def test_create_pool_deletes_params(
     assert params.maintenance == 0
 
 
-def test_create_pool_reverts_when_same_token(factory, alice, rando_token_a_address):
+def test_create_pool__reverts_when_same_token(factory, alice, rando_token_a_address):
     with reverts("A == B"):
         factory.createPool(
             rando_token_a_address, rando_token_a_address, 2500, sender=alice
         )
 
 
-def test_create_pool_reverts_when_token_is_zero_address(
+def test_create_pool__reverts_when_token_is_zero_address(
     factory, alice, rando_token_a_address
 ):
     with reverts("token0 == address(0)"):
@@ -91,7 +91,7 @@ def test_create_pool_reverts_when_token_is_zero_address(
         factory.createPool(rando_token_a_address, ZERO_ADDRESS, 2500, sender=alice)
 
 
-def test_create_pool_reverts_when_invalid_maintenance(
+def test_create_pool__reverts_when_invalid_maintenance(
     factory, alice, rando_token_a_address, rando_token_b_address
 ):
     with reverts("leverage not enabled"):
