@@ -50,14 +50,16 @@ contract MockPosition {
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
-        uint128 liquidityDelta
+        uint128 liquidityDelta,
+        bool zeroForOne
     ) external view returns (uint128, uint128) {
         return
             Position.insurances(
                 liquidity,
                 sqrtPriceX96,
                 sqrtPriceX96Next,
-                liquidityDelta
+                liquidityDelta,
+                zeroForOne
             );
     }
 

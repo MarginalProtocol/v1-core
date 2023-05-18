@@ -49,7 +49,8 @@ library Position {
             liquidity,
             sqrtPriceX96,
             sqrtPriceX96Next,
-            liquidityDelta
+            liquidityDelta,
+            zeroForOne
         );
         (position.debt0, position.debt1) = debts(
             sqrtPriceX96Next,
@@ -84,7 +85,6 @@ library Position {
                 sqrtPriceX96Next).toUint128();
         } else {
             // L * sqrt(P) - L * sqrt(P')
-            // TODO: check math
             size1 = (
                 Math.mulDiv(
                     liquidity,
@@ -100,24 +100,30 @@ library Position {
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
-        uint128 liquidityDelta
+        uint128 liquidityDelta,
+        bool zeroForOne
     ) internal view returns (uint128 insurance0, uint128 insurance1) {
-        // TODO: check math same for long Y vs X
-        uint256 prod = Math.mulDiv(
-            (uint256(liquidity - liquidityDelta) << FixedPoint96.RESOLUTION) /
-                sqrtPriceX96,
-            sqrtPriceX96Next,
-            sqrtPriceX96
-        ); // TODO: overflow issues?
-        insurance0 = ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
-            sqrtPriceX96 -
-            prod).toUint128();
-        insurance1 = (Math.mulDiv(liquidity, sqrtPriceX96, FixedPoint96.Q96) -
-            Math.mulDiv(
+        uint256 prod = zeroForOne
+            ? Math.mulDiv(
                 liquidity - liquidityDelta,
                 sqrtPriceX96Next,
+                sqrtPriceX96
+            )
+            : Math.mulDiv(
+                liquidity - liquidityDelta,
+                sqrtPriceX96,
+                sqrtPriceX96Next
+            );
+
+        insurance0 = (((uint256(liquidity) - prod) << FixedPoint96.RESOLUTION) /
+            sqrtPriceX96).toUint128();
+        insurance1 = (
+            Math.mulDiv(
+                uint256(liquidity) - prod,
+                sqrtPriceX96,
                 FixedPoint96.Q96
-            )).toUint128();
+            )
+        ).toUint128();
     }
 
     /// @notice Debts owed by position in (x, y) amounts
@@ -127,7 +133,6 @@ library Position {
         uint128 insurance0,
         uint128 insurance1
     ) internal view returns (uint128 debt0, uint128 debt1) {
-        // TODO: check math same for long Y vs X
         debt0 = ((uint256(liquidityDelta) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96Next -
             insurance0).toUint128();
