@@ -3,6 +3,7 @@ pragma solidity 0.8.17;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
@@ -12,12 +13,15 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 
 contract MarginalV1Pool is ERC20 {
     using Position for mapping(uint256 => Position.Info);
+    using SafeCast for uint256;
 
     address public immutable factory;
 
     address public immutable token0;
     address public immutable token1;
-    uint16 public immutable maintenance;
+
+    uint24 public immutable fee;
+    uint24 public immutable maintenance;
 
     // TODO: group in pool state struct
     // @dev Pool state represented in (L, sqrtP) space
@@ -46,7 +50,8 @@ contract MarginalV1Pool is ERC20 {
     );
 
     constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
-        (token0, token1, maintenance) = IMarginalV1Factory(msg.sender).params();
+        (token0, token1, maintenance, fee) = IMarginalV1Factory(msg.sender)
+            .params();
         factory = msg.sender;
     }
 
@@ -86,8 +91,9 @@ contract MarginalV1Pool is ERC20 {
             _sqrtPriceX96,
             sqrtPriceX96Next,
             liquidityDelta,
-            zeroForOne
-        ); // TODO: add funding index, fees
+            zeroForOne,
+            fee
+        ); // TODO: add funding index
 
         liquidity -= liquidityDelta;
         sqrtPriceX96 = sqrtPriceX96Next;
@@ -97,9 +103,10 @@ contract MarginalV1Pool is ERC20 {
         if (zeroForOne) {
             // long token0 relative to token1; margin in token0
             uint256 balance0Before = balance0();
-            uint256 margin0Minimum = Position.marginMinimum(
+            uint256 margin0Minimum = Position.marginMinimumWithFees(
                 position.size0,
-                maintenance
+                maintenance,
+                fee
             );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 margin0Minimum,
@@ -108,13 +115,14 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance0() - balance0Before;
             require(margin >= margin0Minimum, "margin0 < min"); // TODO: possibly relax so swaps can happen
-            position.size0 += uint128(margin); // TODO: univ2 style unsafe cast; worry for large margin?
+            position.size0 += margin.toUint128();
         } else {
             // long token1 relative to token0; margin in token1
             uint256 balance1Before = balance1();
-            uint256 margin1Minimum = Position.marginMinimum(
+            uint256 margin1Minimum = Position.marginMinimumWithFees(
                 position.size1,
-                maintenance
+                maintenance,
+                fee
             );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
@@ -123,7 +131,7 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance1() - balance1Before;
             require(margin >= margin1Minimum, "margin1 < min"); // TODO: possibly relax so swaps can happen
-            position.size1 += uint128(margin); // TODO: univ2 style unsafe cast; worry for large margin?
+            position.size1 += margin.toUint128();
         }
 
         // store position info

@@ -9,7 +9,7 @@ contract MockSqrtPriceMath {
         uint160 sqrtPriceX96,
         uint128 liquidityDelta,
         bool zeroForOne,
-        uint16 maintenance
+        uint24 maintenance
     ) external view returns (uint160) {
         return
             SqrtPriceMath.sqrtPriceX96Next(

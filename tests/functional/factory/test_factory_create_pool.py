@@ -1,43 +1,48 @@
+import pytest
+
 from ape import project, reverts
 from ape.utils import ZERO_ADDRESS
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__deploys_pool_contract(
-    factory, alice, rando_token_a_address, rando_token_b_address
+    factory, alice, rando_token_a_address, rando_token_b_address, maintenance
 ):
     tx = factory.createPool(
-        rando_token_a_address, rando_token_b_address, 2500, sender=alice
+        rando_token_a_address, rando_token_b_address, maintenance, sender=alice
     )
     pool = project.MarginalV1Pool.at(tx.return_value)
 
     assert pool.factory() == factory.address
     assert pool.token0() == rando_token_a_address
     assert pool.token1() == rando_token_b_address
-    assert pool.maintenance() == 2500
+    assert pool.maintenance() == maintenance
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__stores_pool_address(
-    factory, alice, rando_token_a_address, rando_token_b_address
+    factory, alice, rando_token_a_address, rando_token_b_address, maintenance
 ):
     tx = factory.createPool(
-        rando_token_a_address, rando_token_b_address, 2500, sender=alice
+        rando_token_a_address, rando_token_b_address, maintenance, sender=alice
     )
     pool_address = tx.return_value
     assert (
-        factory.getPool(rando_token_a_address, rando_token_b_address, 2500)
+        factory.getPool(rando_token_a_address, rando_token_b_address, maintenance)
         == pool_address
     )
     assert (
-        factory.getPool(rando_token_b_address, rando_token_a_address, 2500)
+        factory.getPool(rando_token_b_address, rando_token_a_address, maintenance)
         == pool_address
     )
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__orders_tokens(
-    factory, alice, rando_token_a_address, rando_token_b_address
+    factory, alice, rando_token_a_address, rando_token_b_address, maintenance
 ):
     tx = factory.createPool(
-        rando_token_b_address, rando_token_a_address, 2500, sender=alice
+        rando_token_b_address, rando_token_a_address, maintenance, sender=alice
     )
     pool = project.MarginalV1Pool.at(tx.return_value)
 
@@ -45,11 +50,12 @@ def test_create_pool__orders_tokens(
     assert pool.token1() == rando_token_b_address
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__emits_pool_created(
-    factory, alice, rando_token_a_address, rando_token_b_address
+    factory, alice, rando_token_a_address, rando_token_b_address, maintenance
 ):
     tx = factory.createPool(
-        rando_token_a_address, rando_token_b_address, 2500, sender=alice
+        rando_token_a_address, rando_token_b_address, maintenance, sender=alice
     )
     # tx.show_trace(verbose=True)
     events = tx.decode_logs(factory.PoolCreated)
@@ -58,37 +64,47 @@ def test_create_pool__emits_pool_created(
 
     assert event.token0 == rando_token_a_address
     assert event.token1 == rando_token_b_address
-    assert event.maintenance == 2500
+    assert event.maintenance == maintenance
     assert event.pool == tx.return_value
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__deletes_params(
-    factory, alice, rando_token_a_address, rando_token_b_address
+    factory, alice, rando_token_a_address, rando_token_b_address, maintenance
 ):
     _ = factory.createPool(
-        rando_token_a_address, rando_token_b_address, 2500, sender=alice
+        rando_token_a_address, rando_token_b_address, maintenance, sender=alice
     )
     params = factory.params()
     assert params.token0 == ZERO_ADDRESS
     assert params.token1 == ZERO_ADDRESS
     assert params.maintenance == 0
+    assert params.fee == 0
 
 
-def test_create_pool__reverts_when_same_token(factory, alice, rando_token_a_address):
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_create_pool__reverts_when_same_token(
+    factory, alice, rando_token_a_address, maintenance
+):
     with reverts("A == B"):
         factory.createPool(
-            rando_token_a_address, rando_token_a_address, 2500, sender=alice
+            rando_token_a_address, rando_token_a_address, maintenance, sender=alice
         )
 
 
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__reverts_when_token_is_zero_address(
-    factory, alice, rando_token_a_address
+    factory, alice, rando_token_a_address, maintenance
 ):
     with reverts("token0 == address(0)"):
-        factory.createPool(ZERO_ADDRESS, rando_token_a_address, 2500, sender=alice)
+        factory.createPool(
+            ZERO_ADDRESS, rando_token_a_address, maintenance, sender=alice
+        )
 
     with reverts("token0 == address(0)"):
-        factory.createPool(rando_token_a_address, ZERO_ADDRESS, 2500, sender=alice)
+        factory.createPool(
+            rando_token_a_address, ZERO_ADDRESS, maintenance, sender=alice
+        )
 
 
 def test_create_pool__reverts_when_invalid_maintenance(

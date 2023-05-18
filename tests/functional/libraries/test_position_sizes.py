@@ -17,7 +17,7 @@ def test_position_sizes__with_zero_for_one(position_lib):
     zero_for_one = True
 
     liquidity_delta = liquidity * 5 // 100
-    maintenance = 2500
+    maintenance = 250000
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
@@ -45,7 +45,7 @@ def test_position_sizes__with_one_for_zero(position_lib):
     zero_for_one = False
 
     liquidity_delta = liquidity * 5 // 100
-    maintenance = 2500
+    maintenance = 250000
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
@@ -74,6 +74,7 @@ def test_position_sizes__with_one_for_zero(position_lib):
 def test_position_sizes__with_fuzz(
     position_lib, liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
 ):
+    # TODO: fix anvil issues w fuzz
     result = position_lib.sizes(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )

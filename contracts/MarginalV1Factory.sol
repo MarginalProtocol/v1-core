@@ -4,39 +4,40 @@ pragma solidity 0.8.17;
 import {MarginalV1Pool} from "./MarginalV1Pool.sol";
 
 contract MarginalV1Factory {
-    mapping(address => mapping(address => mapping(uint256 => address)))
+    mapping(address => mapping(address => mapping(uint24 => address)))
         public getPool;
-    mapping(uint16 => uint256) public getLeverage;
+    mapping(uint24 => uint256) public getLeverage;
 
     struct Params {
         address token0;
         address token1;
-        uint16 maintenance;
+        uint24 maintenance; // precision of 1e6
+        uint24 fee; // precision of 1e6
     }
     Params public params;
 
     event PoolCreated(
         address token0,
         address token1,
-        uint16 maintenance,
+        uint24 maintenance,
         address pool
     );
-    event LeverageEnabled(uint16 maintenance, uint256 leverage);
+    event LeverageEnabled(uint24 maintenance, uint256 leverage);
 
     constructor() {
-        getLeverage[2500] = 50000; // precision of 1e4
-        emit LeverageEnabled(2500, 50000);
-        getLeverage[5000] = 30000;
-        emit LeverageEnabled(5000, 30000);
-        getLeverage[10000] = 20000;
-        emit LeverageEnabled(10000, 20000);
+        getLeverage[250000] = 5000000;
+        emit LeverageEnabled(250000, 5000000);
+        getLeverage[500000] = 3000000;
+        emit LeverageEnabled(500000, 3000000);
+        getLeverage[1000000] = 2000000;
+        emit LeverageEnabled(1000000, 2000000);
     }
 
     // TODO: fee input param to choose which uni pool to use for twap oracle
     function createPool(
         address tokenA,
         address tokenB,
-        uint16 maintenance
+        uint24 maintenance
     ) external returns (address pool) {
         require(tokenA != tokenB, "A == B");
         (address token0, address token1) = tokenA < tokenB
@@ -48,7 +49,8 @@ contract MarginalV1Factory {
         params = Params({
             token0: token0,
             token1: token1,
-            maintenance: maintenance
+            maintenance: maintenance, // different max leverages across pools
+            fee: 1000 // 10 bps across all pools
         });
         pool = address(
             new MarginalV1Pool{

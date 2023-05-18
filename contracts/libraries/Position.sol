@@ -5,7 +5,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {FixedPoint96} from "./FixedPoint96.sol";
-import {MaintenanceMath} from "./MaintenanceMath.sol";
 
 /// @dev Positions represented in (x, y) space
 // TODO: check careful w types and overflow for price, liquidity math
@@ -31,12 +30,14 @@ library Position {
     }
 
     /// @notice Assembles a new position from pool state
+    /// @dev Includes fees on size added to debt on long token
     function assemble(
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
-        bool zeroForOne
+        bool zeroForOne,
+        uint24 fee
     ) internal view returns (Info memory position) {
         (position.size0, position.size1) = sizes(
             liquidity,
@@ -56,6 +57,16 @@ library Position {
             position.insurance0,
             position.insurance1
         );
+
+        (uint128 fees0, uint128 fees1) = fees(
+            position.size0,
+            position.size1,
+            fee
+        );
+
+        // add the fees to debt outstanding
+        position.debt0 += fees0;
+        position.debt1 += fees1;
     }
 
     /// @notice Size of position in (x, y) amounts
@@ -67,7 +78,6 @@ library Position {
     ) internal view returns (uint128 size0, uint128 size1) {
         if (zeroForOne) {
             // L / sqrt(P) - L / sqrt(P')
-            // TODO: sizes, debts, insurances as uint192? otherwise need to safecast
             size0 = ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
                 sqrtPriceX96 -
                 (uint256(liquidity) << FixedPoint96.RESOLUTION) /
@@ -75,7 +85,6 @@ library Position {
         } else {
             // L * sqrt(P) - L * sqrt(P')
             // TODO: check math
-            // TODO: sizes as uint192? otherwise need to safecast
             size1 = (
                 Math.mulDiv(
                     liquidity,
@@ -129,11 +138,23 @@ library Position {
         ) - insurance1).toUint128();
     }
 
-    /// @notice Absolute minimum margin requirement
-    function marginMinimum(
+    /// @notice Fees owed by position in (x, y) amounts
+    /// @dev Fees taken proportional to size and added to long token debt
+    function fees(
+        uint128 size0,
+        uint128 size1,
+        uint24 fee
+    ) internal view returns (uint128 fees0, uint128 fees1) {
+        fees0 = uint128((uint256(size0) * fee) / 1e6);
+        fees1 = uint128((uint256(size1) * fee) / 1e6);
+    }
+
+    /// @notice Absolute minimum margin requirement accounting for fees
+    function marginMinimumWithFees(
         uint128 size,
-        uint16 maintenance
+        uint24 maintenance,
+        uint24 fee
     ) internal view returns (uint256) {
-        return Math.mulDiv(size, maintenance, MaintenanceMath.unit);
+        return (uint256(size) * maintenance + uint256(size) * fee) / 1e6;
     }
 }

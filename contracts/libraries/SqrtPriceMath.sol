@@ -2,7 +2,6 @@
 pragma solidity 0.8.17;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {MaintenanceMath} from "./MaintenanceMath.sol";
 
 library SqrtPriceMath {
     /// @dev Adopts Uni V3 tick limits of (-887272, 887272)
@@ -17,14 +16,10 @@ library SqrtPriceMath {
         uint160 sqrtPriceX96,
         uint128 liquidityDelta,
         bool zeroForOne,
-        uint16 maintenance
+        uint24 maintenance
     ) internal view returns (uint160) {
         uint256 prod = liquidityDelta * (liquidity - liquidityDelta);
-        prod = Math.mulDiv(
-            prod,
-            MaintenanceMath.unit,
-            (MaintenanceMath.unit + maintenance)
-        );
+        prod = Math.mulDiv(prod, 1e6, 1e6 + maintenance);
 
         uint256 under = liquidity ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
