@@ -12,7 +12,7 @@ import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCallback.sol";
 
 contract MarginalV1Pool is ERC20 {
-    using Position for mapping(uint256 => Position.Info);
+    using Position for mapping(bytes32 => Position.Info);
     using SafeCast for uint256;
 
     address public immutable factory;
@@ -29,7 +29,7 @@ contract MarginalV1Pool is ERC20 {
     uint160 public sqrtPriceX96;
     uint256 public fundingIndex; // TODO: type < uint224 (?) for state in one word
 
-    mapping(uint256 => Position.Info) public positions;
+    mapping(bytes32 => Position.Info) public positions;
     uint256 private totalPositions;
 
     uint256 private unlocked = 0;
@@ -41,7 +41,9 @@ contract MarginalV1Pool is ERC20 {
     }
 
     event Open(
-        uint256 id,
+        address sender,
+        address indexed owner,
+        uint256 indexed id,
         uint128 liquidityBefore,
         uint160 sqrtPriceX96Before,
         uint128 liquidityDelta,
@@ -74,7 +76,11 @@ contract MarginalV1Pool is ERC20 {
         return IERC20(token1).balanceOf(address(this));
     }
 
-    function open(uint128 liquidityDelta, bool zeroForOne) external lock {
+    function open(
+        address recipient,
+        uint128 liquidityDelta,
+        bool zeroForOne
+    ) external lock {
         uint160 _sqrtPriceX96 = sqrtPriceX96;
         uint128 _liquidity = liquidity;
         require(liquidityDelta < _liquidity); // TODO: min liquidity, min liquidity delta (size)
@@ -135,13 +141,14 @@ contract MarginalV1Pool is ERC20 {
         }
 
         // store position info
-        // TODO: figure out what to use for positions key and remove totalPositions given gas expenditure + totalPositions can overflow
-        // TODO: key should use msg.sender
+        // TODO: remove totalPositions from key as ID? / choose diff unique ID?
         uint256 id = totalPositions;
-        positions.set(id, position);
+        positions.set(recipient, id, position);
         totalPositions++;
 
         emit Open(
+            msg.sender,
+            recipient,
             id,
             _liquidity,
             _sqrtPriceX96,

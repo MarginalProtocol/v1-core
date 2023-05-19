@@ -20,13 +20,23 @@ library Position {
         bool zeroForOne;
     }
 
+    /// @notice Gets a position from positions mapping
+    function get(
+        mapping(bytes32 => Info) storage positions,
+        address owner,
+        uint256 id
+    ) internal view returns (Info memory) {
+        return positions[keccak256(abi.encodePacked(owner, id))];
+    }
+
     /// @notice Stores the given position in positions mapping
     function set(
-        mapping(uint256 => Info) storage positions,
+        mapping(bytes32 => Info) storage positions,
+        address owner,
         uint256 id,
         Info memory position
     ) internal {
-        positions[id] = position;
+        positions[keccak256(abi.encodePacked(owner, id))] = position;
     }
 
     /// @notice Assembles a new position from pool state

@@ -4,12 +4,23 @@ pragma solidity 0.8.17;
 import {Position} from "../../../libraries/Position.sol";
 
 contract MockPosition {
-    using Position for mapping(uint256 => Position.Info);
+    using Position for mapping(bytes32 => Position.Info);
 
-    mapping(uint256 => Position.Info) public positions;
+    mapping(bytes32 => Position.Info) public positions;
 
-    function set(uint256 id, Position.Info memory position) external {
-        positions.set(id, position);
+    function get(
+        address owner,
+        uint256 id
+    ) external view returns (Position.Info memory) {
+        return positions.get(owner, id);
+    }
+
+    function set(
+        address owner,
+        uint256 id,
+        Position.Info memory position
+    ) external {
+        positions.set(owner, id, position);
     }
 
     function assemble(
