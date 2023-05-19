@@ -73,7 +73,7 @@ contract MarginalV1Pool is ERC20 {
             tickCumulative: 0,
             totalPositions: 0
         });
-        unlocked = 1;
+        unlocked = 2;
     }
 
     function _blockTimestamp() internal view virtual returns (uint32) {
@@ -165,7 +165,7 @@ contract MarginalV1Pool is ERC20 {
         positions.set(recipient, _state.totalPositions, position);
         _state.totalPositions++;
 
-        // update to latest state
+        // update pool state to latest
         state = _state;
 
         emit Open(

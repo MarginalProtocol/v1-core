@@ -57,7 +57,6 @@ def test_create_pool__emits_pool_created(
     tx = factory.createPool(
         rando_token_a_address, rando_token_b_address, maintenance, sender=alice
     )
-    # tx.show_trace(verbose=True)
     events = tx.decode_logs(factory.PoolCreated)
     assert len(events) == 1
     event = events[0]
