@@ -12,12 +12,12 @@ library Position {
     using SafeCast for uint256;
 
     struct Info {
-        uint128 size0;
-        uint128 size1;
+        uint128 size;
         uint128 debt0;
         uint128 debt1;
         uint128 insurance0;
-        uint128 insurance1;
+        uint128 insurance1; // TODO: pack w funding index (int56?), etc.
+        bool zeroForOne;
     }
 
     /// @notice Stores the given position in positions mapping
@@ -39,7 +39,8 @@ library Position {
         bool zeroForOne,
         uint24 fee
     ) internal view returns (Info memory position) {
-        (position.size0, position.size1) = sizes(
+        position.zeroForOne = zeroForOne;
+        position.size = size(
             liquidity,
             sqrtPriceX96,
             sqrtPriceX96Next,
@@ -59,39 +60,39 @@ library Position {
             position.insurance1
         );
 
-        (uint128 fees0, uint128 fees1) = fees(
-            position.size0,
-            position.size1,
-            fee
-        );
-
-        // add the fees to debt outstanding
-        position.debt0 += fees0;
-        position.debt1 += fees1;
+        // fees to take out position added to margin token debt
+        uint128 _fees = fees(position.size, fee);
+        if (zeroForOne) {
+            position.debt0 += _fees;
+        } else {
+            position.debt1 += _fees;
+        }
     }
 
     /// @notice Size of position in (x, y) amounts
-    function sizes(
+    function size(
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         bool zeroForOne
-    ) internal view returns (uint128 size0, uint128 size1) {
+    ) internal view returns (uint128) {
         if (zeroForOne) {
             // L / sqrt(P) - L / sqrt(P')
-            size0 = ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
-                sqrtPriceX96 -
-                (uint256(liquidity) << FixedPoint96.RESOLUTION) /
-                sqrtPriceX96Next).toUint128();
+            return
+                ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
+                    sqrtPriceX96 -
+                    (uint256(liquidity) << FixedPoint96.RESOLUTION) /
+                    sqrtPriceX96Next).toUint128();
         } else {
             // L * sqrt(P) - L * sqrt(P')
-            size1 = (
-                Math.mulDiv(
-                    liquidity,
-                    sqrtPriceX96 - sqrtPriceX96Next,
-                    FixedPoint96.Q96
-                )
-            ).toUint128();
+            return
+                (
+                    Math.mulDiv(
+                        liquidity,
+                        sqrtPriceX96 - sqrtPriceX96Next,
+                        FixedPoint96.Q96
+                    )
+                ).toUint128();
         }
     }
 
@@ -144,14 +145,9 @@ library Position {
     }
 
     /// @notice Fees owed by position in (x, y) amounts
-    /// @dev Fees taken proportional to size and added to long token debt
-    function fees(
-        uint128 size0,
-        uint128 size1,
-        uint24 fee
-    ) internal view returns (uint128 fees0, uint128 fees1) {
-        fees0 = uint128((uint256(size0) * fee) / 1e6);
-        fees1 = uint128((uint256(size1) * fee) / 1e6);
+    /// @dev Fees taken proportional to size and added to margin token debt
+    function fees(uint128 size, uint24 fee) internal view returns (uint128) {
+        return uint128((uint256(size) * fee) / 1e6);
     }
 
     /// @notice Absolute minimum margin requirement accounting for fees

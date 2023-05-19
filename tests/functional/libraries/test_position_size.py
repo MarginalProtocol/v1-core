@@ -8,7 +8,7 @@ from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_sqrt_price_x96_next
 
 
-def test_position_sizes__with_zero_for_one(position_lib):
+def test_position_size__with_zero_for_one(position_lib):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
     liquidity = int(sqrt(x * y))
@@ -27,16 +27,14 @@ def test_position_sizes__with_zero_for_one(position_lib):
     size0 = int(liquidity * (1 << 96) / sqrt_price_x96) - int(
         liquidity * (1 << 96) / sqrt_price_x96_next
     )
-    size1 = 0
 
-    result = position_lib.sizes(
+    result = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
-    assert pytest.approx(result[0], rel=1e-15) == size0
-    assert result[1] == size1
+    assert pytest.approx(result, rel=1e-15) == size0
 
 
-def test_position_sizes__with_one_for_zero(position_lib):
+def test_position_size__with_one_for_zero(position_lib):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
     liquidity = int(sqrt(x * y))
@@ -52,14 +50,12 @@ def test_position_sizes__with_one_for_zero(position_lib):
 
     # size1 is L * (sqrt(P) - sqrt(P'))
     # about ~ 1% of x pool given liquidity delta
-    size0 = 0
     size1 = int((liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) / (1 << 96))
 
-    result = position_lib.sizes(
+    result = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
-    assert result[0] == size0
-    assert pytest.approx(result[1], rel=1e-15) == size1
+    assert pytest.approx(result, rel=1e-15) == size1
 
 
 @pytest.mark.fuzzing
@@ -71,11 +67,11 @@ def test_position_sizes__with_one_for_zero(position_lib):
     sqrt_price_x96_next=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
     zero_for_one=st.booleans(),
 )
-def test_position_sizes__with_fuzz(
+def test_position_size__with_fuzz(
     position_lib, liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
 ):
     # TODO: fix anvil issues w fuzz
-    result = position_lib.sizes(
+    result = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
@@ -83,11 +79,7 @@ def test_position_sizes__with_fuzz(
         size0 = int(liquidity * (1 << 96) / sqrt_price_x96) - int(
             liquidity * (1 << 96) / sqrt_price_x96_next
         )
-        size1 = 0
-        assert pytest.approx(result[0], rel=1e-15) == size0
-        assert result[1] == size1
+        assert pytest.approx(result, rel=1e-15) == size0
     else:
-        size0 = 0
         size1 = int((liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) / (1 << 96))
-        assert result[0] == size0
-        assert pytest.approx(result[1], rel=1e-15) == size1
+        assert pytest.approx(result, rel=1e-15) == size1

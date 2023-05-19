@@ -104,7 +104,7 @@ contract MarginalV1Pool is ERC20 {
             // long token0 relative to token1; margin in token0
             uint256 balance0Before = balance0();
             uint256 margin0Minimum = Position.marginMinimumWithFees(
-                position.size0,
+                position.size,
                 maintenance,
                 fee
             );
@@ -115,12 +115,12 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance0() - balance0Before;
             require(margin >= margin0Minimum, "margin0 < min"); // TODO: possibly relax so swaps can happen
-            position.size0 += margin.toUint128();
+            position.size += margin.toUint128();
         } else {
             // long token1 relative to token0; margin in token1
             uint256 balance1Before = balance1();
             uint256 margin1Minimum = Position.marginMinimumWithFees(
-                position.size1,
+                position.size,
                 maintenance,
                 fee
             );
@@ -131,7 +131,7 @@ contract MarginalV1Pool is ERC20 {
 
             margin = balance1() - balance1Before;
             require(margin >= margin1Minimum, "margin1 < min"); // TODO: possibly relax so swaps can happen
-            position.size1 += margin.toUint128();
+            position.size += margin.toUint128();
         }
 
         // store position info

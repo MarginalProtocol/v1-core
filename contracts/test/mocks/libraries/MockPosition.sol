@@ -31,14 +31,14 @@ contract MockPosition {
             );
     }
 
-    function sizes(
+    function size(
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         bool zeroForOne
-    ) external view returns (uint128, uint128) {
+    ) external view returns (uint128) {
         return
-            Position.sizes(
+            Position.size(
                 liquidity,
                 sqrtPriceX96,
                 sqrtPriceX96Next,
@@ -78,12 +78,8 @@ contract MockPosition {
             );
     }
 
-    function fees(
-        uint128 size0,
-        uint128 size1,
-        uint24 fee
-    ) external view returns (uint128, uint128) {
-        return Position.fees(size0, size1, fee);
+    function fees(uint128 size, uint24 fee) external view returns (uint128) {
+        return Position.fees(size, fee);
     }
 
     function marginMinimumWithFees(
