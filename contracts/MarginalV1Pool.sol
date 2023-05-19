@@ -5,6 +5,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
 
@@ -24,29 +26,30 @@ contract MarginalV1Pool is ERC20 {
     uint24 public immutable maintenance;
 
     // @dev Pool state represented in (L, sqrtP) space
-    // TODO: include tick?
     struct State {
         uint128 liquidity;
         uint160 sqrtPriceX96;
+        int24 tick;
+        uint32 blockTimestamp;
         int56 tickCumulative;
-        uint160 totalPositions; // > ~ 1e39 years at max per block to fill on mainnet
-        bool unlocked;
+        uint112 totalPositions; // > ~ 1e25 years at max per block to fill on mainnet
     }
     State public state;
 
     mapping(bytes32 => Position.Info) public positions;
 
+    uint256 private unlocked = 1; // uses OZ convention of 1 for false and 2 for true
     modifier lock() {
-        require(state.unlocked, "locked");
-        state.unlocked = false;
+        require(unlocked == 2, "locked");
+        unlocked = 1;
         _;
-        state.unlocked = true;
+        unlocked = 2;
     }
 
     event Open(
         address sender,
         address indexed owner,
-        uint160 indexed id,
+        uint112 indexed id,
         uint128 liquidityAfter,
         uint160 sqrtPriceX96After,
         uint128 liquidityDelta,
@@ -68,7 +71,11 @@ contract MarginalV1Pool is ERC20 {
             "sqrtPriceX96 exceeds limits"
         );
         state.sqrtPriceX96 = _sqrtPriceX96;
-        state.unlocked = true;
+        unlocked = 1;
+    }
+
+    function _blockTimestamp() internal view virtual returns (uint32) {
+        return uint32(block.timestamp);
     }
 
     function balance0() private view returns (uint256) {
@@ -106,6 +113,16 @@ contract MarginalV1Pool is ERC20 {
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
 
+        // add to tick cumulatives for funding calc
+        int24 tickNext = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
+        _state.tickCumulative +=
+            int56(_state.tick) *
+            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
+        _state.blockTimestamp = _blockTimestamp();
+        _state.tick = tickNext;
+
+        // TODO: calc funding index and set in position
+
         // callback for margin amount
         uint256 margin;
         if (zeroForOne) {
@@ -142,7 +159,7 @@ contract MarginalV1Pool is ERC20 {
             position.size += margin.toUint128();
         }
 
-        uint160 id = _state.totalPositions;
+        uint112 id = _state.totalPositions;
         positions.set(recipient, _state.totalPositions, position);
         _state.totalPositions++;
 

@@ -7,7 +7,7 @@ def test_position_set(position_lib, alice):
     position = (1000000, 100, 200, 50, 60, True)
     position_lib.set(alice, id, position, sender=alice)
 
-    key = keccak(encode_packed(["address", "uint256"], [alice.address, id]))
+    key = keccak(encode_packed(["address", "uint112"], [alice.address, id]))
     assert position_lib.positions(key) == position
 
 

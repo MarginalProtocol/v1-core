@@ -17,7 +17,11 @@ dependencies:
   - name: openzeppelin
     github: OpenZeppelin/openzeppelin-contracts
     version: 4.8.3
+  - name: uniswap-v3-core
+    github: Uniswap/v3-core
+    ref: 0.8
 
 solidity:
   import_remapping:
     - "@openzeppelin/contracts=openzeppelin/v4.8.3"
+    - "@uniswap/v3-core/contracts=uniswap-v3-core/v0.8"

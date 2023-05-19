@@ -36,7 +36,7 @@ library SqrtPriceMath {
                 liquidity + root
             );
         require(
-            nextX96 >= MIN_SQRT_RATIO && nextX96 <= MAX_SQRT_RATIO,
+            nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO,
             "sqrtPriceX96Next exceeds limits"
         );
         return uint160(nextX96);
