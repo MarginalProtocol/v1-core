@@ -23,29 +23,32 @@ contract MarginalV1Pool is ERC20 {
     uint24 public immutable fee;
     uint24 public immutable maintenance;
 
-    // TODO: group in pool state struct
     // @dev Pool state represented in (L, sqrtP) space
-    uint128 public liquidity;
-    uint160 public sqrtPriceX96;
-    uint256 public fundingIndex; // TODO: type < uint224 (?) for state in one word
+    // TODO: include tick?
+    struct State {
+        uint128 liquidity;
+        uint160 sqrtPriceX96;
+        int56 tickCumulative;
+        uint160 totalPositions; // > ~ 1e39 years at max per block to fill on mainnet
+        bool unlocked;
+    }
+    State public state;
 
     mapping(bytes32 => Position.Info) public positions;
-    uint256 private totalPositions;
 
-    uint256 private unlocked = 0;
     modifier lock() {
-        require(unlocked == 1, "locked");
-        unlocked = 0;
+        require(state.unlocked, "locked");
+        state.unlocked = false;
         _;
-        unlocked = 1;
+        state.unlocked = true;
     }
 
     event Open(
         address sender,
         address indexed owner,
-        uint256 indexed id,
-        uint128 liquidityBefore,
-        uint160 sqrtPriceX96Before,
+        uint160 indexed id,
+        uint128 liquidityAfter,
+        uint160 sqrtPriceX96After,
         uint128 liquidityDelta,
         bool zeroForOne,
         uint128 margin
@@ -58,14 +61,14 @@ contract MarginalV1Pool is ERC20 {
     }
 
     function initialize(uint160 _sqrtPriceX96) external {
-        require(sqrtPriceX96 == 0, "initialized");
+        require(state.sqrtPriceX96 == 0, "initialized");
         require(
             _sqrtPriceX96 >= SqrtPriceMath.MIN_SQRT_RATIO &&
                 _sqrtPriceX96 <= SqrtPriceMath.MAX_SQRT_RATIO,
             "sqrtPriceX96 exceeds limits"
         );
-        sqrtPriceX96 = _sqrtPriceX96;
-        unlocked = 1;
+        state.sqrtPriceX96 = _sqrtPriceX96;
+        state.unlocked = true;
     }
 
     function balance0() private view returns (uint256) {
@@ -81,28 +84,27 @@ contract MarginalV1Pool is ERC20 {
         uint128 liquidityDelta,
         bool zeroForOne
     ) external lock {
-        uint160 _sqrtPriceX96 = sqrtPriceX96;
-        uint128 _liquidity = liquidity;
-        require(liquidityDelta < _liquidity); // TODO: min liquidity, min liquidity delta (size)
+        State memory _state = state;
+        require(liquidityDelta < _state.liquidity); // TODO: min liquidity, min liquidity delta (size)
 
         uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96Next(
-            _liquidity,
-            _sqrtPriceX96,
+            _state.liquidity,
+            _state.sqrtPriceX96,
             liquidityDelta,
             zeroForOne,
             maintenance
         );
         Position.Info memory position = Position.assemble(
-            _liquidity,
-            _sqrtPriceX96,
+            _state.liquidity,
+            _state.sqrtPriceX96,
             sqrtPriceX96Next,
             liquidityDelta,
             zeroForOne,
             fee
         ); // TODO: add funding index
 
-        liquidity -= liquidityDelta;
-        sqrtPriceX96 = sqrtPriceX96Next;
+        _state.liquidity -= liquidityDelta;
+        _state.sqrtPriceX96 = sqrtPriceX96Next;
 
         // callback for margin amount
         uint256 margin;
@@ -140,18 +142,19 @@ contract MarginalV1Pool is ERC20 {
             position.size += margin.toUint128();
         }
 
-        // store position info
-        // TODO: remove totalPositions from key as ID? / choose diff unique ID?
-        uint256 id = totalPositions;
-        positions.set(recipient, id, position);
-        totalPositions++;
+        uint160 id = _state.totalPositions;
+        positions.set(recipient, _state.totalPositions, position);
+        _state.totalPositions++;
+
+        // update to latest state
+        state = _state;
 
         emit Open(
             msg.sender,
             recipient,
             id,
-            _liquidity,
-            _sqrtPriceX96,
+            _state.liquidity,
+            _state.sqrtPriceX96,
             liquidityDelta,
             zeroForOne,
             uint128(margin)
