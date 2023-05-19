@@ -65,12 +65,14 @@ contract MarginalV1Pool is ERC20 {
 
     function initialize(uint160 _sqrtPriceX96) external {
         require(state.sqrtPriceX96 == 0, "initialized");
-        require(
-            _sqrtPriceX96 >= SqrtPriceMath.MIN_SQRT_RATIO &&
-                _sqrtPriceX96 <= SqrtPriceMath.MAX_SQRT_RATIO,
-            "sqrtPriceX96 exceeds limits"
-        );
-        state.sqrtPriceX96 = _sqrtPriceX96;
+        state = State({
+            liquidity: 0,
+            sqrtPriceX96: _sqrtPriceX96,
+            tick: TickMath.getTickAtSqrtRatio(_sqrtPriceX96),
+            blockTimestamp: _blockTimestamp(),
+            tickCumulative: 0,
+            totalPositions: 0
+        });
         unlocked = 1;
     }
 
