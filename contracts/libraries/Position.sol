@@ -166,6 +166,6 @@ library Position {
         uint24 maintenance,
         uint24 fee
     ) internal view returns (uint256) {
-        return (uint256(size) * maintenance + uint256(size) * fee) / 1e6;
+        return (uint256(size) * (uint256(maintenance) + uint256(fee))) / 1e6;
     }
 }
