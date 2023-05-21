@@ -7,7 +7,6 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
 
 /// @dev Positions represented in (x, y) space
-// TODO: check careful w types and overflow for price, liquidity math
 library Position {
     using SafeCast for uint256;
 
@@ -119,12 +118,12 @@ library Position {
                 liquidity - liquidityDelta,
                 sqrtPriceX96Next,
                 sqrtPriceX96
-            )
+            ) // iy / y = 1 - sqrt(P'/P) * (1 - del L / L)
             : Math.mulDiv(
                 liquidity - liquidityDelta,
                 sqrtPriceX96,
                 sqrtPriceX96Next
-            );
+            ); // iy / y = 1 - sqrt(P/P') * (1 - del L / L)
 
         insurance0 = (((uint256(liquidity) - prod) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96).toUint128();
@@ -144,6 +143,7 @@ library Position {
         uint128 insurance0,
         uint128 insurance1
     ) internal view returns (uint128 debt0, uint128 debt1) {
+        // ix + dx = del L / sqrt(P'); iy + dy = del L * sqrt(P')
         debt0 = ((uint256(liquidityDelta) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96Next -
             insurance0).toUint128();

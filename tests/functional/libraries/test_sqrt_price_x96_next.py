@@ -86,7 +86,7 @@ def test_sqrt_price_math_x96_next__with_fuzz(
     if liquidity >= 2**128:
         liquidity = 2**128 - 1
 
-    liquidity_delta = liquidity * liquidity_delta_pc // 1000000
+    liquidity_delta = (liquidity * liquidity_delta_pc) // 1000000
 
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96

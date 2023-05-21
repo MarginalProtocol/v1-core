@@ -1,6 +1,11 @@
+import pytest
+
+from hypothesis import given
+from hypothesis import strategies as st
 from math import sqrt
 
-from utils.utils import calc_sqrt_price_x96_next
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
+from utils.utils import calc_sqrt_price_x96_next, calc_insurances
 
 
 def test_position_insurances__with_zero_for_one(position_lib):
@@ -16,13 +21,15 @@ def test_position_insurances__with_zero_for_one(position_lib):
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
-
-    # TODO: calc insurances
+    insurance0, insurance1 = calc_insurances(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
+    )
 
     result = position_lib.insurances(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
     )
-    assert 0 == 1
+    assert pytest.approx(result[0], rel=1e-15) == insurance0
+    assert pytest.approx(result[1], rel=1e-15) == insurance1
 
 
 def test_position_insurances__with_one_for_zero(position_lib):
@@ -38,14 +45,42 @@ def test_position_insurances__with_one_for_zero(position_lib):
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
-
-    # TODO: calc insurances
+    insurance0, insurance1 = calc_insurances(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
+    )
 
     result = position_lib.insurances(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
     )
-    assert 0 == 1
+    assert pytest.approx(result[0], rel=1e-15) == insurance0
+    assert pytest.approx(result[1], rel=1e-15) == insurance1
 
 
-def test_position_insurances__with_fuzz(position_lib):
-    pass
+@pytest.mark.fuzzing
+@given(
+    liquidity=st.integers(
+        min_value=1000, max_value=2**128 - 1
+    ),  # TODO: fix min value
+    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
+    sqrt_price_x96_next=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
+    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000 - 1),
+    zero_for_one=st.booleans(),
+)
+def test_position_insurances__with_fuzz(
+    position_lib,
+    liquidity,
+    sqrt_price_x96,
+    sqrt_price_x96_next,
+    liquidity_delta_pc,
+    zero_for_one,
+):
+    # TODO: fix for safe cast and anvil issues
+    liquidity_delta = (liquidity * liquidity_delta_pc) // 1000000
+    insurance0, insurance1 = calc_insurances(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
+    )
+    result = position_lib.insurances(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
+    )
+    assert pytest.approx(result[0], rel=1e-15) == insurance0
+    assert pytest.approx(result[1], rel=1e-15) == insurance1
