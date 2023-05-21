@@ -36,6 +36,9 @@ contract MarginalV1Pool is ERC20 {
     }
     State public state;
 
+    uint256 public feesOwedGlobal0;
+    uint256 public feesOwedGlobal1;
+
     mapping(bytes32 => Position.Info) public positions;
 
     uint256 private unlocked = 1; // uses OZ convention of 1 for false and 2 for true
@@ -108,8 +111,7 @@ contract MarginalV1Pool is ERC20 {
             _state.sqrtPriceX96,
             sqrtPriceX96Next,
             liquidityDelta,
-            zeroForOne,
-            fee
+            zeroForOne
         ); // TODO: add funding index
 
         _state.liquidity -= liquidityDelta;
@@ -130,35 +132,41 @@ contract MarginalV1Pool is ERC20 {
         if (zeroForOne) {
             // long token0 relative to token1; margin in token0
             uint256 balance0Before = balance0();
-            uint256 margin0Minimum = Position.marginMinimumWithFees(
+            uint256 margin0Minimum = Position.marginMinimum(
                 position.size,
-                maintenance,
-                fee
+                maintenance
             );
+            uint256 fees0 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
-                margin0Minimum,
+                margin0Minimum + fees0,
                 0
             ); // TODO: data param
 
-            margin = balance0() - balance0Before;
-            require(margin >= margin0Minimum, "margin0 < min"); // TODO: possibly relax so swaps can happen
+            uint256 amount0 = balance0() - balance0Before;
+            require(amount0 >= margin0Minimum + fees0, "amount0 < min"); // TODO: possibly relax so swaps can happen
+            margin = amount0 - fees0;
+
             position.size += margin.toUint128();
+            feesOwedGlobal0 += fees0;
         } else {
             // long token1 relative to token0; margin in token1
             uint256 balance1Before = balance1();
-            uint256 margin1Minimum = Position.marginMinimumWithFees(
+            uint256 margin1Minimum = Position.marginMinimum(
                 position.size,
-                maintenance,
-                fee
+                maintenance
             );
+            uint256 fees1 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
-                margin1Minimum
+                margin1Minimum + fees1
             );
 
-            margin = balance1() - balance1Before;
-            require(margin >= margin1Minimum, "margin1 < min"); // TODO: possibly relax so swaps can happen
+            uint256 amount1 = balance1() - balance1Before;
+            require(amount1 >= margin1Minimum + fees1, "amount1 < min"); // TODO: possibly relax so swaps can happen
+            margin = amount1 - fees1;
+
             position.size += margin.toUint128();
+            feesOwedGlobal1 += fees1;
         }
 
         uint112 id = _state.totalPositions;

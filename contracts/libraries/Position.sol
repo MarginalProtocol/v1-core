@@ -39,14 +39,12 @@ library Position {
     }
 
     /// @notice Assembles a new position from pool state
-    /// @dev Includes fees on size added to debt on long token
     function assemble(
         uint128 liquidity,
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
-        bool zeroForOne,
-        uint24 fee
+        bool zeroForOne
     ) internal view returns (Info memory position) {
         position.zeroForOne = zeroForOne;
         position.size = size(
@@ -68,14 +66,6 @@ library Position {
             position.insurance0,
             position.insurance1
         );
-
-        // fees to take out position added to margin token debt
-        uint128 _fees = fees(position.size, fee);
-        if (zeroForOne) {
-            position.debt0 += _fees;
-        } else {
-            position.debt1 += _fees;
-        }
     }
 
     /// @notice Size of position in (x, y) amounts
@@ -155,17 +145,16 @@ library Position {
     }
 
     /// @notice Fees owed by position in (x, y) amounts
-    /// @dev Fees taken proportional to size and added to margin token debt
-    function fees(uint128 size, uint24 fee) internal view returns (uint128) {
-        return uint128((uint256(size) * fee) / 1e6);
+    /// @dev Fees taken proportional to size
+    function fees(uint128 size, uint24 fee) internal view returns (uint256) {
+        return (uint256(size) * fee) / 1e6;
     }
 
-    /// @notice Absolute minimum margin requirement accounting for fees
-    function marginMinimumWithFees(
+    /// @notice Absolute minimum margin requirement
+    function marginMinimum(
         uint128 size,
-        uint24 maintenance,
-        uint24 fee
+        uint24 maintenance
     ) internal view returns (uint256) {
-        return (uint256(size) * (uint256(maintenance) + uint256(fee))) / 1e6;
+        return (uint256(size) * maintenance) / 1e6;
     }
 }

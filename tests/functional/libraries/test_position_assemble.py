@@ -28,10 +28,6 @@ def test_position_assemble__with_zero_for_one(position_lib):
         sqrt_price_x96_next, liquidity_delta, insurance0, insurance1
     )
 
-    # add fees to the x debt (margin token)
-    fees = position_lib.fees(size0, FEE)
-    debt0 += fees
-
     position = (size0, debt0, debt1, insurance0, insurance1, zero_for_one)
     result = position_lib.assemble(
         liquidity,
@@ -39,7 +35,6 @@ def test_position_assemble__with_zero_for_one(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
-        FEE,
     )
     assert result == position
 
@@ -68,10 +63,6 @@ def test_position_assemble__with_one_for_zero(position_lib):
         sqrt_price_x96_next, liquidity_delta, insurance0, insurance1
     )
 
-    # add fees to the y debt (margin token)
-    fees = position_lib.fees(size1, FEE)
-    debt1 += fees
-
     position = (size1, debt0, debt1, insurance0, insurance1, zero_for_one)
     result = position_lib.assemble(
         liquidity,
@@ -79,6 +70,5 @@ def test_position_assemble__with_one_for_zero(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
-        FEE,
     )
     assert result == position

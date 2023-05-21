@@ -28,8 +28,7 @@ contract MockPosition {
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
-        bool zeroForOne,
-        uint24 fee
+        bool zeroForOne
     ) external view returns (Position.Info memory) {
         return
             Position.assemble(
@@ -37,8 +36,7 @@ contract MockPosition {
                 sqrtPriceX96,
                 sqrtPriceX96Next,
                 liquidityDelta,
-                zeroForOne,
-                fee
+                zeroForOne
             );
     }
 
@@ -89,15 +87,14 @@ contract MockPosition {
             );
     }
 
-    function fees(uint128 size, uint24 fee) external view returns (uint128) {
+    function fees(uint128 size, uint24 fee) external view returns (uint256) {
         return Position.fees(size, fee);
     }
 
-    function marginMinimumWithFees(
+    function marginMinimum(
         uint128 size,
-        uint24 maintenance,
-        uint24 fee
+        uint24 maintenance
     ) external view returns (uint256) {
-        return Position.marginMinimumWithFees(size, maintenance, fee);
+        return Position.marginMinimum(size, maintenance);
     }
 }

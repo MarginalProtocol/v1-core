@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 
 interface IMarginalV1OpenCallback {
     function marginalV1OpenCallback(
-        uint256 margin0Minimum,
-        uint256 margin1Minimum
+        uint256 margin0MinimumWithFees,
+        uint256 margin1MinimumWithFees
     ) external;
 }
