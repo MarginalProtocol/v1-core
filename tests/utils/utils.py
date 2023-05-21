@@ -17,7 +17,7 @@ def calc_sqrt_price_x96_next(
 
     sqrt_price_x96_next = (
         int(sqrt_price_x96 * (liquidity + root)) // (2 * (liquidity - liquidity_delta))
-        if zero_for_one
+        if not zero_for_one
         else int(sqrt_price_x96 * 2 * (liquidity - liquidity_delta))
         // (liquidity + root)
     )
@@ -34,7 +34,7 @@ def calc_insurances(
 ) -> (int, int):
     prod = (
         ((liquidity - liquidity_delta) * sqrt_price_x96_next) // sqrt_price_x96
-        if zero_for_one
+        if not zero_for_one
         else ((liquidity - liquidity_delta) * sqrt_price_x96) // sqrt_price_x96_next
     )
     insurance0 = ((liquidity - prod) << 96) // sqrt_price_x96

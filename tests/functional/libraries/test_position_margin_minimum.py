@@ -21,12 +21,12 @@ def test_position_margin_minimum__with_zero_for_one(position_lib, maintenance):
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
-    size0 = position_lib.size(
+    size1 = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    margin_min = (size0 * maintenance) // MAINTENANCE_UNIT
-    result = position_lib.marginMinimum(size0, maintenance)
+    margin_min = (size1 * maintenance) // MAINTENANCE_UNIT
+    result = position_lib.marginMinimum(size1, maintenance)
     assert result == margin_min
 
 
@@ -43,12 +43,12 @@ def test_position_margin_minimum__with_one_for_zero(position_lib, maintenance):
     sqrt_price_x96_next = calc_sqrt_price_x96_next(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
-    size1 = position_lib.size(
+    size0 = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    margin_min = (size1 * maintenance) // MAINTENANCE_UNIT
-    result = position_lib.marginMinimum(size1, maintenance)
+    margin_min = (size0 * maintenance) // MAINTENANCE_UNIT
+    result = position_lib.marginMinimum(size0, maintenance)
     assert result == margin_min
 
 

@@ -22,12 +22,12 @@ def test_position_fees__with_zero_for_one(position_lib):
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    size0 = position_lib.size(
+    size1 = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    fees = size0 * FEE // FEE_UNIT
-    result = position_lib.fees(size0, FEE)
+    fees = size1 * FEE // FEE_UNIT
+    result = position_lib.fees(size1, FEE)
     assert result == fees
 
 
@@ -45,12 +45,12 @@ def test_position_fees__with_one_for_zero(position_lib):
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    size1 = position_lib.size(
+    size0 = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    fees = size1 * FEE // FEE_UNIT
-    result = position_lib.fees(size1, FEE)
+    fees = size0 * FEE // FEE_UNIT
+    result = position_lib.fees(size0, FEE)
     assert result == fees
 
 

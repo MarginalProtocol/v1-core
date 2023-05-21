@@ -24,7 +24,7 @@ library SqrtPriceMath {
         uint256 under = liquidity ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
 
-        uint256 nextX96 = zeroForOne
+        uint256 nextX96 = !zeroForOne
             ? Math.mulDiv(
                 sqrtPriceX96,
                 liquidity + root,
@@ -37,7 +37,7 @@ library SqrtPriceMath {
             );
         require(
             nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO,
-            "sqrtPriceX96Next exceeds limits"
+            "sqrtPriceX96Next exceeds min/max"
         );
         return uint160(nextX96);
     }

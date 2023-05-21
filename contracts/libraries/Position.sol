@@ -39,6 +39,7 @@ library Position {
     }
 
     /// @notice Assembles a new position from pool state
+    /// @dev zeroForOne == true means short position
     function assemble(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -75,7 +76,7 @@ library Position {
         uint160 sqrtPriceX96Next,
         bool zeroForOne
     ) internal view returns (uint128) {
-        if (zeroForOne) {
+        if (!zeroForOne) {
             // L / sqrt(P) - L / sqrt(P')
             return
                 ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
@@ -103,7 +104,7 @@ library Position {
         uint128 liquidityDelta,
         bool zeroForOne
     ) internal view returns (uint128 insurance0, uint128 insurance1) {
-        uint256 prod = zeroForOne
+        uint256 prod = !zeroForOne
             ? Math.mulDiv(
                 liquidity - liquidityDelta,
                 sqrtPriceX96Next,

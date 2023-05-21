@@ -94,10 +94,22 @@ contract MarginalV1Pool is ERC20 {
     function open(
         address recipient,
         uint128 liquidityDelta,
-        bool zeroForOne
+        bool zeroForOne,
+        uint160 sqrtPriceLimitX96
     ) external lock {
         State memory _state = state;
-        require(liquidityDelta < _state.liquidity); // TODO: min liquidity, min liquidity delta (size)
+        require(
+            liquidityDelta < _state.liquidity,
+            "liquidityDelta >= liquidity"
+        ); // TODO: min liquidity, min liquidity delta (size)
+        require(
+            zeroForOne
+                ? sqrtPriceLimitX96 < _state.sqrtPriceX96 &&
+                    sqrtPriceLimitX96 > SqrtPriceMath.MIN_SQRT_RATIO
+                : sqrtPriceLimitX96 > _state.sqrtPriceX96 &&
+                    sqrtPriceLimitX96 < SqrtPriceMath.MAX_SQRT_RATIO,
+            "sqrtPriceLimitX96 exceeds min/max"
+        );
 
         uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96Next(
             _state.liquidity,
@@ -106,6 +118,13 @@ contract MarginalV1Pool is ERC20 {
             zeroForOne,
             maintenance
         );
+        require(
+            zeroForOne
+                ? sqrtPriceX96Next >= sqrtPriceLimitX96
+                : sqrtPriceX96Next <= sqrtPriceLimitX96,
+            "sqrtPriceX96Next exceeds sqrtPriceLimitX96"
+        );
+
         Position.Info memory position = Position.assemble(
             _state.liquidity,
             _state.sqrtPriceX96,
@@ -129,8 +148,8 @@ contract MarginalV1Pool is ERC20 {
 
         // callback for margin amount
         uint256 margin;
-        if (zeroForOne) {
-            // long token0 relative to token1; margin in token0
+        if (!zeroForOne) {
+            // long token0 (out) relative to token1 (in); margin in token0
             uint256 balance0Before = balance0();
             uint256 margin0Minimum = Position.marginMinimum(
                 position.size,
@@ -149,7 +168,7 @@ contract MarginalV1Pool is ERC20 {
             position.size += margin.toUint128();
             feesOwedGlobal0 += fees0;
         } else {
-            // long token1 relative to token0; margin in token1
+            // long token1 (out) relative to token0 (in); margin in token1
             uint256 balance1Before = balance1();
             uint256 margin1Minimum = Position.marginMinimum(
                 position.size,

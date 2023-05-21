@@ -35,9 +35,6 @@ def test_position_debts__with_zero_for_one(position_lib):
     assert result[1] == debt1
 
 
-# TODO: test invariant of (ix + dx) * (iy + dy)
-
-
 def test_position_debts__with_one_for_zero(position_lib):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves

@@ -22,21 +22,14 @@ def test_sqrt_price_math_x96_next__with_zero_for_one(sqrt_price_math_lib, mainte
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    assert (
-        pytest.approx(
-            sqrt_price_math_lib.sqrtPriceX96Next(
-                liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-            ),
-            rel=1e-15,  # TQ: is this enough?
-        )
-        == sqrt_price_x96_next
+    result = sqrt_price_math_lib.sqrtPriceX96Next(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
+
     assert (
-        sqrt_price_math_lib.sqrtPriceX96Next(
-            liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-        )
-        >> 96
-    ) == (sqrt_price_x96_next >> 96)
+        pytest.approx(result, rel=1e-15) == sqrt_price_x96_next
+    )  # TQ: is this enough?
+    assert (result >> 96) == (sqrt_price_x96_next >> 96)  # TQ: is this enough?
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -54,21 +47,14 @@ def test_sqrt_price_math_x96_next__with_one_for_zero(sqrt_price_math_lib, mainte
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    assert (
-        pytest.approx(
-            sqrt_price_math_lib.sqrtPriceX96Next(
-                liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-            ),
-            rel=1e-15,  # Q: is this enough?
-        )
-        == sqrt_price_x96_next
+    result = sqrt_price_math_lib.sqrtPriceX96Next(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
+
     assert (
-        sqrt_price_math_lib.sqrtPriceX96Next(
-            liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
-        )
-        >> 96
-    ) == (sqrt_price_x96_next >> 96)
+        pytest.approx(result, rel=1e-15) == sqrt_price_x96_next
+    )  # TQ: is this enough?
+    assert (result >> 96) == (sqrt_price_x96_next >> 96)  # TQ: is this enough?
 
 
 @pytest.mark.fuzzing
