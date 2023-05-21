@@ -40,3 +40,14 @@ def calc_insurances(
     insurance0 = ((liquidity - prod) << 96) // sqrt_price_x96
     insurance1 = ((liquidity - prod) * sqrt_price_x96) // (1 << 96)
     return (insurance0, insurance1)
+
+
+def calc_debts(
+    sqrt_price_x96_next: int,
+    liquidity_delta: int,
+    insurance0: int,
+    insurance1: int,
+) -> (int, int):
+    debt0 = (liquidity_delta << 96) // sqrt_price_x96_next - insurance0
+    debt1 = (liquidity_delta * sqrt_price_x96_next) // (1 << 96) - insurance1
+    return (debt0, debt1)
