@@ -11,6 +11,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = True
+    funding_index = -1000
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -28,13 +29,22 @@ def test_position_assemble__with_zero_for_one(position_lib):
         sqrt_price_x96_next, liquidity_delta, insurance0, insurance1
     )
 
-    position = (size1, debt0, debt1, insurance0, insurance1, zero_for_one)
+    position = (
+        size1,
+        debt0,
+        debt1,
+        insurance0,
+        insurance1,
+        zero_for_one,
+        funding_index,
+    )
     result = position_lib.assemble(
         liquidity,
         sqrt_price_x96,
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        funding_index,
     )
     assert result == position
 
@@ -46,6 +56,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = False
+    funding_index = -1000
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -63,12 +74,21 @@ def test_position_assemble__with_one_for_zero(position_lib):
         sqrt_price_x96_next, liquidity_delta, insurance0, insurance1
     )
 
-    position = (size0, debt0, debt1, insurance0, insurance1, zero_for_one)
+    position = (
+        size0,
+        debt0,
+        debt1,
+        insurance0,
+        insurance1,
+        zero_for_one,
+        funding_index,
+    )
     result = position_lib.assemble(
         liquidity,
         sqrt_price_x96,
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        funding_index,
     )
     assert result == position

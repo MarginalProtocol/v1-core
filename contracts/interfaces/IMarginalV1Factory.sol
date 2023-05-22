@@ -2,6 +2,8 @@
 pragma solidity 0.8.17;
 
 interface IMarginalV1Factory {
+    function uniswapV3Factory() external view returns (address);
+
     function getPool(
         address tokenA,
         address tokenB,
@@ -17,6 +19,14 @@ interface IMarginalV1Factory {
             address token0,
             address token1,
             uint24 maintenance,
-            uint24 fee
+            uint24 fee,
+            address oracle
         );
+
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 maintenance,
+        uint24 uniswapV3Fee
+    ) external returns (address pool);
 }

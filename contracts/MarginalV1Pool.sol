@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
@@ -18,6 +19,7 @@ contract MarginalV1Pool is ERC20 {
     using SafeCast for uint256;
 
     address public immutable factory;
+    address public immutable oracle;
 
     address public immutable token0;
     address public immutable token1;
@@ -61,8 +63,9 @@ contract MarginalV1Pool is ERC20 {
     );
 
     constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
-        (token0, token1, maintenance, fee) = IMarginalV1Factory(msg.sender)
-            .params();
+        (token0, token1, maintenance, fee, oracle) = IMarginalV1Factory(
+            msg.sender
+        ).params();
         factory = msg.sender;
     }
 
@@ -89,6 +92,15 @@ contract MarginalV1Pool is ERC20 {
 
     function balance1() private view returns (uint256) {
         return IERC20(token1).balanceOf(address(this));
+    }
+
+    function oracleTickCumulatives(
+        uint32[] memory secondsAgos
+    ) private view returns (int56[] memory) {
+        (int56[] memory tickCumulatives, ) = IUniswapV3Pool(oracle).observe(
+            secondsAgos
+        );
+        return tickCumulatives;
     }
 
     function open(
@@ -125,26 +137,26 @@ contract MarginalV1Pool is ERC20 {
             "sqrtPriceX96Next exceeds sqrtPriceLimitX96"
         );
 
+        // oracle write then assemble position
+        _state.tickCumulative +=
+            int56(_state.tick) *
+            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
+        _state.blockTimestamp = _blockTimestamp();
+        _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
+
+        // zero seconds ago for oracle tickCumulative
+        int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
+
         Position.Info memory position = Position.assemble(
             _state.liquidity,
             _state.sqrtPriceX96,
             sqrtPriceX96Next,
             liquidityDelta,
-            zeroForOne
-        ); // TODO: add funding index
-
+            zeroForOne,
+            _state.tickCumulative - oracleTickCumulative
+        );
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
-
-        // add to tick cumulatives for funding calc
-        int24 tickNext = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
-        _state.tickCumulative +=
-            int56(_state.tick) *
-            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
-        _state.blockTimestamp = _blockTimestamp();
-        _state.tick = tickNext;
-
-        // TODO: calc funding index and set in position
 
         // callback for margin amount
         uint256 margin;

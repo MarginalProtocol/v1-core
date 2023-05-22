@@ -15,8 +15,9 @@ library Position {
         uint128 debt0;
         uint128 debt1;
         uint128 insurance0;
-        uint128 insurance1; // TODO: pack w funding index (int56?), etc.
+        uint128 insurance1; // TODO: pack
         bool zeroForOne;
+        int56 fundingIndex;
     }
 
     /// @notice Gets a position from positions mapping
@@ -45,9 +46,11 @@ library Position {
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
-        bool zeroForOne
+        bool zeroForOne,
+        int56 fundingIndex
     ) internal view returns (Info memory position) {
         position.zeroForOne = zeroForOne;
+        position.fundingIndex = fundingIndex;
         position.size = size(
             liquidity,
             sqrtPriceX96,

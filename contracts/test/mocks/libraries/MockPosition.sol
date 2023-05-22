@@ -28,7 +28,8 @@ contract MockPosition {
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
-        bool zeroForOne
+        bool zeroForOne,
+        int56 fundingIndex
     ) external view returns (Position.Info memory) {
         return
             Position.assemble(
@@ -36,7 +37,8 @@ contract MockPosition {
                 sqrtPriceX96,
                 sqrtPriceX96Next,
                 liquidityDelta,
-                zeroForOne
+                zeroForOne,
+                fundingIndex
             );
     }
 
