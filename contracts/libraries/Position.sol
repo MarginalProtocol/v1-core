@@ -15,9 +15,11 @@ library Position {
         uint128 debt0;
         uint128 debt1;
         uint128 insurance0;
-        uint128 insurance1; // TODO: pack
+        uint128 insurance1;
         bool zeroForOne;
-        int56 fundingIndex;
+        bool liquidated;
+        int56 tickCumulativeStart;
+        int56 oracleTickCumulativeStart;
     }
 
     /// @notice Gets a position from positions mapping
@@ -47,10 +49,12 @@ library Position {
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
         bool zeroForOne,
-        int56 fundingIndex
+        int56 tickCumulativeStart,
+        int56 oracleTickCumulativeStart
     ) internal view returns (Info memory position) {
         position.zeroForOne = zeroForOne;
-        position.fundingIndex = fundingIndex;
+        position.tickCumulativeStart = tickCumulativeStart;
+        position.oracleTickCumulativeStart = oracleTickCumulativeStart;
         position.size = size(
             liquidity,
             sqrtPriceX96,

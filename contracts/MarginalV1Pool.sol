@@ -153,7 +153,8 @@ contract MarginalV1Pool is ERC20 {
             sqrtPriceX96Next,
             liquidityDelta,
             zeroForOne,
-            _state.tickCumulative - oracleTickCumulative
+            _state.tickCumulative,
+            oracleTickCumulative
         );
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;

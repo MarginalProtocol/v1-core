@@ -11,7 +11,9 @@ def test_position_assemble__with_zero_for_one(position_lib):
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = True
-    funding_index = -1000
+    liquidated = False
+    tick_cumulative = 10000
+    oracle_tick_cumulative = -100
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -36,7 +38,9 @@ def test_position_assemble__with_zero_for_one(position_lib):
         insurance0,
         insurance1,
         zero_for_one,
-        funding_index,
+        liquidated,
+        tick_cumulative,
+        oracle_tick_cumulative,
     )
     result = position_lib.assemble(
         liquidity,
@@ -44,7 +48,8 @@ def test_position_assemble__with_zero_for_one(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
-        funding_index,
+        tick_cumulative,
+        oracle_tick_cumulative,
     )
     assert result == position
 
@@ -56,7 +61,9 @@ def test_position_assemble__with_one_for_zero(position_lib):
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = False
-    funding_index = -1000
+    liquidated = False
+    tick_cumulative = 10000
+    oracle_tick_cumulative = -100
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -81,7 +88,9 @@ def test_position_assemble__with_one_for_zero(position_lib):
         insurance0,
         insurance1,
         zero_for_one,
-        funding_index,
+        liquidated,
+        tick_cumulative,
+        oracle_tick_cumulative,
     )
     result = position_lib.assemble(
         liquidity,
@@ -89,6 +98,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
-        funding_index,
+        tick_cumulative,
+        oracle_tick_cumulative,
     )
     assert result == position
