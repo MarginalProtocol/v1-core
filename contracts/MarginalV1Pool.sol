@@ -51,6 +51,7 @@ contract MarginalV1Pool is ERC20 {
         unlocked = 2;
     }
 
+    event Initialize(uint160 sqrtPriceX96, int24 tick);
     event Open(
         address sender,
         address indexed owner,
@@ -71,15 +72,17 @@ contract MarginalV1Pool is ERC20 {
 
     function initialize(uint160 _sqrtPriceX96) external {
         require(state.sqrtPriceX96 == 0, "initialized");
+        int24 tick = TickMath.getTickAtSqrtRatio(_sqrtPriceX96);
         state = State({
             liquidity: 0,
             sqrtPriceX96: _sqrtPriceX96,
-            tick: TickMath.getTickAtSqrtRatio(_sqrtPriceX96),
+            tick: tick,
             blockTimestamp: _blockTimestamp(),
             tickCumulative: 0,
             totalPositions: 0
         });
         unlocked = 2;
+        emit Initialize(_sqrtPriceX96, tick);
     }
 
     function _blockTimestamp() internal view virtual returns (uint32) {
