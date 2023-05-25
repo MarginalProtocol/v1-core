@@ -20,6 +20,7 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 
 contract MarginalV1Pool is ERC20 {
     using Position for mapping(bytes32 => Position.Info);
+    using Position for Position.Info;
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
 
@@ -43,8 +44,11 @@ contract MarginalV1Pool is ERC20 {
     }
     State public state;
 
-    uint256 public feesOwedGlobal0;
-    uint256 public feesOwedGlobal1;
+    struct ReservesLocked {
+        uint128 token0;
+        uint128 token1;
+    }
+    ReservesLocked public reservesLocked;
 
     mapping(bytes32 => Position.Info) public positions;
 
@@ -65,7 +69,7 @@ contract MarginalV1Pool is ERC20 {
         uint160 sqrtPriceX96After,
         uint128 liquidityDelta,
         bool zeroForOne,
-        uint128 margin
+        uint256 margin
     );
     event Mint(
         address sender,
@@ -201,8 +205,15 @@ contract MarginalV1Pool is ERC20 {
             require(amount0 >= margin0Minimum + fees0, "amount0 < min"); // TODO: possibly relax so swaps can happen
             margin = amount0 - fees0;
 
-            position.size += margin.toUint128();
-            feesOwedGlobal0 += fees0;
+            position.margin = margin;
+            position.debt0 += uint128(fees0); // fees added to available liquidity on settle
+
+            ReservesLocked memory _reservesLocked = reservesLocked;
+            (uint128 amount0Locked, uint128 amount1Locked) = position
+                .amountsLocked();
+            _reservesLocked.token0 += amount0Locked;
+            _reservesLocked.token1 += amount1Locked;
+            reservesLocked = _reservesLocked;
         } else {
             // long token1 (out) relative to token0 (in); margin in token1
             uint256 balance1Before = balance1();
@@ -220,8 +231,15 @@ contract MarginalV1Pool is ERC20 {
             require(amount1 >= margin1Minimum + fees1, "amount1 < min"); // TODO: possibly relax so swaps can happen
             margin = amount1 - fees1;
 
-            position.size += margin.toUint128();
-            feesOwedGlobal1 += fees1;
+            position.margin = margin;
+            position.debt1 += uint128(fees1); // fees added to available liquidity on settle
+
+            ReservesLocked memory _reservesLocked = reservesLocked;
+            (uint128 amount0Locked, uint128 amount1Locked) = position
+                .amountsLocked();
+            _reservesLocked.token0 += amount0Locked;
+            _reservesLocked.token1 += amount1Locked;
+            reservesLocked = _reservesLocked;
         }
 
         uint112 id = _state.totalPositions;
@@ -239,7 +257,7 @@ contract MarginalV1Pool is ERC20 {
             _state.sqrtPriceX96,
             liquidityDelta,
             zeroForOne,
-            uint128(margin)
+            margin
         );
     }
 
@@ -247,12 +265,32 @@ contract MarginalV1Pool is ERC20 {
         address recipient,
         uint128 liquidityDelta
     ) external lock returns (uint256 amount0, uint256 amount1) {
+        State memory _state = state;
+        uint256 _totalSupply = totalSupply();
         require(liquidityDelta > 0, "liquidityDelta == 0");
+
         (amount0, amount1) = LiquidityMath.toAmounts(
             liquidityDelta,
-            state.sqrtPriceX96
+            _state.sqrtPriceX96
         );
-        state.liquidity += liquidityDelta;
+
+        // total liquidity is available liquidity if all locked reserves were returned to pool
+        (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
+            _state.liquidity,
+            _state.sqrtPriceX96
+        );
+        ReservesLocked memory _reservesLocked = reservesLocked;
+        (uint128 totalLiquidityAfter, ) = LiquidityMath.toLiquiditySqrtPriceX96(
+            reserve0 + _reservesLocked.token0 + uint128(amount0),
+            reserve1 + _reservesLocked.token1 + uint128(amount1)
+        );
+        uint256 shares = Math.mulDiv(
+            _totalSupply,
+            liquidityDelta,
+            totalLiquidityAfter - liquidityDelta
+        );
+
+        _state.liquidity += liquidityDelta;
 
         // callback for amounts owed
         uint256 balance0Before = balance0();
@@ -264,7 +302,10 @@ contract MarginalV1Pool is ERC20 {
         require(balance0Before + amount0 <= balance0(), "balance0 < min");
         require(balance1Before + amount1 <= balance1(), "balance1 < min");
 
-        _mint(recipient, liquidityDelta);
+        // update pool state to latest
+        state = _state;
+
+        _mint(recipient, shares);
 
         emit Mint(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }
@@ -272,42 +313,44 @@ contract MarginalV1Pool is ERC20 {
     /// @dev Reverts if not enough liquidity available to exit due to outstanding positions
     function burn(
         address recipient,
-        uint128 liquidityDelta
+        uint256 shares
     ) external lock returns (uint256 amount0, uint256 amount1) {
-        require(liquidityDelta > 0, "liquidityDelta == 0");
+        State memory _state = state;
+        uint256 _totalSupply = totalSupply();
+        require(shares > 0, "shares == 0");
+        require(shares <= _totalSupply, "shares > totalSupply");
+
+        // total liquidity is available liquidity if all locked reserves were returned to pool
+        (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
+            _state.liquidity,
+            _state.sqrtPriceX96
+        );
+        ReservesLocked memory _reservesLocked = reservesLocked;
+        (uint128 _totalLiquidity, ) = LiquidityMath.toLiquiditySqrtPriceX96(
+            reserve0 + _reservesLocked.token0,
+            reserve1 + _reservesLocked.token1
+        );
+        uint128 liquidityDelta = uint128(
+            Math.mulDiv(_totalLiquidity, shares, _totalSupply)
+        );
         require(
-            liquidityDelta < state.liquidity,
+            liquidityDelta < _state.liquidity,
             "liquidityDelta >= liquidity"
         );
+
         (amount0, amount1) = LiquidityMath.toAmounts(
             liquidityDelta,
-            state.sqrtPriceX96
+            _state.sqrtPriceX96
         );
-        state.liquidity -= liquidityDelta;
+        _state.liquidity -= liquidityDelta;
 
-        // pro-rata distribution of fees owed
-        uint256 _totalSupply = totalSupply();
-        uint256 fees0 = Math.mulDiv(
-            feesOwedGlobal0,
-            liquidityDelta,
-            _totalSupply
-        );
-        uint256 fees1 = Math.mulDiv(
-            feesOwedGlobal1,
-            liquidityDelta,
-            _totalSupply
-        );
-        feesOwedGlobal0 -= fees0;
-        feesOwedGlobal1 -= fees1;
-
-        amount0 += fees0;
-        amount1 += fees1;
-
-        // send amounts owed
         IERC20(token0).safeTransfer(recipient, amount0);
         IERC20(token1).safeTransfer(recipient, amount1);
 
-        _burn(msg.sender, liquidityDelta);
+        // update pool state to latest
+        state = _state;
+
+        _burn(msg.sender, shares);
 
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }

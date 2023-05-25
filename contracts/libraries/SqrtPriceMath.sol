@@ -18,22 +18,23 @@ library SqrtPriceMath {
         bool zeroForOne,
         uint24 maintenance
     ) internal view returns (uint160) {
-        uint256 prod = liquidityDelta * (liquidity - liquidityDelta);
+        uint256 prod = uint256(liquidityDelta) *
+            uint256(liquidity - liquidityDelta);
         prod = Math.mulDiv(prod, 1e6, 1e6 + maintenance);
 
-        uint256 under = liquidity ** 2 - 4 * prod;
+        uint256 under = uint256(liquidity) ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
 
         uint256 nextX96 = !zeroForOne
             ? Math.mulDiv(
                 sqrtPriceX96,
-                liquidity + root,
+                uint256(liquidity) + root,
                 2 * (liquidity - liquidityDelta)
             )
             : Math.mulDiv(
                 sqrtPriceX96,
                 2 * (liquidity - liquidityDelta),
-                liquidity + root
+                uint256(liquidity) + root
             );
         require(
             nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO,

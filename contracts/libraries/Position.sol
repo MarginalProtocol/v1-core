@@ -20,6 +20,7 @@ library Position {
         bool liquidated;
         int56 tickCumulativeStart;
         int56 oracleTickCumulativeStart;
+        uint256 margin;
     }
 
     /// @notice Gets a position from positions mapping
@@ -164,5 +165,18 @@ library Position {
         uint24 maintenance
     ) internal view returns (uint256) {
         return (uint256(size) * maintenance) / 1e6;
+    }
+
+    /// @notice Amounts (x, y) of pool liquidity locked for position
+    function amountsLocked(
+        Info memory position
+    ) internal view returns (uint128 amount0, uint128 amount1) {
+        if (!position.zeroForOne) {
+            amount0 = position.size + position.debt0 + position.insurance0;
+            amount1 = position.insurance1;
+        } else {
+            amount0 = position.insurance0;
+            amount1 = position.size + position.debt1 + position.insurance1;
+        }
     }
 }
