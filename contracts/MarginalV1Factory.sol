@@ -3,9 +3,10 @@ pragma solidity 0.8.17;
 
 import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
+import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {MarginalV1Pool} from "./MarginalV1Pool.sol";
 
-contract MarginalV1Factory {
+contract MarginalV1Factory is IMarginalV1Factory {
     address public immutable uniswapV3Factory;
 
     mapping(address => mapping(address => mapping(uint24 => address)))
