@@ -5,6 +5,7 @@ import {Position} from "../../../libraries/Position.sol";
 
 contract MockPosition {
     using Position for mapping(bytes32 => Position.Info);
+    using Position for Position.Info;
 
     mapping(bytes32 => Position.Info) public positions;
 
@@ -100,5 +101,11 @@ contract MockPosition {
         uint24 maintenance
     ) external view returns (uint256) {
         return Position.marginMinimum(size, maintenance);
+    }
+
+    function amountsLocked(
+        Position.Info memory position
+    ) external view returns (uint128 amount0, uint128 amount1) {
+        return position.amountsLocked();
     }
 }
