@@ -1,26 +1,163 @@
-def test_pool_mint__updates_state(pool, alice):
-    pass
+import pytest
+from math import sqrt
+
+from ape import reverts
+from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
+
+# TODO: test multiple mints/lps, test when reserves locked, test_mint_then_burn
 
 
-def test_pool_mint__mints_lp_shares(pool, alice):
-    pass
+def test_pool_mint__updates_state(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    state = pool_initialized.state()
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+    state.liquidity += liquidity_delta
+    assert pool_initialized.state() == state
 
 
-def test_pool_mint__transfers_funds(pool, alice):
-    pass
+def test_pool_mint__mints_lp_shares(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+    assert (
+        pytest.approx(pool_initialized.balanceOf(alice.address), rel=1e-11)
+        == liquidity_delta
+    )  # TODO: fix for rounding
+    assert pytest.approx(pool_initialized.totalSupply(), rel=1e-11) == liquidity_delta
 
 
-def test_pool_mint__emits_mint(pool, alice):
-    pass
+def test_pool_mint__transfers_funds(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, sqrt_price_x96_initial
+    )
+
+    sender_balance0 = token0.balanceOf(sender.address)
+    sender_balance1 = token1.balanceOf(sender.address)
+
+    tx = callee.mint(
+        pool_initialized.address, alice.address, liquidity_delta, sender=sender
+    )
+    assert token0.balanceOf(pool_initialized.address) == amount0
+    assert token1.balanceOf(pool_initialized.address) == amount1
+    assert tx.return_value == (amount0, amount1)
+
+    assert token0.balanceOf(sender.address) == sender_balance0 - amount0
+    assert token1.balanceOf(sender.address) == sender_balance1 - amount1
 
 
-def test_pool_mint__reverts_when_liquidity_delta_zero(pool, alice):
-    pass
+def test_pool_mint__emits_mint(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, sqrt_price_x96_initial
+    )
+
+    tx = callee.mint(
+        pool_initialized.address, alice.address, liquidity_delta, sender=sender
+    )
+    events = tx.decode_logs(pool_initialized.Mint)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.owner == alice.address
+    assert event.liquidityDelta == liquidity_delta
+    assert event.amount0 == amount0
+    assert event.amount1 == amount1
 
 
-def test_pool_mint__reverts_when_amount0_transferred_less_than_min(pool, alice):
-    pass
+def test_pool_mint__reverts_when_liquidity_delta_zero(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee,
+    sender,
+    alice,
+):
+    liquidity_delta = 0
+    with reverts("liquidityDelta == 0"):
+        callee.mint(
+            pool_initialized.address, alice.address, liquidity_delta, sender=sender
+        )
 
 
-def test_pool_mint__reverts_when_amount1_transferred_less_than_min(pool, alice):
-    pass
+def test_pool_mint__reverts_when_amount0_transferred_less_than_min(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee_below_min0,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    with reverts("balance0 < min"):
+        callee_below_min0.mint(
+            pool_initialized.address, alice.address, liquidity_delta, sender=sender
+        )
+
+
+def test_pool_mint__reverts_when_amount1_transferred_less_than_min(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee_below_min1,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    with reverts("balance1 < min"):
+        callee_below_min1.mint(
+            pool_initialized.address, alice.address, liquidity_delta, sender=sender
+        )

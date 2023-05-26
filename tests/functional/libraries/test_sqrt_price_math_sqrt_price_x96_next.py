@@ -8,7 +8,9 @@ from utils.utils import calc_sqrt_price_x96_next
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_sqrt_price_math_x96_next__with_zero_for_one(sqrt_price_math_lib, maintenance):
+def test_sqrt_price_math_sqrt_price_x96_next__with_zero_for_one(
+    sqrt_price_math_lib, maintenance
+):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
     liquidity = int(sqrt(x * y))
@@ -33,7 +35,9 @@ def test_sqrt_price_math_x96_next__with_zero_for_one(sqrt_price_math_lib, mainte
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_sqrt_price_math_x96_next__with_one_for_zero(sqrt_price_math_lib, maintenance):
+def test_sqrt_price_math_sqrt_price_x96_next__with_one_for_zero(
+    sqrt_price_math_lib, maintenance
+):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
     liquidity = int(sqrt(x * y))
@@ -65,7 +69,7 @@ def test_sqrt_price_math_x96_next__with_one_for_zero(sqrt_price_math_lib, mainte
     liquidity_delta_pc=st.integers(min_value=1, max_value=1000000 - 1),
     zero_for_one=st.booleans(),
 )
-def test_sqrt_price_math_x96_next__with_fuzz(
+def test_sqrt_price_math_sqrt_price_x96_next__with_fuzz(
     sqrt_price_math_lib, x, y, liquidity_delta_pc, zero_for_one, maintenance
 ):
     liquidity = int(sqrt(x * y))

@@ -288,11 +288,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     reserve0 + _reservesLocked.token0 + uint128(amount0),
                     reserve1 + _reservesLocked.token1 + uint128(amount1)
                 );
-            shares = Math.mulDiv(
-                _totalSupply,
-                liquidityDelta,
-                totalLiquidityAfter - liquidityDelta
-            );
+            shares = _totalSupply == 0
+                ? totalLiquidityAfter
+                : Math.mulDiv(
+                    _totalSupply,
+                    liquidityDelta,
+                    totalLiquidityAfter - liquidityDelta
+                );
         }
 
         _state.liquidity += liquidityDelta;

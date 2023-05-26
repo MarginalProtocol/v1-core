@@ -36,12 +36,12 @@ def create_token(project, accounts):
 
 @pytest.fixture(scope="session")
 def token_a(project, accounts, create_token):
-    return create_token("A", decimals=18)
+    return create_token("A", decimals=6)
 
 
 @pytest.fixture(scope="session")
 def token_b(project, accounts, create_token):
-    return create_token("B", decimals=6)
+    return create_token("B", decimals=18)
 
 
 @pytest.fixture(scope="session")
@@ -164,3 +164,8 @@ def pool(project, accounts, mock_univ3_pool, create_pool):
         maintenance,
         mock_univ3_pool.fee(),
     )
+
+
+@pytest.fixture(scope="session")
+def callee(project, accounts):
+    return project.TestMarginalV1PoolCallee.deploy(sender=accounts[0])
