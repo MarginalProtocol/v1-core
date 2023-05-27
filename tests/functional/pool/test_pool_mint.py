@@ -4,7 +4,7 @@ from math import sqrt
 from ape import reverts
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
-# TODO: test multiple mints/lps, test when reserves locked, test_mint_then_burn
+# TODO: test multiple mints & swaps, test when reserves locked, test_mint_then_burn
 
 
 def test_pool_mint__updates_state(
@@ -45,6 +45,44 @@ def test_pool_mint__mints_lp_shares(
         == liquidity_delta
     )  # TODO: fix for rounding
     assert pytest.approx(pool_initialized.totalSupply(), rel=1e-11) == liquidity_delta
+
+
+def test_pool_mint__mints_multiple_lp_shares(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta_alice = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+    liquidity_delta_bob = liquidity_spot * 50 // 10000  # 0.5% of spot reserves
+
+    # mint to alice then bob then alice again
+    callee.mint(
+        pool_initialized.address, alice.address, liquidity_delta_alice, sender=sender
+    )
+    callee.mint(
+        pool_initialized.address, bob.address, liquidity_delta_bob, sender=sender
+    )
+    callee.mint(
+        pool_initialized.address, alice.address, liquidity_delta_alice, sender=sender
+    )
+
+    assert pytest.approx(pool_initialized.balanceOf(alice.address), rel=1e-11) == (
+        2 * liquidity_delta_alice
+    )
+    assert (
+        pytest.approx(pool_initialized.balanceOf(bob.address), rel=1e-11)
+        == liquidity_delta_bob
+    )
+    assert pytest.approx(pool_initialized.totalSupply(), rel=1e-11) == (
+        2 * liquidity_delta_alice + liquidity_delta_bob
+    )
 
 
 def test_pool_mint__transfers_funds(
