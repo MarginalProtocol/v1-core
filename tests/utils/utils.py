@@ -59,3 +59,12 @@ def calc_amounts_from_liquidity_sqrt_price_x96(
     amount0 = (liquidity << 96) // sqrt_price_x96
     amount1 = (liquidity * sqrt_price_x96) // (1 << 96)
     return (amount0, amount1)
+
+
+# @dev sqrt in OZ solidity results in slight diff with python math.sqrt
+def calc_liquidity_sqrt_price_x96_from_reserves(
+    reserve0: int, reserve1: int
+) -> (int, int):
+    liquidity = int(sqrt(reserve0 * reserve1))
+    sqrt_price_x96 = (liquidity << 96) // reserve0
+    return (liquidity, sqrt_price_x96)

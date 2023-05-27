@@ -15,7 +15,7 @@ library LiquidityMath {
     function toAmounts(
         uint128 liquidity,
         uint160 sqrtPriceX96
-    ) internal view returns (uint128 amount0, uint128 amount1) {
+    ) internal pure returns (uint128 amount0, uint128 amount1) {
         // x = L / sqrt(P); y = L * sqrt(P)
         amount0 = ((uint256(liquidity) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96).toUint128();
@@ -26,7 +26,8 @@ library LiquidityMath {
     function toLiquiditySqrtPriceX96(
         uint128 reserve0,
         uint128 reserve1
-    ) internal view returns (uint128 liquidity, uint160 sqrtPriceX96) {
+    ) internal pure returns (uint128 liquidity, uint160 sqrtPriceX96) {
+        // L = sqrt(x * y); sqrt(P) = sqrt(y / x)
         liquidity = Math
             .sqrt(uint256(reserve0) * uint256(reserve1))
             .toUint128();
