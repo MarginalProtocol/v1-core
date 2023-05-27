@@ -17,7 +17,7 @@ library SqrtPriceMath {
         uint128 liquidityDelta,
         bool zeroForOne,
         uint24 maintenance
-    ) internal view returns (uint160) {
+    ) internal pure returns (uint160) {
         uint256 prod = uint256(liquidityDelta) *
             uint256(liquidity - liquidityDelta);
         prod = Math.mulDiv(prod, 1e6, 1e6 + maintenance);

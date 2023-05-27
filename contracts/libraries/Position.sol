@@ -52,7 +52,7 @@ library Position {
         bool zeroForOne,
         int56 tickCumulativeStart,
         int56 oracleTickCumulativeStart
-    ) internal view returns (Info memory position) {
+    ) internal pure returns (Info memory position) {
         position.zeroForOne = zeroForOne;
         position.tickCumulativeStart = tickCumulativeStart;
         position.oracleTickCumulativeStart = oracleTickCumulativeStart;
@@ -83,7 +83,7 @@ library Position {
         uint160 sqrtPriceX96,
         uint160 sqrtPriceX96Next,
         bool zeroForOne
-    ) internal view returns (uint128) {
+    ) internal pure returns (uint128) {
         if (!zeroForOne) {
             // L / sqrt(P) - L / sqrt(P')
             return
@@ -111,7 +111,7 @@ library Position {
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
         bool zeroForOne
-    ) internal view returns (uint128 insurance0, uint128 insurance1) {
+    ) internal pure returns (uint128 insurance0, uint128 insurance1) {
         uint256 prod = !zeroForOne
             ? Math.mulDiv(
                 liquidity - liquidityDelta,
@@ -141,7 +141,7 @@ library Position {
         uint128 liquidityDelta,
         uint128 insurance0,
         uint128 insurance1
-    ) internal view returns (uint128 debt0, uint128 debt1) {
+    ) internal pure returns (uint128 debt0, uint128 debt1) {
         // ix + dx = del L / sqrt(P'); iy + dy = del L * sqrt(P')
         debt0 = ((uint256(liquidityDelta) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96Next -
@@ -155,7 +155,7 @@ library Position {
 
     /// @notice Fees owed by position in (x, y) amounts
     /// @dev Fees taken proportional to size
-    function fees(uint128 size, uint24 fee) internal view returns (uint256) {
+    function fees(uint128 size, uint24 fee) internal pure returns (uint256) {
         return (uint256(size) * fee) / 1e6;
     }
 
@@ -163,14 +163,14 @@ library Position {
     function marginMinimum(
         uint128 size,
         uint24 maintenance
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         return (uint256(size) * maintenance) / 1e6;
     }
 
     /// @notice Amounts (x, y) of pool liquidity locked for position
     function amountsLocked(
         Info memory position
-    ) internal view returns (uint128 amount0, uint128 amount1) {
+    ) internal pure returns (uint128 amount0, uint128 amount1) {
         if (!position.zeroForOne) {
             amount0 = position.size + position.debt0 + position.insurance0;
             amount1 = position.insurance1;
