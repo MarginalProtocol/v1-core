@@ -79,8 +79,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint256 amount1
     );
     event Burn(
-        address sender,
         address indexed owner,
+        address recipient,
         uint128 liquidityDelta,
         uint256 amount0,
         uint256 amount1

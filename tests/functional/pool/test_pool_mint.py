@@ -199,3 +199,8 @@ def test_pool_mint__reverts_when_amount1_transferred_less_than_min(
         callee_below_min1.mint(
             pool_initialized.address, alice.address, liquidity_delta, sender=sender
         )
+
+
+@pytest.mark.fuzzing
+def test_pool_mint__with_fuzz():
+    pass
