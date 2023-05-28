@@ -56,8 +56,21 @@ def univ3_factory_address():
 
 
 @pytest.fixture(scope="session")
+def rando_univ3_observations():
+    return [
+        (1684758335, 12871216193543, 151666952020109821882336874706, True),
+        (1684761803, 12871914275939, 151666987847742632430844074643, True),
+    ]
+
+
+@pytest.fixture(scope="session")
 def rando_univ3_pool(
-    project, accounts, rando_token_a_address, rando_token_b_address, rando_univ3_fee
+    project,
+    accounts,
+    rando_token_a_address,
+    rando_token_b_address,
+    rando_univ3_fee,
+    rando_univ3_observations,
 ):
     univ3_pool = project.MockUniswapV3Pool.deploy(
         rando_token_a_address,
@@ -65,45 +78,27 @@ def rando_univ3_pool(
         rando_univ3_fee,
         sender=accounts[0],
     )
-    univ3_pool.pushObservation(
-        1684758335,
-        12871216193543,
-        151666952020109821882336874706,
-        True,
-        sender=accounts[0],
-    )
-    univ3_pool.pushObservation(
-        1684761803,
-        12871914275939,
-        151666987847742632430844074643,
-        True,
-        sender=accounts[0],
-    )
+
+    for obs in rando_univ3_observations:
+        univ3_pool.pushObservation(*obs, sender=accounts[0])
+
     return univ3_pool
 
 
 @pytest.fixture(scope="session")
-def mock_univ3_pool(project, accounts, token_a, token_b, rando_univ3_fee):
+def mock_univ3_pool(
+    project, accounts, token_a, token_b, rando_univ3_fee, rando_univ3_observations
+):
     univ3_pool = project.MockUniswapV3Pool.deploy(
         token_a,
         token_b,
         rando_univ3_fee,
         sender=accounts[0],
     )
-    univ3_pool.pushObservation(
-        1684758335,
-        12871216193543,
-        151666952020109821882336874706,
-        True,
-        sender=accounts[0],
-    )
-    univ3_pool.pushObservation(
-        1684761803,
-        12871914275939,
-        151666987847742632430844074643,
-        True,
-        sender=accounts[0],
-    )
+
+    for obs in rando_univ3_observations:
+        univ3_pool.pushObservation(*obs, sender=accounts[0])
+
     return univ3_pool
 
 
@@ -169,3 +164,18 @@ def pool(project, accounts, mock_univ3_pool, create_pool):
 @pytest.fixture(scope="session")
 def callee(project, accounts):
     return project.TestMarginalV1PoolCallee.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def sqrt_price_math_lib(project, accounts):
+    return project.MockSqrtPriceMath.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def liquidity_math_lib(project, accounts):
+    return project.MockLiquidityMath.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def position_lib(project, accounts):
+    return project.MockPosition.deploy(sender=accounts[0])

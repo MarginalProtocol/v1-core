@@ -1,22 +1,7 @@
 import pytest
-
 from ape import reverts
-from math import sqrt
 
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
-
-
-@pytest.fixture
-def pool_initialized_with_liquidity(
-    pool_initialized, callee, token0, token1, sender, spot_reserve0, spot_reserve1
-):
-    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
-    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
-    callee.mint(
-        pool_initialized.address, sender.address, liquidity_delta, sender=sender
-    )
-    pool_initialized.approve(pool_initialized.address, 2**256 - 1, sender=sender)
-    return pool_initialized
 
 
 def test_pool_burn__updates_state(

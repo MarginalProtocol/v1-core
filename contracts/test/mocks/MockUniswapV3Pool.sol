@@ -52,10 +52,16 @@ contract MockUniswapV3Pool {
             uint160[] memory secondsPerLiquidityCumulativeX128s
         )
     {
+        uint256 _observationIndex = observationIndex;
+        require(
+            secondsAgos.length <= _observationIndex,
+            "not enough observations"
+        );
         tickCumulatives = new int56[](secondsAgos.length);
         secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
         for (uint256 i = 0; i < secondsAgos.length; i++) {
-            Observation memory observation = observations[i];
+            uint256 j = _observationIndex - 1 - i;
+            Observation memory observation = observations[j];
             tickCumulatives[i] = observation.tickCumulative;
             secondsPerLiquidityCumulativeX128s[i] = observation
                 .secondsPerLiquidityCumulativeX128;

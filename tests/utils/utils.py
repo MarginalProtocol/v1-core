@@ -1,5 +1,13 @@
 from math import sqrt
+
+from eth_abi.packed import encode_packed
+from eth_utils import keccak
+
 from utils.constants import MAINTENANCE_UNIT
+
+
+def get_position_key(address: str, id: int) -> bytes:
+    return keccak(encode_packed(["address", "uint112"], [address, id]))
 
 
 def calc_sqrt_price_x96_next(
