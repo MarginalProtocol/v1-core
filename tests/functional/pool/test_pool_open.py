@@ -149,8 +149,6 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         sender=sender,
     )
 
-    print("(reserve0_locked, reserve1_locked)", (reserve0_locked, reserve1_locked))
-
     assert pool_initialized_with_liquidity.reservesLocked() == (
         reserve0_locked,
         reserve1_locked,
@@ -342,17 +340,193 @@ def test_pool_open__sets_position_with_one_for_zero(
     assert result == position
 
 
-def test_pool_open__transfers_funds_with_zero_for_one():
-    pass
+def test_pool_open__transfers_funds_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees = position_lib.fees(position.size, fee)
+    margin_min = position_lib.marginMinimum(position.size, maintenance)
+
+    balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+
+    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
+    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
+
+    # callee sends min margin + fees in margin token
+    assert amount0 == 0
+    assert amount1 == margin_min + fees
 
 
-def test_pool_open__transfers_funds_with_one_for_zero():
-    pass
+def test_pool_open__transfers_funds_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees = position_lib.fees(position.size, fee)
+    margin_min = position_lib.marginMinimum(position.size, maintenance)
+
+    balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+
+    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
+    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
+
+    # callee sends min margin + fees in margin token
+    assert amount0 == margin_min + fees
+    assert amount1 == 0
 
 
-def test_pool_open__emits_open_with_zero_for_one(pool, alice, bob):
-    pass
+def test_pool_open__emits_open_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    state = pool_initialized_with_liquidity.state()
+    id = tx.return_value
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Open)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.owner == alice.address
+    assert event.id == id
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.liquidityDelta == liquidity_delta
 
 
-def test_pool_open__emits_open_with_one_for_zero(pool, alice, bob):
-    pass
+def test_pool_open__emits_open_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    state = pool_initialized_with_liquidity.state()
+    id = tx.return_value
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Open)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.owner == alice.address
+    assert event.id == id
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.liquidityDelta == liquidity_delta
