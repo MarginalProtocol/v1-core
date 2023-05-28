@@ -1,3 +1,7 @@
+import pytest
+
+from ape import reverts
+
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import get_position_key, calc_tick_from_sqrt_price_x96
 
@@ -530,3 +534,65 @@ def test_pool_open__emits_open_with_one_for_zero(
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
     assert event.liquidityDelta == liquidity_delta
+
+
+def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+
+    liquidity_delta = state.liquidity
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    with reverts("liquidityDelta >= liquidity"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+
+    liquidity_delta = state.liquidity
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    with reverts("liquidityDelta >= liquidity"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+# TODO:
+@pytest.mark.fuzzing
+def test_pool_open__with_fuzz():
+    pass
