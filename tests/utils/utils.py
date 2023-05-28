@@ -1,4 +1,4 @@
-from math import sqrt
+from math import log, sqrt
 
 from eth_abi.packed import encode_packed
 from eth_utils import keccak
@@ -8,6 +8,10 @@ from utils.constants import MAINTENANCE_UNIT
 
 def get_position_key(address: str, id: int) -> bytes:
     return keccak(encode_packed(["address", "uint112"], [address, id]))
+
+
+def calc_tick_from_sqrt_price_x96(sqrt_price_x96: int) -> int:
+    return int((2 * log((sqrt_price_x96 >> 96))) // log(1.0001))
 
 
 def calc_sqrt_price_x96_next(
