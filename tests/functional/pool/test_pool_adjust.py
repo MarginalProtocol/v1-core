@@ -101,6 +101,160 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     assert pool_initialized_with_liquidity.positions(key) == position
 
 
+def test_pool_adjust__transfers_funds_when_add_margin_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    margin_in = position.margin
+    margin_out = 0
+    data = encode(["address"], [sender.address])
+
+    balance1_sender = token1.balanceOf(sender.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        zero_for_one_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool + margin_in
+    )
+    assert token1.balanceOf(sender.address) == balance1_sender - margin_in
+
+
+def test_pool_adjust__transfers_funds_when_add_margin_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    margin_in = position.margin
+    margin_out = 0
+    data = encode(["address"], [sender.address])
+
+    balance0_sender = token0.balanceOf(sender.address)
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        one_for_zero_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool + margin_in
+    )
+    assert token0.balanceOf(sender.address) == balance0_sender - margin_in
+
+
+def test_pool_adjust__transfers_funds_when_remove_margin_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # add some margin first given test callee on open only sends min
+    data = encode(["address"], [sender.address])
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        zero_for_one_position_id,
+        position.margin,
+        0,
+        data,
+        sender=sender,
+    )
+
+    # remove half of newly added margin
+    margin_in = 0
+    margin_out = position.margin // 2
+
+    balance1_sender = token1.balanceOf(sender.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        zero_for_one_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool - margin_out
+    )
+    assert token1.balanceOf(sender.address) == balance1_sender + margin_out
+
+
+def test_pool_adjust__transfers_funds_when_remove_margin_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # add some margin first given test callee on open only sends min
+    data = encode(["address"], [sender.address])
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        one_for_zero_position_id,
+        position.margin,
+        0,
+        data,
+        sender=sender,
+    )
+
+    # remove half of newly added margin
+    margin_in = 0
+    margin_out = position.margin // 2
+
+    balance0_sender = token0.balanceOf(sender.address)
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        one_for_zero_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool - margin_out
+    )
+    assert token0.balanceOf(sender.address) == balance0_sender + margin_out
+
+
 # TODO: test when not position owner
 
 
