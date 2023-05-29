@@ -280,6 +280,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function adjust(
         address recipient,
         uint112 id,
+        uint256 marginIn,
         uint256 marginOut,
         bytes calldata data
     ) external lock {
@@ -300,9 +301,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 ? marginMinimum - position.margin
                 : 0;
             IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
-                marginOut,
+                marginIn,
                 0,
-                margin0AdjustMinimum,
+                marginOut,
                 0,
                 data
             );
@@ -320,9 +321,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 : 0;
             IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
                 0,
-                marginOut,
+                marginIn,
                 0,
-                margin1AdjustMinimum,
+                marginOut,
                 data
             );
             uint256 amount1 = balance1() - balance1Before;

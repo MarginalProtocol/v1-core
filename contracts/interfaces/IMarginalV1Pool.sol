@@ -62,6 +62,7 @@ interface IMarginalV1Pool {
     function adjust(
         address recipient,
         uint112 id,
+        uint256 marginIn,
         uint256 marginOut,
         bytes calldata data
     ) external;
