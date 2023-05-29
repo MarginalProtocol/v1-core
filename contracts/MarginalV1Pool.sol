@@ -14,10 +14,11 @@ import {LiquidityMath} from "./libraries/LiquidityMath.sol";
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
 
-import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
+import {IMarginalV1AdjustCallback} from "./interfaces/callback/IMarginalV1AdjustCallback.sol";
 import {IMarginalV1MintCallback} from "./interfaces/callback/IMarginalV1MintCallback.sol";
 import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCallback.sol";
 
+import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
 contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
@@ -73,6 +74,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint128 liquidityAfter,
         uint160 sqrtPriceX96After,
         uint128 liquidityDelta
+    );
+    event Adjust(
+        address indexed owner,
+        uint256 indexed id,
+        address recipient,
+        uint256 marginAfter
     );
     event Mint(
         address sender,
@@ -212,7 +219,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
 
             uint256 amount0 = balance0() - balance0Before;
-            require(amount0 >= margin0Minimum + fees0, "amount0 < min"); // TODO: possibly relax so swaps can happen
+            require(amount0 >= margin0Minimum + fees0, "amount0 < min");
             uint256 margin = amount0 - fees0;
 
             position.margin = margin;
@@ -239,7 +246,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
 
             uint256 amount1 = balance1() - balance1Before;
-            require(amount1 >= margin1Minimum + fees1, "amount1 < min"); // TODO: possibly relax so swaps can happen
+            require(amount1 >= margin1Minimum + fees1, "amount1 < min");
             uint256 margin = amount1 - fees1;
 
             position.margin = margin;
@@ -268,6 +275,64 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.sqrtPriceX96,
             liquidityDelta
         );
+    }
+
+    function adjust(
+        address recipient,
+        uint112 id,
+        uint256 marginOut,
+        bytes calldata data
+    ) external lock {
+        Position.Info memory position = positions.get(msg.sender, id);
+        require(marginOut <= position.margin, "marginOut > position margin");
+        uint256 marginMinimum = Position.marginMinimum(
+            position.size,
+            maintenance
+        );
+
+        // flash margin out then callback for margin in
+        if (!position.zeroForOne) {
+            IERC20(token0).safeTransfer(recipient, marginOut);
+            position.margin -= marginOut;
+
+            uint256 balance0Before = balance0();
+            uint256 margin0AdjustMinimum = position.margin < marginMinimum
+                ? marginMinimum - position.margin
+                : 0;
+            IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
+                marginOut,
+                0,
+                margin0AdjustMinimum,
+                0,
+                data
+            );
+
+            uint256 amount0 = balance0() - balance0Before;
+            require(amount0 >= margin0AdjustMinimum, "amount0 < min");
+            position.margin += amount0;
+        } else {
+            IERC20(token1).safeTransfer(recipient, marginOut);
+            position.margin -= marginOut;
+
+            uint256 balance1Before = balance1();
+            uint256 margin1AdjustMinimum = position.margin < marginMinimum
+                ? marginMinimum - position.margin
+                : 0;
+            IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
+                0,
+                marginOut,
+                0,
+                margin1AdjustMinimum,
+                data
+            );
+            uint256 amount1 = balance1() - balance1Before;
+            require(amount1 >= margin1AdjustMinimum, "amount1 < min");
+            position.margin += amount1;
+        }
+
+        positions.set(msg.sender, id, position);
+
+        emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }
 
     function mint(

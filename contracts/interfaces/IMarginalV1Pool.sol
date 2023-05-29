@@ -59,6 +59,13 @@ interface IMarginalV1Pool {
         bytes calldata data
     ) external returns (uint256 id);
 
+    function adjust(
+        address recipient,
+        uint112 id,
+        uint256 marginOut,
+        bytes calldata data
+    ) external;
+
     function mint(
         address recipient,
         uint128 liquidityDelta,
