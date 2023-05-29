@@ -19,6 +19,8 @@ contract MarginalV1Factory is IMarginalV1Factory {
         uint24 maintenance; // precision of 1e6
         uint24 fee; // precision of 1e6
         address oracle;
+        uint32 secondsAgo;
+        uint32 fundingPeriod;
     }
     Params public params;
 
@@ -66,7 +68,9 @@ contract MarginalV1Factory is IMarginalV1Factory {
             token1: token1,
             maintenance: maintenance, // different max leverages across pools
             fee: 1000, // 10 bps across all pools
-            oracle: oracle
+            oracle: oracle,
+            secondsAgo: 3600, // 1 hr TWAP for oracle price
+            fundingPeriod: 86400 // 1 day
         });
         pool = address(
             new MarginalV1Pool{

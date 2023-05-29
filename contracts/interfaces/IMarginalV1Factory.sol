@@ -20,7 +20,9 @@ interface IMarginalV1Factory {
             address token1,
             uint24 maintenance,
             uint24 fee,
-            address oracle
+            address oracle,
+            uint32 secondsAgo,
+            uint32 fundingPeriod
         );
 
     function createPool(

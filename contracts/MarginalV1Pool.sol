@@ -35,6 +35,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     uint24 public immutable fee;
     uint24 public immutable maintenance;
 
+    uint32 public immutable secondsAgo;
+    uint32 public immutable fundingPeriod;
+
     // @dev Pool state represented in (L, sqrtP) space
     struct State {
         uint128 liquidity;
@@ -87,9 +90,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     );
 
     constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
-        (token0, token1, maintenance, fee, oracle) = IMarginalV1Factory(
-            msg.sender
-        ).params();
+        (
+            token0,
+            token1,
+            maintenance,
+            fee,
+            oracle,
+            secondsAgo,
+            fundingPeriod
+        ) = IMarginalV1Factory(msg.sender).params();
         factory = msg.sender;
     }
 

@@ -592,6 +592,186 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         )
 
 
+def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x96_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = True
+    sqrt_price_limit_x96 = state.sqrtPriceX96 + 1
+
+    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO
+
+    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = False
+    sqrt_price_limit_x96 = state.sqrtPriceX96 - 1
+
+    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_ratio_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO
+
+    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_x96_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = True
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+        state.liquidity,
+        state.sqrtPriceX96,
+        liquidity_delta,
+        zero_for_one,
+        maintenance,
+    )
+    sqrt_price_limit_x96 = sqrt_price_x96_next + 1
+
+    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_limit_x96_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = False
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+        state.liquidity,
+        state.sqrtPriceX96,
+        liquidity_delta,
+        zero_for_one,
+        maintenance,
+    )
+    sqrt_price_limit_x96 = sqrt_price_x96_next - 1
+
+    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
 # TODO:
 @pytest.mark.fuzzing
 def test_pool_open__with_fuzz():

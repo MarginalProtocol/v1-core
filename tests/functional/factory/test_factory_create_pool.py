@@ -6,6 +6,7 @@ from ape.utils import ZERO_ADDRESS
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__deploys_pool_contract(
+    project,
     factory,
     alice,
     rando_token_a_address,
@@ -26,6 +27,18 @@ def test_create_pool__deploys_pool_contract(
     assert pool.token0() == rando_token_a_address
     assert pool.token1() == rando_token_b_address
     assert pool.maintenance() == maintenance
+    assert pool.fee() == 1000
+    assert pool.secondsAgo() == 3600
+    assert pool.fundingPeriod() == 86400
+
+    # TODO: abstract with ape-yaml.config somehow?
+    univ3_factory_address = factory.uniswapV3Factory()
+    univ3_factory = project.dependencies["uniswap-v3-core"]["0.8"].UniswapV3Factory.at(
+        univ3_factory_address
+    )
+    assert pool.oracle() == univ3_factory.getPool(
+        pool.token0(), pool.token1(), rando_univ3_fee
+    )
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -124,6 +137,9 @@ def test_create_pool__deletes_params(
     assert params.token1 == ZERO_ADDRESS
     assert params.maintenance == 0
     assert params.fee == 0
+    assert params.oracle == ZERO_ADDRESS
+    assert params.secondsAgo == 0
+    assert params.fundingPeriod == 0
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
