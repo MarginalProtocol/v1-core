@@ -285,6 +285,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         bytes calldata data
     ) external lock {
         Position.Info memory position = positions.get(msg.sender, id);
+        require(position.size > 0, "not position");
         require(marginOut <= position.margin, "marginOut > position margin");
         uint256 marginMinimum = Position.marginMinimum(
             position.size,
