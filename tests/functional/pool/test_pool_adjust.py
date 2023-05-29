@@ -1,6 +1,6 @@
 import pytest
 
-# TODO: from ape import reverts
+from ape import reverts
 from eth_abi import encode
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
@@ -385,7 +385,128 @@ def test_pool_adjust__emits_adjust_with_one_for_zero(
     assert event.marginAfter == position.margin + margin_in
 
 
-# TODO: test when not position owner
+def test_pool_adjust__reverts_when_not_position_owner(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [alice.address])
+
+    with reverts("not position"):
+        pool_initialized_with_liquidity.adjust(
+            callee.address,
+            one_for_zero_position_id,
+            0,
+            position.margin,
+            data,
+            sender=alice,
+        )
+
+
+def test_pool_adjust__reverts_when_not_position_id(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    with reverts("not position"):
+        pool_initialized_with_liquidity.adjust(
+            callee.address,
+            one_for_zero_position_id + 1,
+            0,
+            position.margin,
+            data,
+            sender=sender,
+        )
+
+
+def test_pool_adjust__reverts_when_margin_out_greater_than_position_margin(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    with reverts("marginOut > position margin"):
+        pool_initialized_with_liquidity.adjust(
+            callee.address,
+            one_for_zero_position_id,
+            0,
+            position.margin + 1,
+            data,
+            sender=sender,
+        )
+
+
+def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    # position initialized with min margin due to test callee setup
+    margin_out = position.margin
+    margin_in = position.margin - 1
+
+    with reverts("amount1 < min"):
+        pool_initialized_with_liquidity.adjust(
+            callee.address,
+            zero_for_one_position_id,
+            margin_in,
+            margin_out,
+            data,
+            sender=sender,
+        )
+
+
+def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    # position initialized with min margin due to test callee setup
+    margin_out = position.margin
+    margin_in = position.margin - 1
+
+    with reverts("amount0 < min"):
+        pool_initialized_with_liquidity.adjust(
+            callee.address,
+            one_for_zero_position_id,
+            margin_in,
+            margin_out,
+            data,
+            sender=sender,
+        )
 
 
 # TODO:
