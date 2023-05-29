@@ -210,9 +210,21 @@ def test_pool_burn__reverts_when_shares_greater_than_total_supply(
         )
 
 
-# TODO: with position open
-def test_pool_burn__reverts_when_liquidity_delta_greater_than_liquidity():
-    pass
+def test_pool_burn__reverts_when_liquidity_delta_greater_than_liquidity(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    shares = pool_initialized_with_liquidity.balanceOf(sender.address)
+    with reverts("liquidityDelta >= liquidity"):
+        pool_initialized_with_liquidity.burn(alice.address, shares, sender=sender)
+
+
+# TODO: tests when reserves locked
 
 
 # TODO:

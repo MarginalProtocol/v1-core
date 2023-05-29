@@ -1,6 +1,7 @@
 import pytest
 
 from math import sqrt
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 
 
 @pytest.fixture(scope="module")
@@ -77,3 +78,43 @@ def callee_below_min1(project, accounts, token0, token1, sender):
     token0.approve(callee_below.address, 2**256 - 1, sender=sender)
     token1.approve(callee_below.address, 2**256 - 1, sender=sender)
     return callee_below
+
+
+@pytest.fixture(scope="module")
+def zero_for_one_position_id(
+    pool_initialized_with_liquidity, callee, sender, token0, token1
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        sender.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    return int(tx.return_value)
+
+
+@pytest.fixture(scope="module")
+def one_for_zero_position_id(
+    pool_initialized_with_liquidity, callee, sender, token0, token1
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        sender.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    return int(tx.return_value)

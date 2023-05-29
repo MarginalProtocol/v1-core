@@ -3,48 +3,7 @@ import pytest
 from ape import reverts
 from eth_abi import encode
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import get_position_key
-
-
-@pytest.fixture
-def zero_for_one_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
-):
-    state = pool_initialized_with_liquidity.state()
-    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
-    zero_for_one = True
-    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
-
-    tx = callee.open(
-        pool_initialized_with_liquidity.address,
-        sender.address,
-        liquidity_delta,
-        zero_for_one,
-        sqrt_price_limit_x96,
-        sender=sender,
-    )
-    return int(tx.return_value)
-
-
-@pytest.fixture
-def one_for_zero_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
-):
-    state = pool_initialized_with_liquidity.state()
-    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
-    zero_for_one = False
-    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
-
-    tx = callee.open(
-        pool_initialized_with_liquidity.address,
-        sender.address,
-        liquidity_delta,
-        zero_for_one,
-        sqrt_price_limit_x96,
-        sender=sender,
-    )
-    return int(tx.return_value)
 
 
 def test_pool_adjust__sets_position_with_zero_for_one(
