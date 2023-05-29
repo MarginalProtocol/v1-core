@@ -772,6 +772,60 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
         )
 
 
+def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee_below_min1,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    with reverts("amount1 < min"):
+        callee_below_min1.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee_below_min0,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    with reverts("amount0 < min"):
+        callee_below_min0.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            liquidity_delta,
+            zero_for_one,
+            sqrt_price_limit_x96,
+            sender=sender,
+        )
+
+
 # TODO:
 @pytest.mark.fuzzing
 def test_pool_open__with_fuzz():
