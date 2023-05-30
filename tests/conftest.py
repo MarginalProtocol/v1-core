@@ -57,8 +57,9 @@ def univ3_factory_address():
 
 @pytest.fixture(scope="session")
 def rando_univ3_observations():
+    # @dev order matters given mock
     return [
-        (1684758335, 12871216193543, 151666952020109821882336874706, True),
+        (1684758203, 12871216193543, 151666952020109821882336874706, True),
         (1684761803, 12871914275939, 151666987847742632430844074643, True),
     ]
 

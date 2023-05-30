@@ -28,6 +28,7 @@ def test_create_pool__deploys_pool_contract(
     assert pool.token1() == rando_token_b_address
     assert pool.maintenance() == maintenance
     assert pool.fee() == 1000
+    assert pool.reward() == 100000
     assert pool.secondsAgo() == 3600
     assert pool.fundingPeriod() == 86400
 

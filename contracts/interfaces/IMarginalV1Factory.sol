@@ -20,6 +20,7 @@ interface IMarginalV1Factory {
             address token1,
             uint24 maintenance,
             uint24 fee,
+            uint24 reward,
             address oracle,
             uint32 secondsAgo,
             uint32 fundingPeriod

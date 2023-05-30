@@ -42,6 +42,7 @@ contract MockUniswapV3Pool {
     }
 
     /// @dev unlike Uniswap V3, naively returns back observations so order matters
+    /// @dev assumes contracts query with e.g. secondsAgos[0] = secondsAgo; secondsAgos[1] = 0;
     function observe(
         uint32[] calldata secondsAgos
     )
@@ -60,7 +61,7 @@ contract MockUniswapV3Pool {
         tickCumulatives = new int56[](secondsAgos.length);
         secondsPerLiquidityCumulativeX128s = new uint160[](secondsAgos.length);
         for (uint256 i = 0; i < secondsAgos.length; i++) {
-            uint256 j = _observationIndex - 1 - i;
+            uint256 j = _observationIndex - secondsAgos.length + i;
             Observation memory observation = observations[j];
             tickCumulatives[i] = observation.tickCumulative;
             secondsPerLiquidityCumulativeX128s[i] = observation

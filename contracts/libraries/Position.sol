@@ -42,6 +42,17 @@ library Position {
         positions[keccak256(abi.encodePacked(owner, id))] = position;
     }
 
+    /// @notice Liquidates an existing position
+    function liquidate(
+        Info memory position
+    ) internal pure returns (Info memory positionAfter) {
+        positionAfter.zeroForOne = position.zeroForOne;
+        positionAfter.liquidated = true;
+        positionAfter.tickCumulativeStart = position.tickCumulativeStart;
+        positionAfter.oracleTickCumulativeStart = position
+            .oracleTickCumulativeStart;
+    }
+
     /// @notice Assembles a new position from pool state
     /// @dev zeroForOne == true means short position
     function assemble(
@@ -167,6 +178,15 @@ library Position {
         return (uint256(size) * maintenance) / 1e6;
     }
 
+    /// @notice Liquidation rewards to liquidator in (x, y) amounts
+    /// @dev Rewards given proportional to margin
+    function liquidationRewards(
+        uint128 margin,
+        uint24 reward
+    ) internal pure returns (uint256) {
+        return (uint256(margin) * reward) / 1e6;
+    }
+
     /// @notice Amounts (x, y) of pool liquidity locked for position
     function amountsLocked(
         Info memory position
@@ -177,6 +197,69 @@ library Position {
         } else {
             amount0 = position.insurance0;
             amount1 = position.size + position.debt1 + position.insurance1;
+        }
+    }
+
+    /// @notice Debt adjusted for funding
+    function debtsAfterFunding(
+        Info memory position,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) internal pure returns (uint128 debt0, uint128 debt1) {
+        // TODO: funding calc, need blockTimestampStart
+        if (!position.zeroForOne) {
+            debt0 = position.debt0;
+            debt1 = position.debt1;
+        } else {
+            debt0 = position.debt0;
+            debt1 = position.debt1;
+        }
+    }
+
+    /// @notice If not safe, position can be liquidated
+    // TODO: factor in funding with debt adjusted ...
+    function safe(
+        Info memory position,
+        uint160 sqrtPriceX96,
+        uint24 maintenance,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) internal pure returns (bool) {
+        if (!position.zeroForOne) {
+            (, uint128 debt1) = debtsAfterFunding(
+                position,
+                tickCumulativeLast,
+                oracleTickCumulativeLast,
+                fundingPeriod
+            );
+            uint256 debtAdjusted = (uint256(debt1) * (1e6 + maintenance)) / 1e6;
+            uint256 liquidityCollateral = Math.mulDiv(
+                position.margin + position.size,
+                sqrtPriceX96,
+                FixedPoint96.Q96
+            );
+            uint256 liquidityDebt = (debtAdjusted << FixedPoint96.RESOLUTION) /
+                sqrtPriceX96;
+            return liquidityCollateral >= liquidityDebt;
+        } else {
+            (uint128 debt0, ) = debtsAfterFunding(
+                position,
+                tickCumulativeLast,
+                oracleTickCumulativeLast,
+                fundingPeriod
+            );
+            uint256 debtAdjusted = (uint256(debt0) * (1e6 + maintenance)) / 1e6;
+            uint256 liquidityCollateral = (uint256(
+                position.margin + position.size
+            ) << FixedPoint96.RESOLUTION) / sqrtPriceX96;
+            uint256 liquidityDebt = Math.mulDiv(
+                debtAdjusted,
+                sqrtPriceX96,
+                FixedPoint96.Q96
+            );
+            return liquidityCollateral >= liquidityDebt;
         }
     }
 }

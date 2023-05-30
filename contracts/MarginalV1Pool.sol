@@ -35,6 +35,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     uint24 public immutable fee;
     uint24 public immutable maintenance;
+    uint24 public immutable reward;
 
     uint32 public immutable secondsAgo;
     uint32 public immutable fundingPeriod;
@@ -81,6 +82,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint256 marginAfter
     );
+    event Liquidate(
+        address indexed owner,
+        uint256 indexed id,
+        address recipient,
+        uint128 liquidityAfter,
+        uint160 sqrtPriceX96After,
+        uint256 reward0,
+        uint256 reward1
+    );
     event Mint(
         address sender,
         address indexed owner,
@@ -102,6 +112,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             token1,
             maintenance,
             fee,
+            reward,
             oracle,
             secondsAgo,
             fundingPeriod
@@ -188,7 +199,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
 
         // zero seconds ago for oracle tickCumulative
-        // TODO: get ticks from T seconds ago to calc oracle price as well for callback
         int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
 
         Position.Info memory position = Position.assemble(
@@ -210,7 +220,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 margin0Minimum = Position.marginMinimum(
                 position.size,
                 maintenance
-            ); // TODO: use oracle price
+            ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees0 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 margin0Minimum + fees0,
@@ -222,7 +232,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             require(amount0 >= margin0Minimum + fees0, "amount0 < min");
             uint256 margin = amount0 - fees0;
 
-            position.margin = margin;
+            position.margin = margin.toUint128(); // safecast to avoid issues on liquidation
             position.debt0 += uint128(fees0); // fees added to available liquidity on settle
 
             ReservesLocked memory _reservesLocked = reservesLocked;
@@ -237,7 +247,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 margin1Minimum = Position.marginMinimum(
                 position.size,
                 maintenance
-            ); // TODO: use oracle price
+            ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees1 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
@@ -249,7 +259,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             require(amount1 >= margin1Minimum + fees1, "amount1 < min");
             uint256 margin = amount1 - fees1;
 
-            position.margin = margin;
+            position.margin = margin.toUint128(); // safecast to avoid issues on liquidation
             position.debt1 += uint128(fees1); // fees added to available liquidity on settle
 
             ReservesLocked memory _reservesLocked = reservesLocked;
@@ -280,8 +290,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function adjust(
         address recipient,
         uint112 id,
-        uint256 marginIn,
-        uint256 marginOut,
+        uint128 marginIn,
+        uint128 marginOut,
         bytes calldata data
     ) external lock {
         Position.Info memory position = positions.get(msg.sender, id);
@@ -311,7 +321,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             uint256 amount0 = balance0() - balance0Before;
             require(amount0 >= margin0AdjustMinimum, "amount0 < min");
-            position.margin += amount0;
+            position.margin += amount0.toUint128(); // safecast to avoid issues on liquidation
         } else {
             IERC20(token1).safeTransfer(recipient, marginOut);
             position.margin -= marginOut;
@@ -329,13 +339,135 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
             uint256 amount1 = balance1() - balance1Before;
             require(amount1 >= margin1AdjustMinimum, "amount1 < min");
-            position.margin += amount1;
+            position.margin += amount1.toUint128(); // safecast to avoid issues on liquidation
         }
 
         positions.set(msg.sender, id, position);
 
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }
+
+    // TODO:
+    function settle(
+        address recipient,
+        uint112 id,
+        uint128 liquidityDelta,
+        bytes calldata data
+    ) external lock {}
+
+    function liquidate(
+        address recipient,
+        address owner,
+        uint112 id
+    ) external lock returns (uint256 reward0, uint256 reward1) {
+        State memory _state = state;
+        Position.Info memory position = positions.get(owner, id);
+        require(position.size > 0, "not position");
+
+        // oracle write then liquidate position
+        _state.tickCumulative +=
+            int56(_state.tick) *
+            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
+        _state.blockTimestamp = _blockTimestamp();
+
+        // oracle price averaged over seconds ago for liquidation calc
+        uint32[] memory secondsAgos = new uint32[](2);
+        secondsAgos[0] = secondsAgo;
+        secondsAgos[1] = 0;
+
+        int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
+            secondsAgos
+        );
+        uint160 oracleSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
+            int24(
+                (oracleTickCumulativesLast[1] - oracleTickCumulativesLast[0]) /
+                    int56(uint56(secondsAgo))
+            )
+        );
+        require(
+            !position.safe(
+                oracleSqrtPriceX96,
+                maintenance,
+                _state.tickCumulative,
+                oracleTickCumulativesLast[1], // zero seconds ago
+                fundingPeriod
+            ),
+            "position safe"
+        );
+
+        (uint128 amount0, uint128 amount1) = position.amountsLocked();
+        ReservesLocked memory _reservesLocked = reservesLocked;
+        _reservesLocked.token0 -= amount0;
+        _reservesLocked.token1 -= amount1;
+        reservesLocked = _reservesLocked;
+
+        if (!position.zeroForOne) {
+            reward0 = Position.liquidationRewards(
+                uint128(position.margin),
+                reward
+            );
+            amount0 += uint128(position.margin) - uint128(reward0);
+
+            (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
+                _state.liquidity,
+                _state.sqrtPriceX96
+            );
+            (uint128 liquidityNext, uint160 sqrtPriceX96Next) = LiquidityMath
+                .toLiquiditySqrtPriceX96(
+                    reserve0 + amount0,
+                    reserve1 + amount1
+                );
+            _state.liquidity = liquidityNext;
+            _state.sqrtPriceX96 = sqrtPriceX96Next;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
+        } else {
+            reward1 = Position.liquidationRewards(
+                uint128(position.margin),
+                reward
+            );
+            amount1 += uint128(position.margin) - uint128(reward1);
+
+            (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
+                _state.liquidity,
+                _state.sqrtPriceX96
+            );
+            (uint128 liquidityNext, uint160 sqrtPriceX96Next) = LiquidityMath
+                .toLiquiditySqrtPriceX96(
+                    reserve0 + amount0,
+                    reserve1 + amount1
+                );
+            _state.liquidity = liquidityNext;
+            _state.sqrtPriceX96 = sqrtPriceX96Next;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
+        }
+
+        if (reward0 > 0) IERC20(token0).safeTransfer(recipient, reward0);
+        if (reward1 > 0) IERC20(token1).safeTransfer(recipient, reward1);
+
+        positions.set(owner, id, position.liquidate());
+
+        // update pool state to latest
+        state = _state;
+
+        emit Liquidate(
+            owner,
+            uint256(id),
+            recipient,
+            _state.liquidity,
+            _state.sqrtPriceX96,
+            reward0,
+            reward1
+        );
+    }
+
+    // TODO:
+    function swap(
+        address recipient,
+        uint128 amountOut,
+        bool zeroForOne,
+        uint160 sqrtPriceLimitX96,
+        bytes calldata data
+    ) external lock returns (uint128 amountIn) {}
 
     function mint(
         address recipient,
@@ -431,8 +563,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
         _state.liquidity -= liquidityDelta;
 
-        IERC20(token0).safeTransfer(recipient, amount0);
-        IERC20(token1).safeTransfer(recipient, amount1);
+        if (amount0 > 0) IERC20(token0).safeTransfer(recipient, amount0);
+        if (amount1 > 0) IERC20(token1).safeTransfer(recipient, amount1);
 
         // update pool state to latest
         state = _state;
