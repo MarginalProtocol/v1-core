@@ -209,10 +209,10 @@ library Position {
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
         if (!position.zeroForOne) {
+            // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                position.tickCumulativeStart -
-                    position.oracleTickCumulativeStart,
-                tickCumulativeLast - oracleTickCumulativeLast,
+                oracleTickCumulativeLast - position.oracleTickCumulativeStart,
+                tickCumulativeLast - position.tickCumulativeStart,
                 fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
             );
             debt0 = position.debt0;
@@ -220,10 +220,10 @@ library Position {
                 .mulDiv(position.debt1, numeratorX96, FixedPoint96.Q96)
                 .toUint128();
         } else {
+            // debt0Now = debt0Start * (bar{P} / P) ** (now - start) / fundingPeriod
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                position.oracleTickCumulativeStart -
-                    position.tickCumulativeStart,
-                oracleTickCumulativeLast - tickCumulativeLast,
+                tickCumulativeLast - position.tickCumulativeStart,
+                oracleTickCumulativeLast - position.oracleTickCumulativeStart,
                 fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
             );
             debt0 = Math
