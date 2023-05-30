@@ -24,14 +24,19 @@ def spot_reserve1(pool, token_a, token_b):
 
 
 @pytest.fixture(scope="module")
+def spot_liquidity(spot_reserve0, spot_reserve1):
+    return int(sqrt(spot_reserve0 * spot_reserve1))
+
+
+@pytest.fixture(scope="module")
 def sqrt_price_x96_initial(spot_reserve0, spot_reserve1):
     sqrt_price = int(sqrt(spot_reserve1 / spot_reserve0))
     return sqrt_price << 96
 
 
 @pytest.fixture(scope="module")
-def pool_initialized(pool, deployer, sqrt_price_x96_initial):
-    pool.initialize(sqrt_price_x96_initial, sender=deployer)
+def pool_initialized(pool, sender, sqrt_price_x96_initial):
+    pool.initialize(sqrt_price_x96_initial, sender=sender)
     return pool
 
 
@@ -53,10 +58,9 @@ def token1(pool_initialized, token_a, token_b, sender, callee, spot_reserve1):
 
 @pytest.fixture(scope="module")
 def pool_initialized_with_liquidity(
-    pool_initialized, callee, token0, token1, sender, spot_reserve0, spot_reserve1
+    pool_initialized, callee, token0, token1, sender, spot_liquidity
 ):
-    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
-    liquidity_delta = liquidity_spot * 100 // 10000  # 1% of spot reserves
+    liquidity_delta = spot_liquidity * 100 // 10000  # 1% of spot reserves
     callee.mint(
         pool_initialized.address, sender.address, liquidity_delta, sender=sender
     )
