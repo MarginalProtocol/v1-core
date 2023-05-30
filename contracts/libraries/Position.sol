@@ -5,6 +5,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {FixedPoint96} from "./FixedPoint96.sol";
+import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
 library Position {
@@ -207,18 +208,32 @@ library Position {
         int56 oracleTickCumulativeLast,
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
-        // TODO: funding calc, need blockTimestampStart
         if (!position.zeroForOne) {
+            uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
+                position.tickCumulativeStart -
+                    position.oracleTickCumulativeStart,
+                tickCumulativeLast - oracleTickCumulativeLast,
+                fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
+            );
             debt0 = position.debt0;
-            debt1 = position.debt1;
+            debt1 = Math
+                .mulDiv(position.debt1, numeratorX96, FixedPoint96.Q96)
+                .toUint128();
         } else {
-            debt0 = position.debt0;
+            uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
+                position.oracleTickCumulativeStart -
+                    position.tickCumulativeStart,
+                oracleTickCumulativeLast - tickCumulativeLast,
+                fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
+            );
+            debt0 = Math
+                .mulDiv(position.debt0, numeratorX96, FixedPoint96.Q96)
+                .toUint128();
             debt1 = position.debt1;
         }
     }
 
     /// @notice If not safe, position can be liquidated
-    // TODO: factor in funding with debt adjusted ...
     function safe(
         Info memory position,
         uint160 sqrtPriceX96,

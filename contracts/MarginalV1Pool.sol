@@ -11,6 +11,7 @@ import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import {LiquidityMath} from "./libraries/LiquidityMath.sol";
+import {OracleLibrary} from "./libraries/OracleLibrary.sol";
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
 
@@ -378,11 +379,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
             secondsAgos
         );
-        uint160 oracleSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
-            int24(
-                (oracleTickCumulativesLast[1] - oracleTickCumulativesLast[0]) /
-                    int56(uint56(secondsAgo))
-            )
+        uint160 oracleSqrtPriceX96 = OracleLibrary.oracleSqrtPriceX96(
+            oracleTickCumulativesLast[0],
+            oracleTickCumulativesLast[1],
+            secondsAgo
         );
         require(
             !position.safe(
