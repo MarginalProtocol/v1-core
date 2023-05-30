@@ -1,6 +1,6 @@
 # v1-core
 
-Marginal v1 core smart contracts.
+[Marginal v1](./wp/v1.pdf) core smart contracts.
 
 ## Installation
 
