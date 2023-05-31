@@ -1,7 +1,10 @@
 # Maintenance and fees
 MAINTENANCE_UNIT = 1000000
 FEE_UNIT = 1000000
+REWARD_UNIT = 1000000
+
 FEE = 1000  # 10 bps across all pools
+REWARD = 50000  # 5% of size
 
 # SqrtPriceMath
 MIN_SQRT_RATIO = 4295128739

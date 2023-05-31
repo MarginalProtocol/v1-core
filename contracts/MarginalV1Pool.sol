@@ -220,7 +220,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 balance0Before = balance0();
             uint256 margin0Minimum = Position.marginMinimum(
                 position.size,
-                maintenance
+                maintenance,
+                reward
             ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees0 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -247,7 +248,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 balance1Before = balance1();
             uint256 margin1Minimum = Position.marginMinimum(
                 position.size,
-                maintenance
+                maintenance,
+                reward
             ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees1 = Position.fees(position.size, fee);
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -300,7 +302,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         require(marginOut <= position.margin, "marginOut > position margin");
         uint256 marginMinimum = Position.marginMinimum(
             position.size,
-            maintenance
+            maintenance,
+            reward
         );
 
         // flash margin out then callback for margin in
@@ -403,7 +406,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         if (!position.zeroForOne) {
             reward0 = Position.liquidationRewards(
-                uint128(position.margin),
+                uint128(position.size),
                 reward
             );
             amount0 += uint128(position.margin) - uint128(reward0);
@@ -422,7 +425,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
         } else {
             reward1 = Position.liquidationRewards(
-                uint128(position.margin),
+                uint128(position.size),
                 reward
             );
             amount1 += uint128(position.margin) - uint128(reward1);

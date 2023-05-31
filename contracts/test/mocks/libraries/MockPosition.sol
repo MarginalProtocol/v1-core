@@ -24,6 +24,12 @@ contract MockPosition {
         positions.set(owner, id, position);
     }
 
+    function liquidate(
+        Position.Info memory position
+    ) external pure returns (Position.Info memory) {
+        return Position.liquidate(position);
+    }
+
     function assemble(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -98,14 +104,54 @@ contract MockPosition {
 
     function marginMinimum(
         uint128 size,
-        uint24 maintenance
+        uint24 maintenance,
+        uint24 reward
     ) external view returns (uint256) {
-        return Position.marginMinimum(size, maintenance);
+        return Position.marginMinimum(size, maintenance, reward);
+    }
+
+    function liquidationRewards(
+        uint128 size,
+        uint24 reward
+    ) external pure returns (uint256) {
+        return Position.liquidationRewards(size, reward);
     }
 
     function amountsLocked(
         Position.Info memory position
     ) external view returns (uint128 amount0, uint128 amount1) {
         return position.amountsLocked();
+    }
+
+    function debtsAfterFunding(
+        Position.Info memory position,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) external pure returns (uint128 debt0, uint128 debt1) {
+        return
+            position.debtsAfterFunding(
+                tickCumulativeLast,
+                oracleTickCumulativeLast,
+                fundingPeriod
+            );
+    }
+
+    function safe(
+        Position.Info memory position,
+        uint160 sqrtPriceX96,
+        uint24 maintenance,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) external pure returns (bool) {
+        return
+            position.safe(
+                sqrtPriceX96,
+                maintenance,
+                tickCumulativeLast,
+                oracleTickCumulativeLast,
+                fundingPeriod
+            );
     }
 }

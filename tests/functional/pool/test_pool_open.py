@@ -2,7 +2,7 @@ import pytest
 
 from ape import reverts
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, REWARD
 from utils.utils import get_position_key, calc_tick_from_sqrt_price_x96
 
 
@@ -260,7 +260,7 @@ def test_pool_open__sets_position_with_zero_for_one(
         oracle_tick_cumulative,
     )
     fees = position_lib.fees(position.size, fee)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
+    margin_min = position_lib.marginMinimum(position.size, maintenance, REWARD)
 
     # fees added to debt of margin token
     position.debt1 += fees
@@ -322,7 +322,7 @@ def test_pool_open__sets_position_with_one_for_zero(
         oracle_tick_cumulative,
     )
     fees = position_lib.fees(position.size, fee)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
+    margin_min = position_lib.marginMinimum(position.size, maintenance, REWARD)
 
     # fees added to debt of margin token
     position.debt0 += fees
@@ -377,7 +377,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         0,  # @dev irrelevant for this test
     )
     fees = position_lib.fees(position.size, fee)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
+    margin_min = position_lib.marginMinimum(position.size, maintenance, REWARD)
 
     balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -432,7 +432,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         0,  # @dev irrelevant for this test
     )
     fees = position_lib.fees(position.size, fee)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
+    margin_min = position_lib.marginMinimum(position.size, maintenance, REWARD)
 
     balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)

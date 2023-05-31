@@ -174,18 +174,19 @@ library Position {
     /// @notice Absolute minimum margin requirement
     function marginMinimum(
         uint128 size,
-        uint24 maintenance
+        uint24 maintenance,
+        uint24 reward
     ) internal pure returns (uint256) {
-        return (uint256(size) * maintenance) / 1e6;
+        return (uint256(size) * (maintenance + reward)) / 1e6;
     }
 
     /// @notice Liquidation rewards to liquidator in (x, y) amounts
-    /// @dev Rewards given proportional to margin
+    /// @dev Rewards given proportional to size
     function liquidationRewards(
-        uint128 margin,
+        uint128 size,
         uint24 reward
     ) internal pure returns (uint256) {
-        return (uint256(margin) * reward) / 1e6;
+        return (uint256(size) * reward) / 1e6;
     }
 
     /// @notice Amounts (x, y) of pool liquidity locked for position
