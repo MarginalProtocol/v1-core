@@ -46,7 +46,8 @@ interface IMarginalV1Pool {
             bool liquidated,
             int56 tickCumulativeStart,
             int56 oracleTickCumulativeStart,
-            uint256 margin
+            uint128 margin,
+            uint128 rewards
         );
 
     function initialize(uint160 _sqrtPriceX96) external;

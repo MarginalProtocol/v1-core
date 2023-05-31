@@ -104,10 +104,9 @@ contract MockPosition {
 
     function marginMinimum(
         uint128 size,
-        uint24 maintenance,
-        uint24 reward
+        uint24 maintenance
     ) external view returns (uint256) {
-        return Position.marginMinimum(size, maintenance, reward);
+        return Position.marginMinimum(size, maintenance);
     }
 
     function liquidationRewards(

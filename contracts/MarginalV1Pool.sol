@@ -89,8 +89,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint128 liquidityAfter,
         uint160 sqrtPriceX96After,
-        uint256 reward0,
-        uint256 reward1
+        uint256 rewards0,
+        uint256 rewards1
     );
     event Mint(
         address sender,
@@ -220,21 +220,28 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 balance0Before = balance0();
             uint256 margin0Minimum = Position.marginMinimum(
                 position.size,
-                maintenance,
-                reward
+                maintenance
             ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees0 = Position.fees(position.size, fee);
+            uint256 rewards0 = Position.liquidationRewards(
+                position.size,
+                reward
+            );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
-                margin0Minimum + fees0,
+                margin0Minimum + fees0 + rewards0,
                 0,
                 data
             );
 
             uint256 amount0 = balance0() - balance0Before;
-            require(amount0 >= margin0Minimum + fees0, "amount0 < min");
-            uint256 margin = amount0 - fees0;
+            require(
+                amount0 >= margin0Minimum + fees0 + rewards0,
+                "amount0 < min"
+            );
+            uint256 margin = amount0 - fees0 - rewards0;
 
             position.margin = margin.toUint128(); // safecast to avoid issues on liquidation
+            position.rewards = uint128(rewards0);
             position.debt0 += uint128(fees0); // fees added to available liquidity on settle
 
             ReservesLocked memory _reservesLocked = reservesLocked;
@@ -248,21 +255,28 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             uint256 balance1Before = balance1();
             uint256 margin1Minimum = Position.marginMinimum(
                 position.size,
-                maintenance,
-                reward
+                maintenance
             ); // saves gas by not referencing oracle price but unsafe for trader to use wrt liquidations
             uint256 fees1 = Position.fees(position.size, fee);
+            uint256 rewards1 = Position.liquidationRewards(
+                position.size,
+                reward
+            );
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
                 0,
-                margin1Minimum + fees1,
+                margin1Minimum + fees1 + rewards1,
                 data
             );
 
             uint256 amount1 = balance1() - balance1Before;
-            require(amount1 >= margin1Minimum + fees1, "amount1 < min");
-            uint256 margin = amount1 - fees1;
+            require(
+                amount1 >= margin1Minimum + fees1 + rewards1,
+                "amount1 < min"
+            );
+            uint256 margin = amount1 - fees1 - rewards1;
 
             position.margin = margin.toUint128(); // safecast to avoid issues on liquidation
+            position.rewards = uint128(rewards1);
             position.debt1 += uint128(fees1); // fees added to available liquidity on settle
 
             ReservesLocked memory _reservesLocked = reservesLocked;
@@ -302,8 +316,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         require(marginOut <= position.margin, "marginOut > position margin");
         uint256 marginMinimum = Position.marginMinimum(
             position.size,
-            maintenance,
-            reward
+            maintenance
         );
 
         // flash margin out then callback for margin in
@@ -312,8 +325,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin -= marginOut;
 
             uint256 balance0Before = balance0();
-            uint256 margin0AdjustMinimum = position.margin < marginMinimum
-                ? marginMinimum - position.margin
+            uint256 margin0AdjustMinimum = uint256(position.margin) <
+                marginMinimum
+                ? marginMinimum - uint256(position.margin)
                 : 0;
             IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
                 marginIn,
@@ -331,8 +345,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin -= marginOut;
 
             uint256 balance1Before = balance1();
-            uint256 margin1AdjustMinimum = position.margin < marginMinimum
-                ? marginMinimum - position.margin
+            uint256 margin1AdjustMinimum = uint256(position.margin) <
+                marginMinimum
+                ? marginMinimum - uint256(position.margin)
                 : 0;
             IMarginalV1AdjustCallback(recipient).marginalV1AdjustCallback(
                 0,
@@ -363,7 +378,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         address owner,
         uint112 id
-    ) external lock returns (uint256 reward0, uint256 reward1) {
+    ) external lock returns (uint256 rewards0, uint256 rewards1) {
         State memory _state = state;
         Position.Info memory position = positions.get(owner, id);
         require(position.size > 0, "not position");
@@ -405,11 +420,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         reservesLocked = _reservesLocked;
 
         if (!position.zeroForOne) {
-            reward0 = Position.liquidationRewards(
-                uint128(position.size),
-                reward
-            );
-            amount0 += uint128(position.margin) - uint128(reward0);
+            rewards0 = uint256(position.rewards);
+            amount0 += position.margin;
 
             (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
                 _state.liquidity,
@@ -424,11 +436,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.sqrtPriceX96 = sqrtPriceX96Next;
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
         } else {
-            reward1 = Position.liquidationRewards(
-                uint128(position.size),
-                reward
-            );
-            amount1 += uint128(position.margin) - uint128(reward1);
+            rewards1 = uint256(position.rewards);
+            amount1 += position.margin;
 
             (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
                 _state.liquidity,
@@ -444,8 +453,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
         }
 
-        if (reward0 > 0) IERC20(token0).safeTransfer(recipient, reward0);
-        if (reward1 > 0) IERC20(token1).safeTransfer(recipient, reward1);
+        if (rewards0 > 0) IERC20(token0).safeTransfer(recipient, rewards0);
+        if (rewards1 > 0) IERC20(token1).safeTransfer(recipient, rewards1);
 
         positions.set(owner, id, position.liquidate());
 
@@ -458,8 +467,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             recipient,
             _state.liquidity,
             _state.sqrtPriceX96,
-            reward0,
-            reward1
+            rewards0,
+            rewards1
         );
     }
 

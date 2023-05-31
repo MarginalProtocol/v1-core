@@ -21,7 +21,8 @@ library Position {
         bool liquidated;
         int56 tickCumulativeStart;
         int56 oracleTickCumulativeStart;
-        uint256 margin;
+        uint128 margin;
+        uint128 rewards;
     }
 
     /// @notice Gets a position from positions mapping
@@ -174,10 +175,9 @@ library Position {
     /// @notice Absolute minimum margin requirement
     function marginMinimum(
         uint128 size,
-        uint24 maintenance,
-        uint24 reward
+        uint24 maintenance
     ) internal pure returns (uint256) {
-        return (uint256(size) * (maintenance + reward)) / 1e6;
+        return (uint256(size) * maintenance) / 1e6;
     }
 
     /// @notice Liquidation rewards to liquidator in (x, y) amounts

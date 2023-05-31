@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from math import sqrt
 
-from utils.constants import MAINTENANCE_UNIT, REWARD
+from utils.constants import MAINTENANCE_UNIT
 from utils.utils import calc_sqrt_price_x96_next
 
 
@@ -25,8 +25,8 @@ def test_position_margin_minimum__with_zero_for_one(position_lib, maintenance):
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    margin_min = (size1 * (maintenance + REWARD)) // MAINTENANCE_UNIT
-    result = position_lib.marginMinimum(size1, maintenance, REWARD)
+    margin_min = (size1 * (maintenance)) // MAINTENANCE_UNIT
+    result = position_lib.marginMinimum(size1, maintenance)
     assert result == margin_min
 
 
@@ -47,8 +47,8 @@ def test_position_margin_minimum__with_one_for_zero(position_lib, maintenance):
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
 
-    margin_min = (size0 * (maintenance + REWARD)) // MAINTENANCE_UNIT
-    result = position_lib.marginMinimum(size0, maintenance, REWARD)
+    margin_min = (size0 * (maintenance)) // MAINTENANCE_UNIT
+    result = position_lib.marginMinimum(size0, maintenance)
     assert result == margin_min
 
 
@@ -58,6 +58,6 @@ def test_position_margin_minimum__with_one_for_zero(position_lib, maintenance):
     size=st.integers(min_value=0, max_value=2**128 - 1),
 )
 def test_position_margin_minimum__with_fuzz(position_lib, size, maintenance):
-    margin_min = (size * (maintenance + REWARD)) // MAINTENANCE_UNIT
-    result = position_lib.marginMinimum(size, maintenance, REWARD)
+    margin_min = (size * (maintenance)) // MAINTENANCE_UNIT
+    result = position_lib.marginMinimum(size, maintenance)
     assert result == margin_min
