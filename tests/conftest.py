@@ -59,8 +59,8 @@ def univ3_factory_address():
 def rando_univ3_observations():
     # @dev order matters given mock
     return [
-        (1684758203, 12871216193543, 151666952020109821882336874706, True),
-        (1684761803, 12871914275939, 151666987847742632430844074643, True),
+        (1684758203, 13019340799127, 151666952020109821882336874706, True),
+        (1684761803, 13020063658427, 151666987847742632430844074643, True),
     ]
 
 
@@ -175,6 +175,11 @@ def sqrt_price_math_lib(project, accounts):
 @pytest.fixture(scope="session")
 def liquidity_math_lib(project, accounts):
     return project.MockLiquidityMath.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def oracle_lib(project, accounts):
+    return project.MockOracleLibrary.deploy(sender=accounts[0])
 
 
 @pytest.fixture(scope="session")
