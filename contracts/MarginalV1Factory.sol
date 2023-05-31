@@ -36,12 +36,12 @@ contract MarginalV1Factory is IMarginalV1Factory {
     constructor(address _uniswapV3Factory) {
         uniswapV3Factory = _uniswapV3Factory;
 
-        getLeverage[250000] = 5000000;
-        emit LeverageEnabled(250000, 5000000);
-        getLeverage[500000] = 3000000;
-        emit LeverageEnabled(500000, 3000000);
-        getLeverage[1000000] = 2000000;
-        emit LeverageEnabled(1000000, 2000000);
+        getLeverage[250000] = 4333333; // includes liq reward req
+        emit LeverageEnabled(250000, 4333333);
+        getLeverage[500000] = 2818181;
+        emit LeverageEnabled(500000, 2818181);
+        getLeverage[1000000] = 1952380;
+        emit LeverageEnabled(1000000, 1952380);
     }
 
     function createPool(
