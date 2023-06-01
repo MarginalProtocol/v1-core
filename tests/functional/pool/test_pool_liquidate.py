@@ -371,12 +371,68 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
     assert token1.balanceOf(bob.address) == 0
 
 
-def test_pool_liquidate__emits_liquidate_with_zero_for_one():
-    pass
+def test_pool_liquidate__emits_liquidate_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    rewards1 = position.rewards
+
+    tx = pool_initialized_with_liquidity.liquidate(
+        bob.address, sender.address, zero_for_one_position_id, sender=alice
+    )
+    events = tx.decode_logs(pool_initialized_with_liquidity.Liquidate)
+    assert len(events) == 1
+    event = events[0]
+
+    state = pool_initialized_with_liquidity.state()
+    assert event.owner == sender.address
+    assert event.id == zero_for_one_position_id
+    assert event.recipient == bob.address
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.rewards0 == 0
+    assert event.rewards1 == rewards1
 
 
-def test_pool_liquidate__emits_liquidate_with_one_for_zero():
-    pass
+def test_pool_liquidate__emits_liquidate_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    rewards0 = position.rewards
+
+    tx = pool_initialized_with_liquidity.liquidate(
+        bob.address, sender.address, one_for_zero_position_id, sender=alice
+    )
+    events = tx.decode_logs(pool_initialized_with_liquidity.Liquidate)
+    assert len(events) == 1
+    event = events[0]
+
+    state = pool_initialized_with_liquidity.state()
+    assert event.owner == sender.address
+    assert event.id == one_for_zero_position_id
+    assert event.recipient == bob.address
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.rewards0 == rewards0
+    assert event.rewards1 == 0
 
 
 def test_pool_liquidate__reverts_when_not_position():
