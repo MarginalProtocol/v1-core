@@ -250,13 +250,14 @@ library Position {
                 oracleTickCumulativeLast,
                 fundingPeriod
             );
-            uint256 debtAdjusted = (uint256(debt1) * (1e6 + maintenance)) / 1e6;
+            uint256 debt1Adjusted = (uint256(debt1) * (1e6 + maintenance)) /
+                1e6;
             uint256 liquidityCollateral = Math.mulDiv(
                 position.margin + position.size,
                 sqrtPriceX96,
                 FixedPoint96.Q96
             );
-            uint256 liquidityDebt = (debtAdjusted << FixedPoint96.RESOLUTION) /
+            uint256 liquidityDebt = (debt1Adjusted << FixedPoint96.RESOLUTION) /
                 sqrtPriceX96;
             return liquidityCollateral >= liquidityDebt;
         } else {
@@ -266,12 +267,13 @@ library Position {
                 oracleTickCumulativeLast,
                 fundingPeriod
             );
-            uint256 debtAdjusted = (uint256(debt0) * (1e6 + maintenance)) / 1e6;
+            uint256 debt0Adjusted = (uint256(debt0) * (1e6 + maintenance)) /
+                1e6;
             uint256 liquidityCollateral = (uint256(
                 position.margin + position.size
             ) << FixedPoint96.RESOLUTION) / sqrtPriceX96;
             uint256 liquidityDebt = Math.mulDiv(
-                debtAdjusted,
+                debt0Adjusted,
                 sqrtPriceX96,
                 FixedPoint96.Q96
             );

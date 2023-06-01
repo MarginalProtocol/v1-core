@@ -8,7 +8,7 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
 
 // TODO: worry about safe cast as amounts with sqrtPriceX96 min can be as large as uint192
-// TODO: worry about rounding issues since used in mint/burn of shares + token balances; add update/skim function on pool to sync?
+// TODO: worry about rounding issues since used in mint/burn of shares + token balances; add update/skim function on pool to sync (likely needed to avoid revert on burn)?
 library LiquidityMath {
     using SafeCast for uint256;
 

@@ -60,7 +60,7 @@ def rando_univ3_observations():
     # @dev order matters given mock
     return [
         (1684758203, 13019340799127, 151666952020109821882336874706, True),
-        (1684761803, 13020063658427, 151666987847742632430844074643, True),
+        (1684761803, 13020066850727, 151666987847742632430844074643, True),
     ]
 
 
@@ -185,3 +185,8 @@ def oracle_lib(project, accounts):
 @pytest.fixture(scope="session")
 def position_lib(project, accounts):
     return project.MockPosition.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def tick_math_lib(project, accounts):
+    return project.MockTickMath.deploy(sender=accounts[0])

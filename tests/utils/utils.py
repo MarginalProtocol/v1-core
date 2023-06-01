@@ -11,7 +11,8 @@ def get_position_key(address: str, id: int) -> bytes:
 
 
 def calc_tick_from_sqrt_price_x96(sqrt_price_x96: int) -> int:
-    return int((2 * log((sqrt_price_x96 >> 96))) // log(1.0001))
+    price = (sqrt_price_x96**2) / (1 << 192)
+    return int(log(price) // log(1.0001))
 
 
 def calc_sqrt_price_x96_next(
