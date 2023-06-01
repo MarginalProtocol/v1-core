@@ -215,12 +215,54 @@ def test_pool_liquidate__updates_state_with_one_for_zero(
     assert result == state
 
 
-def test_pool_liquidate__updates_reserves_locked_with_zero_for_one():
-    pass
+def test_pool_liquidate__updates_reserves_locked_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    reserves_locked = pool_initialized_with_liquidity.reservesLocked()
+
+    amount0, amount1 = position_lib.amountsLocked(position)
+    reserves_locked.token0 -= amount0
+    reserves_locked.token1 -= amount1
+
+    pool_initialized_with_liquidity.liquidate(
+        bob.address, sender.address, zero_for_one_position_id, sender=alice
+    )
+    assert pool_initialized_with_liquidity.reservesLocked() == reserves_locked
 
 
-def test_pool_liquidate__updates_reserves_locked_with_one_for_zero():
-    pass
+def test_pool_liquidate__updates_reserves_locked_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    reserves_locked = pool_initialized_with_liquidity.reservesLocked()
+
+    amount0, amount1 = position_lib.amountsLocked(position)
+    reserves_locked.token0 -= amount0
+    reserves_locked.token1 -= amount1
+
+    pool_initialized_with_liquidity.liquidate(
+        bob.address, sender.address, one_for_zero_position_id, sender=alice
+    )
+    assert pool_initialized_with_liquidity.reservesLocked() == reserves_locked
 
 
 def test_pool_liquidate__sets_position_with_zero_for_one():
