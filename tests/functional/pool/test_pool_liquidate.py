@@ -1,5 +1,6 @@
 import pytest
 
+from ape import reverts
 from eth_abi import encode
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
@@ -325,10 +326,11 @@ def test_pool_liquidate__transfers_funds_with_zero_for_one(
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    pool_initialized_with_liquidity.liquidate(
+    tx = pool_initialized_with_liquidity.liquidate(
         bob.address, sender.address, zero_for_one_position_id, sender=alice
     )
 
+    assert tx.return_value == (0, rewards1)
     assert token0.balanceOf(pool_initialized_with_liquidity.address) == balance0_before
     assert token0.balanceOf(bob.address) == 0
 
@@ -357,10 +359,11 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    pool_initialized_with_liquidity.liquidate(
+    tx = pool_initialized_with_liquidity.liquidate(
         bob.address, sender.address, one_for_zero_position_id, sender=alice
     )
 
+    assert tx.return_value == (rewards0, 0)
     assert (
         token0.balanceOf(pool_initialized_with_liquidity.address)
         == balance0_before - rewards0
@@ -435,16 +438,80 @@ def test_pool_liquidate__emits_liquidate_with_one_for_zero(
     assert event.rewards1 == 0
 
 
-def test_pool_liquidate__reverts_when_not_position():
-    pass
+def test_pool_liquidate__reverts_when_not_position_id(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    id = zero_for_one_position_id + 1
+    with reverts("not position"):
+        pool_initialized_with_liquidity.liquidate(
+            bob.address, sender.address, id, sender=alice
+        )
 
 
-def test_pool_liquidate__reverts_when_position_safe_with_zero_for_one():
-    pass
+def test_pool_liquidate__reverts_when_liquidated(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    id = zero_for_one_position_id
+    pool_initialized_with_liquidity.liquidate(
+        bob.address, sender.address, id, sender=alice
+    )
+
+    with reverts("not position"):
+        pool_initialized_with_liquidity.liquidate(
+            bob.address, sender.address, id, sender=alice
+        )
 
 
-def test_pool_liquidate__reverts_when_position_safe_with_one_for_zero():
-    pass
+def test_pool_liquidate__reverts_when_position_safe_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_adjusted_id,
+):
+    id = zero_for_one_position_adjusted_id
+    with reverts("position safe"):
+        pool_initialized_with_liquidity.liquidate(
+            bob.address, sender.address, id, sender=alice
+        )
+
+
+def test_pool_liquidate__reverts_when_position_safe_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    one_for_zero_position_adjusted_id,
+):
+    id = one_for_zero_position_adjusted_id
+    with reverts("position safe"):
+        pool_initialized_with_liquidity.liquidate(
+            bob.address, sender.address, id, sender=alice
+        )
 
 
 # TODO:
