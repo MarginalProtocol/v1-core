@@ -190,3 +190,8 @@ def position_lib(project, accounts):
 @pytest.fixture(scope="session")
 def tick_math_lib(project, accounts):
     return project.MockTickMath.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def transfer_helper_lib(project, accounts):
+    return project.MockTransferHelper.deploy(sender=accounts[0])
