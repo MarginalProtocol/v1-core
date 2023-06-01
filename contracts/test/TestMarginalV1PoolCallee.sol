@@ -74,15 +74,15 @@ contract TestMarginalV1PoolCallee is
     function open(
         address pool,
         address recipient,
-        uint128 liquidityDelta,
         bool zeroForOne,
+        uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96
     ) external returns (uint256 id) {
         return
             IMarginalV1Pool(pool).open(
                 recipient,
-                liquidityDelta,
                 zeroForOne,
+                liquidityDelta,
                 sqrtPriceLimitX96,
                 abi.encode(msg.sender)
             );

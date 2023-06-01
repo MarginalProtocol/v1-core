@@ -54,8 +54,8 @@ interface IMarginalV1Pool {
 
     function open(
         address recipient,
-        uint128 liquidityDelta,
         bool zeroForOne,
+        uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
     ) external returns (uint256 id);
@@ -83,11 +83,11 @@ interface IMarginalV1Pool {
 
     function swap(
         address recipient,
-        uint128 amountOut,
         bool zeroForOne,
+        int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external returns (uint128 amountIn);
+    ) external returns (int256 amount0, int256 amount1);
 
     function mint(
         address recipient,

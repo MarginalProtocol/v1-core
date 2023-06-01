@@ -36,8 +36,8 @@ def test_pool_open__updates_state_with_zero_for_one(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -82,8 +82,8 @@ def test_pool_open__updates_state_with_one_for_zero(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -147,8 +147,8 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -208,8 +208,8 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -274,8 +274,8 @@ def test_pool_open__sets_position_with_zero_for_one(
     tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -339,8 +339,8 @@ def test_pool_open__sets_position_with_one_for_zero(
     tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -393,8 +393,8 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -450,8 +450,8 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -485,8 +485,8 @@ def test_pool_open__emits_open_with_zero_for_one(
     tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -526,8 +526,8 @@ def test_pool_open__emits_open_with_one_for_zero(
     tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
@@ -567,8 +567,8 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -595,8 +595,8 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -622,8 +622,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -649,8 +649,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -676,8 +676,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -703,8 +703,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -739,8 +739,8 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -775,8 +775,8 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -802,8 +802,8 @@ def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for
         callee_below_min1.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )
@@ -829,8 +829,8 @@ def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_
         callee_below_min0.open(
             pool_initialized_with_liquidity.address,
             alice.address,
-            liquidity_delta,
             zero_for_one,
+            liquidity_delta,
             sqrt_price_limit_x96,
             sender=sender,
         )

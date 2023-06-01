@@ -158,8 +158,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     function open(
         address recipient,
-        uint128 liquidityDelta,
         bool zeroForOne,
+        uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
     ) external lock returns (uint256 id) {
@@ -476,11 +476,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     // TODO:
     function swap(
         address recipient,
-        uint128 amountOut,
         bool zeroForOne,
+        int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external lock returns (uint128 amountIn) {}
+    ) external lock returns (int256 amount0, int256 amount1) {}
 
     function mint(
         address recipient,

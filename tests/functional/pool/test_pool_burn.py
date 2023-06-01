@@ -17,8 +17,8 @@ def zero_for_one_position_id(
     tx = callee.open(
         pool_initialized_with_liquidity.address,
         sender.address,
-        liquidity_delta,
         zero_for_one,
+        liquidity_delta,
         sqrt_price_limit_x96,
         sender=sender,
     )
