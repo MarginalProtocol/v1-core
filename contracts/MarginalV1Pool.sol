@@ -13,11 +13,13 @@ import {LiquidityMath} from "./libraries/LiquidityMath.sol";
 import {OracleLibrary} from "./libraries/OracleLibrary.sol";
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
+import {SwapMath} from "./libraries/SwapMath.sol";
 import {TransferHelper} from "./libraries/TransferHelper.sol";
 
 import {IMarginalV1AdjustCallback} from "./interfaces/callback/IMarginalV1AdjustCallback.sol";
 import {IMarginalV1MintCallback} from "./interfaces/callback/IMarginalV1MintCallback.sol";
 import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCallback.sol";
+import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
@@ -90,6 +92,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint160 sqrtPriceX96After,
         uint256 rewards0,
         uint256 rewards1
+    );
+    event Swap(
+        address indexed sender,
+        address indexed recipient,
+        int256 amount0,
+        int256 amount1,
+        uint160 sqrtPriceX96,
+        uint128 liquidity,
+        int24 tick
     );
     event Mint(
         address sender,
@@ -177,7 +188,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             "sqrtPriceLimitX96 exceeds min/max"
         );
 
-        uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96Next(
+        uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96NextOpen(
             _state.liquidity,
             _state.sqrtPriceX96,
             liquidityDelta,
@@ -473,14 +484,122 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
-    // TODO:
     function swap(
         address recipient,
         bool zeroForOne,
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external lock returns (int256 amount0, int256 amount1) {}
+    ) external lock returns (int256 amount0, int256 amount1) {
+        State memory _state = state;
+        require(amountSpecified != 0, "amountSpecified == 0");
+        require(
+            zeroForOne
+                ? sqrtPriceLimitX96 < _state.sqrtPriceX96 &&
+                    sqrtPriceLimitX96 > SqrtPriceMath.MIN_SQRT_RATIO
+                : sqrtPriceLimitX96 > _state.sqrtPriceX96 &&
+                    sqrtPriceLimitX96 < SqrtPriceMath.MAX_SQRT_RATIO,
+            "sqrtPriceLimitX96 exceeds min/max"
+        );
+
+        uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96NextSwap(
+            _state.liquidity,
+            _state.sqrtPriceX96,
+            zeroForOne,
+            amountSpecified
+        );
+        require(
+            zeroForOne
+                ? sqrtPriceX96Next >= sqrtPriceLimitX96
+                : sqrtPriceX96Next <= sqrtPriceLimitX96,
+            "sqrtPriceX96Next exceeds sqrtPriceLimitX96"
+        );
+
+        // oracle write then calculate amounts for swap
+        _state.tickCumulative +=
+            int56(_state.tick) *
+            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
+        _state.blockTimestamp = _blockTimestamp();
+
+        (amount0, amount1) = SwapMath.swapAmounts(
+            _state.liquidity,
+            _state.sqrtPriceX96,
+            sqrtPriceX96Next,
+            fee
+        );
+
+        // update state liquidity, sqrt price accounting for fee growth
+        (uint128 reserve0, uint128 reserve1) = LiquidityMath.toAmounts(
+            _state.liquidity,
+            _state.sqrtPriceX96
+        );
+        require(
+            !zeroForOne
+                ? uint256(reserve0) > uint256(-amount0)
+                : uint256(reserve1) > uint256(-amount1),
+            "reserve <= amountOut"
+        );
+        (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
+            .toLiquiditySqrtPriceX96(
+                uint256(int256(uint256(reserve0)) + amount0).toUint128(),
+                uint256(int256(uint256(reserve1)) + amount1).toUint128()
+            );
+        _state.liquidity = liquidityAfter;
+        _state.sqrtPriceX96 = sqrtPriceX96After;
+        _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
+
+        // optimistic amount out with callback for amount in
+        if (!zeroForOne) {
+            if (amount0 < 0)
+                TransferHelper.safeTransfer(
+                    token0,
+                    recipient,
+                    uint256(-amount0)
+                );
+
+            uint256 balance1Before = balance1();
+            IMarginalV1SwapCallback(msg.sender).marginalV1SwapCallback(
+                amount0,
+                amount1,
+                data
+            );
+            require(
+                balance1Before + uint256(amount1) <= balance1(),
+                "amount1 < min"
+            );
+        } else {
+            if (amount1 < 0)
+                TransferHelper.safeTransfer(
+                    token1,
+                    recipient,
+                    uint256(-amount1)
+                );
+
+            uint256 balance0Before = balance0();
+            IMarginalV1SwapCallback(msg.sender).marginalV1SwapCallback(
+                amount0,
+                amount1,
+                data
+            );
+            require(
+                balance0Before + uint256(amount0) <= balance0(),
+                "amount0 < min"
+            );
+        }
+
+        // update pool state to latest
+        state = _state;
+
+        emit Swap(
+            msg.sender,
+            recipient,
+            amount0,
+            amount1,
+            _state.sqrtPriceX96,
+            _state.liquidity,
+            _state.tick
+        );
+    }
 
     function mint(
         address recipient,

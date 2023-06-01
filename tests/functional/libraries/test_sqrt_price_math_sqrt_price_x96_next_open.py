@@ -4,11 +4,11 @@ from hypothesis import given
 from hypothesis import strategies as st
 from math import sqrt
 
-from utils.utils import calc_sqrt_price_x96_next
+from utils.utils import calc_sqrt_price_x96_next_open
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_sqrt_price_math_sqrt_price_x96_next__with_zero_for_one(
+def test_sqrt_price_math_sqrt_price_x96_next_open__with_zero_for_one(
     sqrt_price_math_lib, maintenance
 ):
     x = int(125.04e12)  # e.g. USDC reserves
@@ -20,11 +20,11 @@ def test_sqrt_price_math_sqrt_price_x96_next__with_zero_for_one(
     # position size of ~5/(1+1/M)% of pool w about 5-5/(1+1/M)% to insurance
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    result = sqrt_price_math_lib.sqrtPriceX96Next(
+    result = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
@@ -35,7 +35,7 @@ def test_sqrt_price_math_sqrt_price_x96_next__with_zero_for_one(
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_sqrt_price_math_sqrt_price_x96_next__with_one_for_zero(
+def test_sqrt_price_math_sqrt_price_x96_next_open__with_one_for_zero(
     sqrt_price_math_lib, maintenance
 ):
     x = int(125.04e12)  # e.g. USDC reserves
@@ -47,11 +47,11 @@ def test_sqrt_price_math_sqrt_price_x96_next__with_one_for_zero(
     # position size of ~5/(1+1/M)% of pool w about 5-5/(1+1/M)% to insurance
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
-    result = sqrt_price_math_lib.sqrtPriceX96Next(
+    result = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
@@ -81,12 +81,12 @@ def test_sqrt_price_math_sqrt_price_x96_next__with_fuzz(
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
 
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     sqrt_price_next = sqrt_price_x96_next >> 96
 
-    result_x96 = sqrt_price_math_lib.sqrtPriceX96Next(
+    result_x96 = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     result = result_x96 >> 96

@@ -5,7 +5,7 @@ from hypothesis import strategies as st
 from math import sqrt
 
 from utils.constants import MAINTENANCE_UNIT
-from utils.utils import calc_sqrt_price_x96_next
+from utils.utils import calc_sqrt_price_x96_next_open
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -18,7 +18,7 @@ def test_position_margin_minimum__with_zero_for_one(position_lib, maintenance):
     zero_for_one = True
 
     liquidity_delta = liquidity * 5 // 100
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     size1 = position_lib.size(
@@ -40,7 +40,7 @@ def test_position_margin_minimum__with_one_for_zero(position_lib, maintenance):
     zero_for_one = False
 
     liquidity_delta = liquidity * 5 // 100
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     size0 = position_lib.size(

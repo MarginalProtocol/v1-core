@@ -29,7 +29,7 @@ def test_pool_open__updates_state_with_zero_for_one(
     tick_cumulative = state.tickCumulative + state.tick * (
         block_timestamp_next - state.blockTimestamp
     )
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
 
@@ -75,7 +75,7 @@ def test_pool_open__updates_state_with_one_for_zero(
     tick_cumulative = state.tickCumulative + state.tick * (
         block_timestamp_next - state.blockTimestamp
     )
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
 
@@ -121,7 +121,7 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -182,7 +182,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -248,7 +248,7 @@ def test_pool_open__sets_position_with_zero_for_one(
     obs = rando_univ3_observations[-1]  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -313,7 +313,7 @@ def test_pool_open__sets_position_with_one_for_zero(
     obs = rando_univ3_observations[-1]  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -371,7 +371,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -428,7 +428,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
     position = position_lib.assemble(
@@ -726,7 +726,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
         state.sqrtPriceX96,
         liquidity_delta,
@@ -762,7 +762,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
 
-    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96Next(
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
         state.sqrtPriceX96,
         liquidity_delta,

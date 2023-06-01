@@ -1,7 +1,7 @@
 import pytest
 
 from math import sqrt
-from utils.utils import calc_sqrt_price_x96_next
+from utils.utils import calc_sqrt_price_x96_next_open
 
 
 def test_position_debt_plus_insurance_product__with_zero_for_one(position_lib):
@@ -14,7 +14,7 @@ def test_position_debt_plus_insurance_product__with_zero_for_one(position_lib):
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 
@@ -38,7 +38,7 @@ def test_position_debt_plus_insurance_product__with_one_for_zero(position_lib):
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
 

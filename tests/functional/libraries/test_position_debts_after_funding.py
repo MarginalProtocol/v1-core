@@ -3,7 +3,7 @@ import pytest
 from math import sqrt
 
 from utils.constants import FEE, REWARD, FUNDING_PERIOD
-from utils.utils import calc_sqrt_price_x96_next, calc_tick_from_sqrt_price_x96
+from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -24,7 +24,7 @@ def test_position_debts_after_funding__with_zero_for_one(
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     oracle_sqrt_price_x96 = int(sqrt_price_x96_next * factor)
@@ -87,7 +87,7 @@ def test_position_debts_after_funding__with_one_for_zero(
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     oracle_sqrt_price_x96 = int(sqrt_price_x96_next * factor)

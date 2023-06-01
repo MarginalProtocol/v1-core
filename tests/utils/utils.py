@@ -15,7 +15,7 @@ def calc_tick_from_sqrt_price_x96(sqrt_price_x96: int) -> int:
     return int(log(price) // log(1.0001))
 
 
-def calc_sqrt_price_x96_next(
+def calc_sqrt_price_x96_next_open(
     liquidity: int,
     sqrt_price_x96: int,
     liquidity_delta: int,

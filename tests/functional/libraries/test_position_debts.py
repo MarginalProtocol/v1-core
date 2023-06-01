@@ -5,7 +5,7 @@ from hypothesis import strategies as st
 from math import sqrt
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
-from utils.utils import calc_sqrt_price_x96_next, calc_insurances, calc_debts
+from utils.utils import calc_sqrt_price_x96_next_open, calc_insurances, calc_debts
 
 
 def test_position_debts__with_zero_for_one(position_lib):
@@ -18,7 +18,7 @@ def test_position_debts__with_zero_for_one(position_lib):
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     insurance0, insurance1 = calc_insurances(
@@ -45,7 +45,7 @@ def test_position_debts__with_one_for_zero(position_lib):
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
-    sqrt_price_x96_next = calc_sqrt_price_x96_next(
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
     insurance0, insurance1 = calc_insurances(
