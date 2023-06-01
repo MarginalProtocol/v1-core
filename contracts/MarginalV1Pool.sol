@@ -3,7 +3,6 @@ pragma solidity 0.8.17;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
@@ -14,6 +13,7 @@ import {LiquidityMath} from "./libraries/LiquidityMath.sol";
 import {OracleLibrary} from "./libraries/OracleLibrary.sol";
 import {Position} from "./libraries/Position.sol";
 import {SqrtPriceMath} from "./libraries/SqrtPriceMath.sol";
+import {TransferHelper} from "./libraries/TransferHelper.sol";
 
 import {IMarginalV1AdjustCallback} from "./interfaces/callback/IMarginalV1AdjustCallback.sol";
 import {IMarginalV1MintCallback} from "./interfaces/callback/IMarginalV1MintCallback.sol";
@@ -26,7 +26,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     using Position for mapping(bytes32 => Position.Info);
     using Position for Position.Info;
     using SafeCast for uint256;
-    using SafeERC20 for IERC20;
 
     address public immutable factory;
     address public immutable oracle;
@@ -321,7 +320,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
-            IERC20(token0).safeTransfer(recipient, marginOut);
+            TransferHelper.safeTransfer(token0, recipient, marginOut);
             position.margin -= marginOut;
 
             uint256 balance0Before = balance0();
@@ -341,7 +340,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             require(amount0 >= margin0AdjustMinimum, "amount0 < min");
             position.margin += amount0.toUint128(); // safecast to avoid issues on liquidation
         } else {
-            IERC20(token1).safeTransfer(recipient, marginOut);
+            TransferHelper.safeTransfer(token1, recipient, marginOut);
             position.margin -= marginOut;
 
             uint256 balance1Before = balance1();
@@ -453,8 +452,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
         }
 
-        if (rewards0 > 0) IERC20(token0).safeTransfer(recipient, rewards0);
-        if (rewards1 > 0) IERC20(token1).safeTransfer(recipient, rewards1);
+        if (rewards0 > 0)
+            TransferHelper.safeTransfer(token0, recipient, rewards0);
+        if (rewards1 > 0)
+            TransferHelper.safeTransfer(token1, recipient, rewards1);
 
         positions.set(owner, id, position.liquidate());
 
@@ -575,8 +576,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
         _state.liquidity -= liquidityDelta;
 
-        if (amount0 > 0) IERC20(token0).safeTransfer(recipient, amount0);
-        if (amount1 > 0) IERC20(token1).safeTransfer(recipient, amount1);
+        if (amount0 > 0)
+            TransferHelper.safeTransfer(token0, recipient, amount0);
+        if (amount1 > 0)
+            TransferHelper.safeTransfer(token1, recipient, amount1);
 
         // update pool state to latest
         state = _state;
