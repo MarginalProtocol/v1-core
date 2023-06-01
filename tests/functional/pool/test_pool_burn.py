@@ -1,7 +1,28 @@
 import pytest
 from ape import reverts
 
+from utils.constants import MIN_SQRT_RATIO
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
+
+
+@pytest.fixture
+def zero_for_one_position_id(
+    pool_initialized_with_liquidity, callee, sender, token0, token1
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        sender.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    return int(tx.return_value)
 
 
 def test_pool_burn__updates_state(

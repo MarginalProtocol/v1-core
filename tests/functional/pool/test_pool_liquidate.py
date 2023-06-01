@@ -1,6 +1,125 @@
 import pytest
 
+from eth_abi import encode
+
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
 from utils.utils import get_position_key, calc_tick_from_sqrt_price_x96
+
+
+@pytest.fixture
+def zero_for_one_position_id(
+    pool_initialized_with_liquidity, callee, sender, token0, token1
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        sender.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    return int(tx.return_value)
+
+
+@pytest.fixture
+def one_for_zero_position_id(
+    pool_initialized_with_liquidity, callee, sender, token0, token1
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        sender.address,
+        liquidity_delta,
+        zero_for_one,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+    return int(tx.return_value)
+
+
+@pytest.fixture
+def zero_for_one_position_adjusted_id(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+    oracle_sqrt_price_initial_x96,
+):
+    key = get_position_key(sender.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    debt0_adjusted = (
+        position.debt0 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
+    )
+    collateral1_req = int(
+        debt0_adjusted * (oracle_sqrt_price_initial_x96**2) // (1 << 192)
+    )
+    margin1 = collateral1_req - position.size
+    margin1 *= 1.20  # go 20% larger than reqs to ensure safe
+
+    margin_out = position.margin
+    margin_in = int(margin1)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        zero_for_one_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    return zero_for_one_position_id
+
+
+@pytest.fixture
+def one_for_zero_position_adjusted_id(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+    oracle_sqrt_price_initial_x96,
+):
+    key = get_position_key(sender.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    data = encode(["address"], [sender.address])
+
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    debt1_adjusted = (
+        position.debt1 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
+    )
+    collateral0_req = int(
+        debt1_adjusted * (1 << 192) // (oracle_sqrt_price_initial_x96**2)
+    )
+    margin0 = collateral0_req - position.size
+    margin0 *= 1.20  # go 20% larger than reqs to ensure safe
+
+    margin_out = position.margin
+    margin_in = int(margin0)
+
+    pool_initialized_with_liquidity.adjust(
+        callee.address,
+        one_for_zero_position_id,
+        margin_in,
+        margin_out,
+        data,
+        sender=sender,
+    )
+    return one_for_zero_position_id
 
 
 def test_pool_liquidate__updates_state_with_zero_for_one(
@@ -61,7 +180,6 @@ def test_pool_liquidate__updates_state_with_one_for_zero(
     one_for_zero_position_id,
     chain,
 ):
-    # TODO: fix one_for_zero_position_id fixture when multiple tests run as get state.totalPositions = 2 for some reason
     key = get_position_key(sender.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
     state = pool_initialized_with_liquidity.state()
