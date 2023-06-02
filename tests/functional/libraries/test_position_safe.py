@@ -46,16 +46,10 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
     position.margin = int(debt_adjusted * price) - position.size
     position.margin = int(position.margin * 0.999)
 
-    tick_cumulative_last = tick_cumulative_start
-    oracle_tick_cumulative_last = oracle_tick_cumulative_start
-
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is False
 
@@ -100,16 +94,10 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
     position.margin = int(debt_adjusted / price) - position.size
     position.margin = int(position.margin * 0.999)
 
-    tick_cumulative_last = tick_cumulative_start
-    oracle_tick_cumulative_last = oracle_tick_cumulative_start
-
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is False
 
@@ -154,16 +142,10 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
     position.margin = int(debt_adjusted * price) - position.size
     position.margin = int(position.margin * 1.001)
 
-    tick_cumulative_last = tick_cumulative_start
-    oracle_tick_cumulative_last = oracle_tick_cumulative_start
-
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is True
 
@@ -208,16 +190,10 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
     position.margin = int(debt_adjusted / price) - position.size
     position.margin = int(position.margin * 1.001)
 
-    tick_cumulative_last = tick_cumulative_start
-    oracle_tick_cumulative_last = oracle_tick_cumulative_start
-
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is True
 
@@ -272,13 +248,14 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
+    position = position_lib.sync(
+        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+    )
+
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is False
 
@@ -333,13 +310,14 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
+    position = position_lib.sync(
+        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+    )
+
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is False
 
@@ -394,13 +372,14 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
+    position = position_lib.sync(
+        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+    )
+
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is True
 
@@ -455,13 +434,14 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
+    position = position_lib.sync(
+        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+    )
+
     result = position_lib.safe(
         position,
         sqrt_price_x96,
         maintenance,
-        tick_cumulative_last,
-        oracle_tick_cumulative_last,
-        FUNDING_PERIOD,
     )
     assert result is True
 

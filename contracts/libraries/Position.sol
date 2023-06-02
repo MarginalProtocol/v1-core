@@ -8,6 +8,7 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
+// TODO: separate PositionMath.sol, test sync, settle
 library Position {
     using SafeCast for uint256;
 
@@ -44,6 +45,26 @@ library Position {
         positions[keccak256(abi.encodePacked(owner, id))] = position;
     }
 
+    /// @notice Realizes funding payments via updates to position debt amounts
+    function sync(
+        Info memory position,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) internal pure returns (Info memory) {
+        (uint128 debt0, uint128 debt1) = debtsAfterFunding(
+            position,
+            tickCumulativeLast,
+            oracleTickCumulativeLast,
+            fundingPeriod
+        );
+        position.debt0 = debt0;
+        position.debt1 = debt1;
+        position.tickCumulativeStart = tickCumulativeLast;
+        position.oracleTickCumulativeStart = oracleTickCumulativeLast;
+        return position;
+    }
+
     /// @notice Liquidates an existing position
     function liquidate(
         Info memory position
@@ -53,6 +74,32 @@ library Position {
         positionAfter.tickCumulativeStart = position.tickCumulativeStart;
         positionAfter.oracleTickCumulativeStart = position
             .oracleTickCumulativeStart;
+    }
+
+    /// @notice Settles portion of existing position
+    /// @dev Assumes sizeSettled <= position.size
+    function settle(
+        Info memory position,
+        uint128 sizeSettled
+    ) internal pure returns (Info memory) {
+        uint256 sizeBefore = uint256(position.size);
+        position.debt0 -= uint128(
+            (uint256(position.debt0) * sizeSettled) / sizeBefore
+        );
+        position.debt1 -= uint128(
+            (uint256(position.debt1) * sizeSettled) / sizeBefore
+        );
+        position.insurance0 -= uint128(
+            (uint256(position.insurance0) * sizeSettled) / sizeBefore
+        );
+        position.insurance1 -= uint128(
+            (uint256(position.insurance1) * sizeSettled) / sizeBefore
+        );
+        position.rewards -= uint128(
+            (uint256(position.rewards) * sizeSettled) / sizeBefore
+        );
+        position.size -= sizeSettled;
+        return position;
     }
 
     /// @notice Assembles a new position from pool state
@@ -238,20 +285,11 @@ library Position {
     function safe(
         Info memory position,
         uint160 sqrtPriceX96,
-        uint24 maintenance,
-        int56 tickCumulativeLast,
-        int56 oracleTickCumulativeLast,
-        uint32 fundingPeriod
+        uint24 maintenance
     ) internal pure returns (bool) {
         if (!position.zeroForOne) {
-            (, uint128 debt1) = debtsAfterFunding(
-                position,
-                tickCumulativeLast,
-                oracleTickCumulativeLast,
-                fundingPeriod
-            );
-            uint256 debt1Adjusted = (uint256(debt1) * (1e6 + maintenance)) /
-                1e6;
+            uint256 debt1Adjusted = (uint256(position.debt1) *
+                (1e6 + maintenance)) / 1e6;
             uint256 liquidityCollateral = Math.mulDiv(
                 position.margin + position.size,
                 sqrtPriceX96,
@@ -261,14 +299,8 @@ library Position {
                 sqrtPriceX96;
             return liquidityCollateral >= liquidityDebt;
         } else {
-            (uint128 debt0, ) = debtsAfterFunding(
-                position,
-                tickCumulativeLast,
-                oracleTickCumulativeLast,
-                fundingPeriod
-            );
-            uint256 debt0Adjusted = (uint256(debt0) * (1e6 + maintenance)) /
-                1e6;
+            uint256 debt0Adjusted = (uint256(position.debt0) *
+                (1e6 + maintenance)) / 1e6;
             uint256 liquidityCollateral = (uint256(
                 position.margin + position.size
             ) << FixedPoint96.RESOLUTION) / sqrtPriceX96;

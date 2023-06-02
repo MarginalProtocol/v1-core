@@ -175,7 +175,7 @@ def test_pool_mint__reverts_when_amount0_transferred_less_than_min(
     liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
 
-    with reverts("balance0 < min"):
+    with reverts("amount0 < min"):
         callee_below_min0.mint(
             pool_initialized.address, alice.address, liquidity_delta, sender=sender
         )
@@ -195,7 +195,7 @@ def test_pool_mint__reverts_when_amount1_transferred_less_than_min(
     liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
 
-    with reverts("balance1 < min"):
+    with reverts("amount1 < min"):
         callee_below_min1.mint(
             pool_initialized.address, alice.address, liquidity_delta, sender=sender
         )

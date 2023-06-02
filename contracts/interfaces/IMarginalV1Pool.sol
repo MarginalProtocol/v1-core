@@ -57,23 +57,23 @@ interface IMarginalV1Pool {
         bool zeroForOne,
         uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96,
+        uint128 margin,
         bytes calldata data
     ) external returns (uint256 id);
 
     function adjust(
         address recipient,
         uint112 id,
-        uint128 marginIn,
-        uint128 marginOut,
+        int256 marginDelta,
         bytes calldata data
-    ) external;
+    ) external returns (uint256 margin0, uint256 margin1);
 
     function settle(
         address recipient,
         uint112 id,
-        uint128 liquidityDelta,
+        uint128 size,
         bytes calldata data
-    ) external;
+    ) external returns (int256 amount0, int256 amount1);
 
     function liquidate(
         address recipient,

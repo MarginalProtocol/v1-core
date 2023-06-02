@@ -24,10 +24,32 @@ contract MockPosition {
         positions.set(owner, id, position);
     }
 
+    function sync(
+        Position.Info memory position,
+        int56 tickCumulativeLast,
+        int56 oracleTickCumulativeLast,
+        uint32 fundingPeriod
+    ) external pure returns (Position.Info memory) {
+        return
+            Position.sync(
+                position,
+                tickCumulativeLast,
+                oracleTickCumulativeLast,
+                fundingPeriod
+            );
+    }
+
     function liquidate(
         Position.Info memory position
     ) external pure returns (Position.Info memory) {
         return Position.liquidate(position);
+    }
+
+    function settle(
+        Position.Info memory position,
+        uint128 sizeSettled
+    ) external pure returns (Position.Info memory) {
+        return Position.settle(position, sizeSettled);
     }
 
     function assemble(
@@ -139,18 +161,8 @@ contract MockPosition {
     function safe(
         Position.Info memory position,
         uint160 sqrtPriceX96,
-        uint24 maintenance,
-        int56 tickCumulativeLast,
-        int56 oracleTickCumulativeLast,
-        uint32 fundingPeriod
+        uint24 maintenance
     ) external pure returns (bool) {
-        return
-            position.safe(
-                sqrtPriceX96,
-                maintenance,
-                tickCumulativeLast,
-                oracleTickCumulativeLast,
-                fundingPeriod
-            );
+        return position.safe(sqrtPriceX96, maintenance);
     }
 }

@@ -41,4 +41,27 @@ library LiquidityMath {
         );
         sqrtPriceX96 = uint160(_sqrtPriceX96);
     }
+
+    /// @notice Calculates (L, sqrtP) after adding amounts to pool reserves
+    function liquiditySqrtPriceX96Next(
+        uint128 liquidity,
+        uint160 sqrtPriceX96,
+        int256 amount0,
+        int256 amount1
+    ) internal pure returns (uint128 liquidityNext, uint160 sqrtPriceX96Next) {
+        (uint128 reserve0, uint128 reserve1) = toAmounts(
+            liquidity,
+            sqrtPriceX96
+        );
+
+        int256 reserve0Next = int256(uint256(reserve0)) + amount0;
+        int256 reserve1Next = int256(uint256(reserve1)) + amount1;
+        require(reserve0Next > 0, "amount0 out > reserve0");
+        require(reserve1Next > 0, "amount1 out > reserve1");
+
+        (liquidityNext, sqrtPriceX96Next) = toLiquiditySqrtPriceX96(
+            uint256(reserve0Next).toUint128(),
+            uint256(reserve1Next).toUint128()
+        );
+    }
 }

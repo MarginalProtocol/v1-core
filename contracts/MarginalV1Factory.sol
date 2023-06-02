@@ -33,6 +33,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
     );
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
 
+    // TODO: cardinality min
     constructor(address _uniswapV3Factory) {
         uniswapV3Factory = _uniswapV3Factory;
 

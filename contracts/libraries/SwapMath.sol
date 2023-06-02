@@ -42,13 +42,9 @@ library SwapMath {
 
         // fees on amount in
         if (!zeroForOne) {
-            amount1Delta += int256(
-                Math.mulDiv(uint256(amount1Delta), fee, 1e6)
-            );
+            amount1Delta += int256((uint256(amount1Delta) * fee) / 1e6);
         } else {
-            amount0Delta += int256(
-                Math.mulDiv(uint256(amount0Delta), fee, 1e6)
-            );
+            amount0Delta += int256((uint256(amount0Delta) * fee) / 1e6);
         }
     }
 }
