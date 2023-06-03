@@ -12,7 +12,7 @@ import {IMarginalV1SwapCallback} from "../interfaces/callback/IMarginalV1SwapCal
 
 import {IMarginalV1Pool} from "../interfaces/IMarginalV1Pool.sol";
 
-contract TestMarginalV1PoolCalleeBelowMin0Callee is
+contract TestMarginalV1PoolBelowMin0Callee is
     IMarginalV1AdjustCallback,
     IMarginalV1MintCallback,
     IMarginalV1OpenCallback

@@ -1,7 +1,7 @@
 import pytest
 from ape import reverts
 
-from utils.constants import MIN_SQRT_RATIO
+from utils.constants import MIN_SQRT_RATIO, MAINTENANCE_UNIT
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
 
@@ -10,9 +10,23 @@ def zero_for_one_position_id(
     pool_initialized_with_liquidity, callee, sender, token0, token1
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -20,6 +34,7 @@ def zero_for_one_position_id(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
     return int(tx.return_value)
@@ -29,15 +44,23 @@ def test_pool_burn__updates_state(
     pool_initialized_with_liquidity,
     sender,
     alice,
+    chain,
 ):
     state = pool_initialized_with_liquidity.state()
     shares = pool_initialized_with_liquidity.balanceOf(sender.address)
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
 
     shares_burned = shares // 3
     liquidity_burned = state.liquidity // 3
 
     pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
     state.liquidity -= liquidity_burned
+    state.tickCumulative = tick_cumulative_next
+    state.blockTimestamp = block_timestamp_next
 
     result = pool_initialized_with_liquidity.state()
     assert (

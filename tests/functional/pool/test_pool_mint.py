@@ -16,13 +16,22 @@ def test_pool_mint__updates_state(
     token1,
     spot_reserve0,
     spot_reserve1,
+    chain,
 ):
     liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
 
     state = pool_initialized.state()
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
     callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
     state.liquidity += liquidity_delta
+    state.tickCumulative = tick_cumulative_next
+    state.blockTimestamp = block_timestamp_next
+
     assert pool_initialized.state() == state
 
 
