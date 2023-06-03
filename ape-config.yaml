@@ -2,7 +2,6 @@ name: v1-core
 
 plugins:
   - name: solidity
-    version: 0.6.5
   - name: foundry
     version: 0.6.8
 
@@ -22,6 +21,8 @@ dependencies:
     ref: 0.8
 
 solidity:
+  runs: 200
+  via_ir: true
   import_remapping:
     - "@openzeppelin/contracts=openzeppelin/v4.8.3"
     - "@uniswap/v3-core/contracts=uniswap-v3-core/v0.8"
