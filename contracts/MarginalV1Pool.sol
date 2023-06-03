@@ -243,7 +243,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
-        _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96Next);
+
+        (uint128 amount0Locked, uint128 amount1Locked) = position
+            .amountsLocked();
+        reservesLocked.token0 += amount0Locked;
+        reservesLocked.token1 += amount1Locked;
 
         // callback for margin amount
         if (!zeroForOne) {
@@ -265,12 +269,18 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             position.margin = margin;
             position.rewards = uint128(rewards0);
-            position.debt0 += uint128(fees0); // fees added to available liquidity on settle
 
-            (uint128 amount0Locked, uint128 amount1Locked) = position
-                .amountsLocked();
-            reservesLocked.token0 += amount0Locked;
-            reservesLocked.token1 += amount1Locked;
+            // fees added to available liquidity
+            (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
+                .liquiditySqrtPriceX96Next(
+                    _state.liquidity,
+                    _state.sqrtPriceX96,
+                    int256(fees0),
+                    0
+                );
+            _state.liquidity = liquidityAfter;
+            _state.sqrtPriceX96 = sqrtPriceX96After;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         } else {
             // long token1 (out) relative to token0 (in); margin in token1
             uint256 fees1 = Position.fees(position.size, fee);
@@ -290,12 +300,18 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             position.margin = margin;
             position.rewards = uint128(rewards1);
-            position.debt1 += uint128(fees1); // fees added to available liquidity on settle
 
-            (uint128 amount0Locked, uint128 amount1Locked) = position
-                .amountsLocked();
-            reservesLocked.token0 += amount0Locked;
-            reservesLocked.token1 += amount1Locked;
+            // fees added to available liquidity
+            (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
+                .liquiditySqrtPriceX96Next(
+                    _state.liquidity,
+                    _state.sqrtPriceX96,
+                    0,
+                    int256(fees1)
+                );
+            _state.liquidity = liquidityAfter;
+            _state.sqrtPriceX96 = sqrtPriceX96After;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         }
 
         id = _state.totalPositions;

@@ -7,6 +7,7 @@ from utils.utils import (
     get_position_key,
     calc_tick_from_sqrt_price_x96,
     calc_amounts_from_liquidity_sqrt_price_x96,
+    calc_liquidity_sqrt_price_x96_from_reserves,
 )
 
 
@@ -23,6 +24,7 @@ def test_pool_open__updates_state_with_zero_for_one(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -58,15 +60,45 @@ def test_pool_open__updates_state_with_zero_for_one(
         margin,
         sender=sender,
     )
+
+    # factor in fees on size to available liquidity, sqrtP update
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees1 = position_lib.fees(position.size, fee)
     state.liquidity -= liquidity_delta
     state.sqrtPriceX96 = sqrt_price_x96_next
-    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    # @dev sqrt in OZ solidity results in slight diff with python math.sqrt
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(reserve0, reserve1 + fees1)
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
 
     state.tickCumulative = tick_cumulative
     state.blockTimestamp = block_timestamp_next
-
     state.totalPositions += 1
-    assert pool_initialized_with_liquidity.state() == state
+
+    result = pool_initialized_with_liquidity.state()
+    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert result.tick == state.tick
+    assert result.blockTimestamp == state.blockTimestamp
+    assert result.tickCumulative == state.tickCumulative
+    assert result.totalPositions == state.totalPositions
 
 
 def test_pool_open__updates_state_with_one_for_zero(
@@ -82,6 +114,7 @@ def test_pool_open__updates_state_with_one_for_zero(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -117,15 +150,45 @@ def test_pool_open__updates_state_with_one_for_zero(
         margin,
         sender=sender,
     )
+
+    # factor in fees on size to available liquidity, sqrtP update
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees0 = position_lib.fees(position.size, fee)
     state.liquidity -= liquidity_delta
     state.sqrtPriceX96 = sqrt_price_x96_next
-    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    # @dev sqrt in OZ solidity results in slight diff with python math.sqrt
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(reserve0 + fees0, reserve1)
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
 
     state.tickCumulative = tick_cumulative
     state.blockTimestamp = block_timestamp_next
-
     state.totalPositions += 1
-    assert pool_initialized_with_liquidity.state() == state
+
+    result = pool_initialized_with_liquidity.state()
+    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert result.tick == state.tick
+    assert result.blockTimestamp == state.blockTimestamp
+    assert result.tickCumulative == state.tickCumulative
+    assert result.totalPositions == state.totalPositions
 
 
 def test_pool_open__updates_reserves_locked_with_zero_for_one(
@@ -144,7 +207,6 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         reserve1_locked,
     ) = pool_initialized_with_liquidity.reservesLocked()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -175,14 +237,9 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    fees = position_lib.fees(position.size, fee)
-
-    # fees added to debt of margin token
-    position.debt1 += fees
 
     # get amounts locked to back position
     (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)
-
     reserve0_locked += amount0_locked
     reserve1_locked += amount1_locked
 
@@ -218,7 +275,6 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         reserve1_locked,
     ) = pool_initialized_with_liquidity.reservesLocked()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -249,14 +305,9 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    fees = position_lib.fees(position.size, fee)
-
-    # fees added to debt of margin token
-    position.debt0 += fees
 
     # get amounts locked to back position
     (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)
-
     reserve0_locked += amount0_locked
     reserve1_locked += amount1_locked
 
@@ -290,7 +341,6 @@ def test_pool_open__sets_position_with_zero_for_one(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
     reward = pool_initialized_with_liquidity.reward()
 
     liquidity = state.liquidity
@@ -328,11 +378,8 @@ def test_pool_open__sets_position_with_zero_for_one(
         tick_cumulative,
         oracle_tick_cumulative,
     )
-    fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
 
-    # fees added to debt of margin token
-    position.debt1 += fees
     position.rewards = rewards
     position.margin = margin
 
@@ -367,7 +414,6 @@ def test_pool_open__sets_position_with_one_for_zero(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
     reward = pool_initialized_with_liquidity.reward()
 
     liquidity = state.liquidity
@@ -405,11 +451,8 @@ def test_pool_open__sets_position_with_one_for_zero(
         tick_cumulative,
         oracle_tick_cumulative,
     )
-    fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
 
-    # fees added to debt of margin token
-    position.debt0 += fees
     position.rewards = rewards
     position.margin = margin
 
@@ -494,7 +537,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
     amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
 
-    # callee sends min margin + fees in margin token
+    # callee sends margin + fees + rewards in margin token
     assert amount0 == 0
     assert amount1 == margin + fees + rewards
 
@@ -563,7 +606,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
     amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
 
-    # callee sends min margin + fees in margin token
+    # callee sends margin + fees + rewards in margin token
     assert amount0 == margin + fees + rewards
     assert amount1 == 0
 
@@ -1117,10 +1160,27 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
-    margin = 0
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    margin_min = position_lib.marginMinimum(position.size, fee)
+    margin = margin_min - 1
 
     with reverts("margin < min"):
         callee.open(
@@ -1146,10 +1206,27 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
-    margin = 0
+
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    margin_min = position_lib.marginMinimum(position.size, fee)
+    margin = margin_min - 1
 
     with reverts("margin < min"):
         callee.open(
