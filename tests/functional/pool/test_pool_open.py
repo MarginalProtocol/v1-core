@@ -2,8 +2,12 @@ import pytest
 
 from ape import reverts
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
-from utils.utils import get_position_key, calc_tick_from_sqrt_price_x96
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.utils import (
+    get_position_key,
+    calc_tick_from_sqrt_price_x96,
+    calc_amounts_from_liquidity_sqrt_price_x96,
+)
 
 
 def test_pool_open__updates_state_with_zero_for_one(
@@ -25,6 +29,18 @@ def test_pool_open__updates_state_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
         block_timestamp_next - state.blockTimestamp
@@ -39,6 +55,7 @@ def test_pool_open__updates_state_with_zero_for_one(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
     state.liquidity -= liquidity_delta
@@ -71,6 +88,18 @@ def test_pool_open__updates_state_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
         block_timestamp_next - state.blockTimestamp
@@ -85,6 +114,7 @@ def test_pool_open__updates_state_with_one_for_zero(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
     state.liquidity -= liquidity_delta
@@ -121,6 +151,18 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
@@ -150,6 +192,7 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -182,6 +225,18 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
@@ -211,6 +266,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -242,6 +298,18 @@ def test_pool_open__sets_position_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
     )
@@ -262,12 +330,11 @@ def test_pool_open__sets_position_with_zero_for_one(
     )
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
 
     # fees added to debt of margin token
     position.debt1 += fees
     position.rewards = rewards
-    position.margin = margin_min  # @dev given callee setup
+    position.margin = margin
 
     id = state.totalPositions
     key = get_position_key(alice.address, id)
@@ -277,6 +344,7 @@ def test_pool_open__sets_position_with_zero_for_one(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -307,6 +375,18 @@ def test_pool_open__sets_position_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
     )
@@ -327,12 +407,11 @@ def test_pool_open__sets_position_with_one_for_zero(
     )
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
 
     # fees added to debt of margin token
     position.debt0 += fees
     position.rewards = rewards
-    position.margin = margin_min  # @dev given callee setup
+    position.margin = margin
 
     id = state.totalPositions
     key = get_position_key(alice.address, id)
@@ -342,6 +421,7 @@ def test_pool_open__sets_position_with_one_for_zero(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -371,6 +451,18 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
@@ -385,7 +477,6 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     )
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
 
     balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -396,6 +487,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -404,7 +496,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
 
     # callee sends min margin + fees in margin token
     assert amount0 == 0
-    assert amount1 == margin_min + fees + rewards
+    assert amount1 == margin + fees + rewards
 
 
 def test_pool_open__transfers_funds_with_one_for_zero(
@@ -428,6 +520,18 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
@@ -442,7 +546,6 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     )
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
-    margin_min = position_lib.marginMinimum(position.size, maintenance)
 
     balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -453,6 +556,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
 
@@ -460,7 +564,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
 
     # callee sends min margin + fees in margin token
-    assert amount0 == margin_min + fees + rewards
+    assert amount0 == margin + fees + rewards
     assert amount1 == 0
 
 
@@ -476,11 +580,24 @@ def test_pool_open__emits_open_with_zero_for_one(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -488,6 +605,7 @@ def test_pool_open__emits_open_with_zero_for_one(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
@@ -502,7 +620,7 @@ def test_pool_open__emits_open_with_zero_for_one(
     assert event.id == id
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
-    assert event.liquidityDelta == liquidity_delta
+    assert event.margin == margin
 
 
 def test_pool_open__emits_open_with_one_for_zero(
@@ -517,11 +635,24 @@ def test_pool_open__emits_open_with_one_for_zero(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -529,6 +660,7 @@ def test_pool_open__emits_open_with_one_for_zero(
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
@@ -543,7 +675,7 @@ def test_pool_open__emits_open_with_one_for_zero(
     assert event.id == id
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
-    assert event.liquidityDelta == liquidity_delta
+    assert event.margin == margin
 
 
 def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zero_for_one(
@@ -558,10 +690,23 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity_delta = state.liquidity
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("liquidityDelta >= liquidity"):
         callee.open(
@@ -570,6 +715,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -586,10 +732,23 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity_delta = state.liquidity
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("liquidityDelta >= liquidity"):
         callee.open(
@@ -598,6 +757,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -614,9 +774,21 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
     sqrt_price_limit_x96 = state.sqrtPriceX96 + 1
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -625,6 +797,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -641,9 +814,21 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -652,6 +837,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -668,9 +854,22 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
     sqrt_price_limit_x96 = state.sqrtPriceX96 - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -679,6 +878,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -695,9 +895,22 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -706,6 +919,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -726,6 +940,18 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
         state.sqrtPriceX96,
@@ -742,6 +968,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -762,6 +989,18 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
 
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
+
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
         state.sqrtPriceX96,
@@ -778,6 +1017,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -794,9 +1034,22 @@ def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("amount1 < min"):
         callee_below_min1.open(
@@ -805,6 +1058,7 @@ def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
@@ -821,9 +1075,23 @@ def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     with reverts("amount0 < min"):
         callee_below_min0.open(
@@ -832,6 +1100,65 @@ def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_
             zero_for_one,
             liquidity_delta,
             sqrt_price_limit_x96,
+            margin,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+    margin = 0
+
+    with reverts("margin < min"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one,
+            liquidity_delta,
+            sqrt_price_limit_x96,
+            margin,
+            sender=sender,
+        )
+
+
+def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_delta = state.liquidity * 5 // 100
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+    margin = 0
+
+    with reverts("margin < min"):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one,
+            liquidity_delta,
+            sqrt_price_limit_x96,
+            margin,
             sender=sender,
         )
 
