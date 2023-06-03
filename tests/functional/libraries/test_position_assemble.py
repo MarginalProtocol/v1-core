@@ -1,6 +1,5 @@
 from math import sqrt
 
-from utils.constants import FEE
 from utils.utils import calc_sqrt_price_x96_next_open
 
 

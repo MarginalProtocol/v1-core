@@ -2,7 +2,7 @@ import pytest
 
 from math import sqrt
 
-from utils.constants import MAINTENANCE_UNIT, FEE, REWARD, FUNDING_PERIOD
+from utils.constants import MAINTENANCE_UNIT, REWARD, FUNDING_PERIOD
 from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
@@ -36,7 +36,6 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt1 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M - err term) so slightly less than safe limit
@@ -84,7 +83,6 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt0 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M - err term) so slightly less than safe limit
@@ -132,7 +130,6 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt1 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly more than safe limit
@@ -180,7 +177,6 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt0 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly more than safe limit
@@ -228,7 +224,6 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt1 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly more than safe limit to start
@@ -290,7 +285,6 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt0 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly more than safe limit
@@ -352,7 +346,6 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt1 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly less than safe limit to start
@@ -414,7 +407,6 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.debt0 += position_lib.fees(position.size, FEE)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # adjust for (1 + M + err term) so slightly less than safe limit
