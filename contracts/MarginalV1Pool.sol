@@ -381,6 +381,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }
 
+    // TODO: test
     function settle(
         address recipient,
         uint112 id,
@@ -586,6 +587,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
+    // TODO: test
     function swap(
         address recipient,
         bool zeroForOne,
@@ -694,7 +696,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint128 liquidityDelta,
         bytes calldata data
     ) external lock returns (uint256 amount0, uint256 amount1) {
-        State memory _state = stateSynced(); // TODO: fix tests for oracle update
+        State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
         require(liquidityDelta > 0, "liquidityDelta == 0");
 
@@ -735,6 +737,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // update pool state to latest
         state = _state;
 
+        // TODO: min liquidity lock?
         _mint(recipient, shares);
 
         emit Mint(msg.sender, recipient, liquidityDelta, amount0, amount1);
@@ -745,10 +748,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint256 shares
     ) external lock returns (uint256 amount0, uint256 amount1) {
-        State memory _state = stateSynced(); // TODO: fix tests for oracle update
+        State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
-        require(shares > 0, "shares == 0");
-        require(shares <= _totalSupply, "shares > totalSupply");
+        require(shares > 0 && shares <= _totalSupply, "shares exceeds min/max");
 
         // total liquidity is available liquidity if all locked reserves were returned to pool
         (uint256 totalLiquidityBefore, ) = LiquidityMath

@@ -236,7 +236,7 @@ def test_pool_burn__reverts_when_shares_zero(
     alice,
 ):
     shares_burned = 0
-    with reverts("shares == 0"):
+    with reverts("shares exceeds min/max"):
         pool_initialized_with_liquidity.burn(
             alice.address, shares_burned, sender=sender
         )
@@ -248,7 +248,7 @@ def test_pool_burn__reverts_when_shares_greater_than_total_supply(
     alice,
 ):
     shares_burned = pool_initialized_with_liquidity.totalSupply() + 1
-    with reverts("shares > totalSupply"):
+    with reverts("shares exceeds min/max"):
         pool_initialized_with_liquidity.burn(
             alice.address, shares_burned, sender=sender
         )
