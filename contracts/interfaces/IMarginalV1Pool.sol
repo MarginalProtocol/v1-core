@@ -71,7 +71,6 @@ interface IMarginalV1Pool {
     function settle(
         address recipient,
         uint112 id,
-        uint128 size,
         bytes calldata data
     ) external returns (int256 amount0, int256 amount1);
 

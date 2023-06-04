@@ -384,55 +384,35 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function settle(
         address recipient,
         uint112 id,
-        uint128 size,
         bytes calldata data
     ) external lock returns (int256 amount0, int256 amount1) {
         State memory _state = stateSynced();
         Position.Info memory position = positions.get(msg.sender, id);
-        require(size > 0, "size == 0");
-        require(size <= position.size, "size > position.size");
+        require(position.size > 0, "not position");
 
         // zero seconds ago for oracle tickCumulative
-        {
-            int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[
-                0
-            ];
+        int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
 
-            // update debts for funding
-            position = position.sync(
-                _state.tickCumulative,
-                oracleTickCumulative,
-                fundingPeriod
-            );
-        }
+        // update debts for funding
+        position = position.sync(
+            _state.tickCumulative,
+            oracleTickCumulative,
+            fundingPeriod
+        );
 
-        Position.Info memory positionAfter = position.settle(size);
+        (uint128 amount0Unlocked, uint128 amount1Unlocked) = position
+            .amountsLocked();
+        reservesLocked.token0 -= amount0Unlocked;
+        reservesLocked.token1 -= amount1Unlocked;
 
-        uint128 amount0Unlocked;
-        uint128 amount1Unlocked;
-        {
-            (
-                uint128 amount0LockedBefore,
-                uint128 amount1LockedBefore
-            ) = position.amountsLocked();
-            (
-                uint128 amount0LockedAfter,
-                uint128 amount1LockedAfter
-            ) = positionAfter.amountsLocked();
-            amount0Unlocked = amount0LockedBefore - amount0LockedAfter;
-            amount1Unlocked = amount1LockedBefore - amount1LockedAfter;
-
-            reservesLocked.token0 -= amount0Unlocked;
-            reservesLocked.token1 -= amount1Unlocked;
-        }
-
-        // flash size + rewards out then callback for debt owed in
+        // flash size + margin + rewards out then callback for debt owed in
         if (!position.zeroForOne) {
             amount0 = -int256(
-                uint256(size) +
-                    uint256(position.rewards - positionAfter.rewards)
-            ); // size + rewards out
-            amount1 = int256(uint256(position.debt1 - positionAfter.debt1)); // debt in
+                uint256(position.size) +
+                    uint256(position.margin) +
+                    uint256(position.rewards)
+            ); // size + margin + rewards out
+            amount1 = int256(uint256(position.debt1)); // debt in
 
             if (amount0 < 0)
                 TransferHelper.safeTransfer(
@@ -445,7 +425,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 .liquiditySqrtPriceX96Next(
                     _state.liquidity,
                     _state.sqrtPriceX96,
-                    int256(uint256(amount0Unlocked - size)), // insurance0 + debt0
+                    int256(uint256(amount0Unlocked - position.size)), // insurance0 + debt0
                     int256(uint256(amount1Unlocked)) + amount1 // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
@@ -463,11 +443,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 "amount1 < min"
             );
         } else {
-            amount0 = int256(uint256(position.debt0 - positionAfter.debt0)); // debt in
+            amount0 = int256(uint256(position.debt0)); // debt in
             amount1 = -int256(
-                uint256(size) +
-                    uint256(position.rewards - positionAfter.rewards)
-            ); // size + rewards out
+                uint256(position.size) +
+                    uint256(position.margin) +
+                    uint256(position.rewards)
+            ); // size + margin + rewards out
 
             if (amount1 < 0)
                 TransferHelper.safeTransfer(
@@ -481,7 +462,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     _state.liquidity,
                     _state.sqrtPriceX96,
                     int256(uint256(amount0Unlocked)) + amount0, // insurance0 + debt0
-                    int256(uint256(amount1Unlocked - size)) // insurance1 + debt1
+                    int256(uint256(amount1Unlocked - position.size)) // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
             _state.sqrtPriceX96 = sqrtPriceX96Next;
@@ -499,7 +480,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
         }
 
-        positions.set(msg.sender, id, positionAfter);
+        positions.set(msg.sender, id, position.settle());
 
         // update pool state to latest
         state = _state;

@@ -8,7 +8,7 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
-// TODO: separate PositionMath.sol, test sync, settle
+// TODO: test sync, settle
 library Position {
     using SafeCast for uint256;
 
@@ -76,30 +76,15 @@ library Position {
             .oracleTickCumulativeStart;
     }
 
-    /// @notice Settles portion of existing position
-    /// @dev Assumes sizeSettled <= position.size
+    /// @notice Settles existing position
     function settle(
-        Info memory position,
-        uint128 sizeSettled
-    ) internal pure returns (Info memory) {
-        uint256 sizeBefore = uint256(position.size);
-        position.debt0 -= uint128(
-            (uint256(position.debt0) * sizeSettled) / sizeBefore
-        );
-        position.debt1 -= uint128(
-            (uint256(position.debt1) * sizeSettled) / sizeBefore
-        );
-        position.insurance0 -= uint128(
-            (uint256(position.insurance0) * sizeSettled) / sizeBefore
-        );
-        position.insurance1 -= uint128(
-            (uint256(position.insurance1) * sizeSettled) / sizeBefore
-        );
-        position.rewards -= uint128(
-            (uint256(position.rewards) * sizeSettled) / sizeBefore
-        );
-        position.size -= sizeSettled;
-        return position;
+        Info memory position
+    ) internal pure returns (Info memory positionAfter) {
+        positionAfter.zeroForOne = position.zeroForOne;
+        positionAfter.liquidated = position.liquidated;
+        positionAfter.tickCumulativeStart = position.tickCumulativeStart;
+        positionAfter.oracleTickCumulativeStart = position
+            .oracleTickCumulativeStart;
     }
 
     /// @notice Assembles a new position from pool state

@@ -46,10 +46,9 @@ contract MockPosition {
     }
 
     function settle(
-        Position.Info memory position,
-        uint128 sizeSettled
+        Position.Info memory position
     ) external pure returns (Position.Info memory) {
-        return Position.settle(position, sizeSettled);
+        return Position.settle(position);
     }
 
     function assemble(
