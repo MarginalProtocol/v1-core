@@ -125,6 +125,35 @@ def test_pool_mint__transfers_funds(
     assert token1.balanceOf(sender.address) == sender_balance1 - amount1
 
 
+def test_pool_mint__calls_mint_callback(
+    pool_initialized,
+    sqrt_price_x96_initial,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, sqrt_price_x96_initial
+    )
+
+    tx = callee.mint(
+        pool_initialized.address, alice.address, liquidity_delta, sender=sender
+    )
+    events = tx.decode_logs(callee.MintCallback)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.amount0Owed == amount0
+    assert event.amount1Owed == amount1
+    assert event.sender == sender.address
+
+
 def test_pool_mint__emits_mint(
     pool_initialized,
     sqrt_price_x96_initial,

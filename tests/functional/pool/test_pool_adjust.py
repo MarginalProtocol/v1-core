@@ -290,6 +290,70 @@ def test_pool_adjust__transfers_funds_when_remove_margin_with_one_for_zero(
     assert token0.balanceOf(alice.address) == balance0_alice + margin_before
 
 
+def test_pool_adjust__calls_adjust_callback_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    margin_delta = position.margin // 2
+    margin_before = position.margin
+    margin_after = margin_before + margin_delta
+
+    tx = callee.adjust(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one_position_id,
+        margin_delta,
+        sender=sender,
+    )
+    events = tx.decode_logs(callee.AdjustCallback)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.amount0Owed == 0
+    assert event.amount1Owed == margin_after
+    assert event.sender == sender.address
+
+
+def test_pool_adjust__calls_adjust_callback_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    margin_delta = position.margin // 2
+    margin_before = position.margin
+    margin_after = margin_before + margin_delta
+
+    tx = callee.adjust(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        one_for_zero_position_id,
+        margin_delta,
+        sender=sender,
+    )
+    events = tx.decode_logs(callee.AdjustCallback)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.amount0Owed == margin_after
+    assert event.amount1Owed == 0
+    assert event.sender == sender.address
+
+
 def test_pool_adjust__emits_adjust_with_zero_for_one(
     pool_initialized_with_liquidity,
     callee,

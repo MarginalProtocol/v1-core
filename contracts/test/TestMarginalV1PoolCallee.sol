@@ -77,8 +77,6 @@ contract TestMarginalV1PoolCallee is
             );
     }
 
-    // TODO: fix tests for fn sig changes
-
     function open(
         address pool,
         address recipient,
@@ -157,5 +155,83 @@ contract TestMarginalV1PoolCallee is
                 msg.sender,
                 amount1Owed
             );
+    }
+
+    function settle(
+        address pool,
+        address recipient,
+        uint112 id
+    ) external returns (int256 amount0, int256 amount1) {
+        return
+            IMarginalV1Pool(pool).settle(recipient, id, abi.encode(msg.sender));
+    }
+
+    function marginalV1SettleCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external {
+        address sender = abi.decode(data, (address));
+
+        emit SettleCallback(amount0Delta, amount1Delta, sender);
+
+        if (amount0Delta > 0) {
+            IERC20(IMarginalV1Pool(msg.sender).token0()).safeTransferFrom(
+                sender,
+                msg.sender,
+                uint256(amount0Delta)
+            );
+        } else if (amount1Delta > 0) {
+            IERC20(IMarginalV1Pool(msg.sender).token1()).safeTransferFrom(
+                sender,
+                msg.sender,
+                uint256(amount1Delta)
+            );
+        } else {
+            assert(amount0Delta == 0 && amount1Delta == 0);
+        }
+    }
+
+    function swap(
+        address pool,
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96
+    ) external returns (int256 amount0, int256 amount1) {
+        return
+            IMarginalV1Pool(pool).swap(
+                recipient,
+                zeroForOne,
+                amountSpecified,
+                sqrtPriceLimitX96,
+                abi.encode(msg.sender)
+            );
+    }
+
+    function marginalV1SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external {
+        address sender = abi.decode(data, (address));
+
+        emit SwapCallback(amount0Delta, amount1Delta, sender);
+
+        if (amount0Delta > 0) {
+            IERC20(IMarginalV1Pool(msg.sender).token0()).safeTransferFrom(
+                sender,
+                msg.sender,
+                uint256(amount0Delta)
+            );
+        } else if (amount1Delta > 0) {
+            IERC20(IMarginalV1Pool(msg.sender).token1()).safeTransferFrom(
+                sender,
+                msg.sender,
+                uint256(amount1Delta)
+            );
+        } else {
+            assert(amount0Delta == 0 && amount1Delta == 0);
+        }
     }
 }
