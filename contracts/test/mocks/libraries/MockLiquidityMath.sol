@@ -20,4 +20,19 @@ contract MockLiquidityMath {
             reserve1
         );
     }
+
+    function liquiditySqrtPriceX96Next(
+        uint128 liquidity,
+        uint160 sqrtPriceX96,
+        int256 amount0,
+        int256 amount1
+    ) external view returns (uint128 liquidityNext, uint160 sqrtPriceX96Next) {
+        (liquidityNext, sqrtPriceX96Next) = LiquidityMath
+            .liquiditySqrtPriceX96Next(
+                liquidity,
+                sqrtPriceX96,
+                amount0,
+                amount1
+            );
+    }
 }

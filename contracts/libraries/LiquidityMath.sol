@@ -43,7 +43,6 @@ library LiquidityMath {
     }
 
     /// @notice Calculates (L, sqrtP) after adding amounts to pool reserves
-    // TODO: test
     function liquiditySqrtPriceX96Next(
         uint128 liquidity,
         uint160 sqrtPriceX96,
