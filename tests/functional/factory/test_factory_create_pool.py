@@ -210,3 +210,30 @@ def test_create_pool__reverts_when_invalid_oracle(
             10,  # uni pool with 1 bps fee doesn't exist in mock
             sender=alice,
         )
+
+
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_create_pool__reverts_when_observation_cardinality_less_than_min(
+    factory,
+    alice,
+    rando_token_a_address,
+    rando_token_b_address,
+    maintenance,
+    rando_univ3_fee,
+    rando_univ3_pool,
+):
+    # update slot0 on uni pool
+    slot0 = rando_univ3_pool.slot0()
+    obs_cardinality_min = factory.observationCardinalityMinimum()
+    slot0.observationCardinality = obs_cardinality_min - 1
+    slot0.observationCardinalityNext = obs_cardinality_min - 1
+    rando_univ3_pool.setSlot0(slot0, sender=alice)
+
+    with reverts("observationCardinality < observationCardinalityMinimum"):
+        factory.createPool(
+            rando_token_a_address,
+            rando_token_b_address,
+            maintenance,
+            rando_univ3_fee,
+            sender=alice,
+        )

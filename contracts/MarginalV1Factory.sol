@@ -2,12 +2,14 @@
 pragma solidity 0.8.17;
 
 import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {MarginalV1Pool} from "./MarginalV1Pool.sol";
 
 contract MarginalV1Factory is IMarginalV1Factory {
     address public immutable uniswapV3Factory;
+    uint16 public immutable observationCardinalityMinimum;
 
     mapping(address => mapping(address => mapping(uint24 => address)))
         public getPool;
@@ -33,9 +35,12 @@ contract MarginalV1Factory is IMarginalV1Factory {
     );
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
 
-    // TODO: cardinality min
-    constructor(address _uniswapV3Factory) {
+    constructor(
+        address _uniswapV3Factory,
+        uint16 _observationCardinalityMinimum
+    ) {
         uniswapV3Factory = _uniswapV3Factory;
+        observationCardinalityMinimum = _observationCardinalityMinimum;
 
         getLeverage[250000] = 4333333; // includes liq reward req
         emit LeverageEnabled(250000, 4333333);
@@ -64,6 +69,13 @@ contract MarginalV1Factory is IMarginalV1Factory {
             uniswapV3Fee
         );
         require(oracle != address(0), "not Uniswap pool");
+
+        (, , , uint16 observationCardinality, , , ) = IUniswapV3Pool(oracle)
+            .slot0();
+        require(
+            observationCardinality >= observationCardinalityMinimum,
+            "observationCardinality < observationCardinalityMinimum"
+        );
 
         params = Params({
             token0: token0,

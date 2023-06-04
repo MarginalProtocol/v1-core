@@ -59,6 +59,7 @@ def univ3_factory_address():
 def rando_univ3_observations():
     # @dev order matters given mock
     return [
+        (1684754603, 13018614747527, 151666952020109821882336874706, True),
         (1684758203, 13019340799127, 151666952020109821882336874706, True),
         (1684761803, 13020066850727, 151666987847742632430844074643, True),
     ]
@@ -83,12 +84,20 @@ def rando_univ3_pool(
     for obs in rando_univ3_observations:
         univ3_pool.pushObservation(*obs, sender=accounts[0])
 
+    slot0 = (1815798575707834854825150601403158, 200804, 287, 722, 722, 0, True)
+    univ3_pool.setSlot0(slot0, sender=accounts[0])
+
     return univ3_pool
 
 
 @pytest.fixture(scope="session")
 def mock_univ3_pool(
-    project, accounts, token_a, token_b, rando_univ3_fee, rando_univ3_observations
+    project,
+    accounts,
+    token_a,
+    token_b,
+    rando_univ3_fee,
+    rando_univ3_observations,
 ):
     univ3_pool = project.MockUniswapV3Pool.deploy(
         token_a,
@@ -99,6 +108,9 @@ def mock_univ3_pool(
 
     for obs in rando_univ3_observations:
         univ3_pool.pushObservation(*obs, sender=accounts[0])
+
+    slot0 = (1815798575707834854825150601403158, 200804, 287, 722, 722, 0, True)
+    univ3_pool.setSlot0(slot0, sender=accounts[0])
 
     return univ3_pool
 
@@ -129,13 +141,22 @@ def mock_univ3_factory(
 
 
 @pytest.fixture(scope="session")
-def factory(project, networks, accounts, univ3_factory_address, mock_univ3_factory):
+def factory(
+    project,
+    networks,
+    accounts,
+    univ3_factory_address,
+    mock_univ3_factory,
+):
     oracle_factory = (
         univ3_factory_address
         if networks.network.name == "mainnet-fork"
         else mock_univ3_factory.address
     )  # TODO: fix
-    return project.MarginalV1Factory.deploy(oracle_factory, sender=accounts[0])
+    obs_cardinality_min = 300
+    return project.MarginalV1Factory.deploy(
+        oracle_factory, obs_cardinality_min, sender=accounts[0]
+    )
 
 
 @pytest.fixture(scope="session")
