@@ -3,7 +3,7 @@ from math import log, sqrt
 from eth_abi.packed import encode_packed
 from eth_utils import keccak
 
-from utils.constants import MAINTENANCE_UNIT
+from utils.constants import FEE_UNIT, MAINTENANCE_UNIT
 
 
 def get_position_key(address: str, id: int) -> bytes:
@@ -126,3 +126,21 @@ def calc_liquidity_sqrt_price_x96_from_reserves(
     liquidity = int(sqrt(reserve0 * reserve1))
     sqrt_price_x96 = (liquidity << 96) // reserve0
     return (liquidity, sqrt_price_x96)
+
+
+def calc_swap_amounts(
+    liquidity: int, sqrt_price_x96: int, sqrt_price_x96_next: int, fee: int
+) -> (int, int):
+    zero_for_one = sqrt_price_x96_next < sqrt_price_x96
+
+    amount0 = (liquidity << 96) // sqrt_price_x96_next - (
+        liquidity << 96
+    ) // sqrt_price_x96
+    amount1 = (liquidity * (sqrt_price_x96_next - sqrt_price_x96)) // (1 << 96)
+
+    if zero_for_one:
+        amount0 += amount0 * fee // FEE_UNIT
+    else:
+        amount1 += amount1 * fee // FEE_UNIT
+
+    return (amount0, amount1)
