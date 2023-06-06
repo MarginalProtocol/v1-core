@@ -38,6 +38,51 @@ def calc_sqrt_price_x96_next_open(
     return sqrt_price_x96_next
 
 
+def calc_sqrt_price_x96_next_swap_exact_input(
+    liquidity: int, sqrt_price_x96: int, zero_for_one: bool, amount_specified: int
+) -> int:
+    assert amount_specified > 0
+    if zero_for_one:
+        # sqrtP' = L / (del x + x)
+        (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+            liquidity, sqrt_price_x96
+        )
+        return (liquidity << 96) // (reserve0 + amount_specified)
+    else:
+        # sqrtP' = del y / L + sqrtP
+        return (amount_specified << 96) // liquidity + sqrt_price_x96
+
+
+def calc_sqrt_price_x96_next_swap_exact_output(
+    liquidity: int, sqrt_price_x96: int, zero_for_one: bool, amount_specified: int
+) -> int:
+    assert amount_specified <= 0
+    if zero_for_one:
+        # sqrtP' = del y / L + sqrtP
+        return (amount_specified << 96) // liquidity + sqrt_price_x96
+    else:
+        # sqrtP' = L / (del x + x)
+        (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+            liquidity, sqrt_price_x96
+        )
+        return (liquidity << 96) // (reserve0 + amount_specified)
+
+
+def calc_sqrt_price_x96_next_swap(
+    liquidity: int, sqrt_price_x96: int, zero_for_one: bool, amount_specified: int
+) -> int:
+    exact_input = amount_specified > 0
+    return (
+        calc_sqrt_price_x96_next_swap_exact_input(
+            liquidity, sqrt_price_x96, zero_for_one, amount_specified
+        )
+        if exact_input
+        else calc_sqrt_price_x96_next_swap_exact_output(
+            liquidity, sqrt_price_x96, zero_for_one, amount_specified
+        )
+    )
+
+
 def calc_insurances(
     liquidity: int,
     sqrt_price_x96: int,

@@ -46,7 +46,6 @@ library SqrtPriceMath {
     }
 
     /// @notice Calculates sqrtP after swapping tokens
-    // TODO: test
     function sqrtPriceX96NextSwap(
         uint128 liquidity,
         uint160 sqrtPriceX96,
