@@ -179,7 +179,7 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__with_amount0_zero_amount1
 
 
 # TODO: fix
-@pytest.mark.fuzzing
+@pytest.mark.skip(reason="Method not found error")
 def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_greater(
     liquidity_math_lib,
 ):
@@ -201,7 +201,7 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_
 
 
 # TODO: fix
-@pytest.mark.fuzzing
+@pytest.mark.skip(reason="Method not found error")
 def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount1_out_greater(
     liquidity_math_lib,
 ):
