@@ -8,7 +8,6 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
-// TODO: test sync, settle
 library Position {
     using SafeCast for uint256;
 
