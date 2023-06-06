@@ -35,11 +35,11 @@ contract TestMarginalV1PoolBelowMin1Callee is
         address sender
     );
     event SettleCallback(
-        int256 amount0Owed,
-        int256 amount1Owed,
+        int256 amount0Delta,
+        int256 amount1Delta,
         address sender
     );
-    event SwapCallback(int256 amount0Owed, int256 amount1Owed, address sender);
+    event SwapCallback(int256 amount0Delta, int256 amount1Delta, address sender);
 
     function mint(
         address pool,
