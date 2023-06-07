@@ -39,7 +39,11 @@ contract TestMarginalV1PoolCallee is
         int256 amount1Delta,
         address sender
     );
-    event SwapCallback(int256 amount0Delta, int256 amount1Delta, address sender);
+    event SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        address sender
+    );
 
     function mint(
         address pool,
