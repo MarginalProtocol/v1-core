@@ -6,5 +6,5 @@ def test_pool_constructor__sets_params(factory, pool, mock_univ3_pool):
     assert pool.fee() == 1000
     assert pool.reward() == 50000
     assert pool.maintenance() == 250000
-    assert pool.secondsAgo() == 3600
-    assert pool.fundingPeriod() == 86400
+    assert pool.secondsAgo() == 43200  # 12 hr TWAP for oracle price
+    assert pool.fundingPeriod() == 2592000  # 30 day funding period

@@ -3,7 +3,7 @@ import pytest
 
 @pytest.fixture
 def rando_univ3_observation_cardinality():
-    return 300  # fits 1h TWAP at 1 obs per block for 12s blocks
+    return 7200  # fits 24h TWAP at 1 obs per block for 12s blocks
 
 
 def test_constructor_sets_univ3_factory(

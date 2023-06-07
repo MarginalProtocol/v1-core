@@ -171,6 +171,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function oracleTickCumulatives(
         uint32[] memory secondsAgos
     ) private view returns (int56[] memory) {
+        // TODO: oracle buffers?
         (int56[] memory tickCumulatives, ) = IUniswapV3Pool(oracle).observe(
             secondsAgos
         );

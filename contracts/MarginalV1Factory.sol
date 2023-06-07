@@ -84,8 +84,8 @@ contract MarginalV1Factory is IMarginalV1Factory {
             fee: 1000, // 10 bps across all pools
             reward: 50000, // 5% of size added to min margin reqs
             oracle: oracle,
-            secondsAgo: 3600, // 1 hr TWAP for oracle price
-            fundingPeriod: 86400 // 1 day
+            secondsAgo: 43200, // 12 hr TWAP for oracle price
+            fundingPeriod: 2592000 // 30 day
         });
         pool = address(
             new MarginalV1Pool{
