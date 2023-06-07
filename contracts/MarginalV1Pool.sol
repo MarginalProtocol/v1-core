@@ -587,7 +587,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
-    // TODO: test
     function swap(
         address recipient,
         bool zeroForOne,
