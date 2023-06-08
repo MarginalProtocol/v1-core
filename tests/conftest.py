@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def deployer(accounts):
+def admin(accounts):
     yield accounts[0]
 
 
@@ -143,19 +143,17 @@ def mock_univ3_factory(
 @pytest.fixture(scope="session")
 def factory(
     project,
-    networks,
     accounts,
     univ3_factory_address,
     mock_univ3_factory,
 ):
-    oracle_factory = (
-        univ3_factory_address
-        if networks.network.name == "mainnet-fork"
-        else mock_univ3_factory.address
-    )  # TODO: fix
+    deployer = project.MarginalV1PoolDeployer.deploy(sender=accounts[0])
+
+    deployer_address = deployer.address
+    oracle_factory = mock_univ3_factory.address
     obs_cardinality_min = 7200
     return project.MarginalV1Factory.deploy(
-        oracle_factory, obs_cardinality_min, sender=accounts[0]
+        deployer_address, oracle_factory, obs_cardinality_min, sender=accounts[0]
     )
 
 

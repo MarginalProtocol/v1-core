@@ -133,7 +133,10 @@ def test_create_pool__deletes_params(
         rando_univ3_fee,
         sender=alice,
     )
-    params = factory.params()
+    pool_deployer = project.MarginalV1PoolDeployer.at(factory.marginalV1Deployer())
+
+    params = pool_deployer.params()
+    assert params.factory == ZERO_ADDRESS
     assert params.token0 == ZERO_ADDRESS
     assert params.token1 == ZERO_ADDRESS
     assert params.maintenance == 0

@@ -12,20 +12,6 @@ interface IMarginalV1Factory {
 
     function getLeverage(uint24 maintenance) external view returns (uint256);
 
-    function params()
-        external
-        view
-        returns (
-            address token0,
-            address token1,
-            uint24 maintenance,
-            uint24 fee,
-            uint24 reward,
-            address oracle,
-            uint32 secondsAgo,
-            uint32 fundingPeriod
-        );
-
     function createPool(
         address tokenA,
         address tokenB,

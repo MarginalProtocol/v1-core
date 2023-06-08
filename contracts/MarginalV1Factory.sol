@@ -5,27 +5,16 @@ import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
-import {MarginalV1Pool} from "./MarginalV1Pool.sol";
+import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";
 
 contract MarginalV1Factory is IMarginalV1Factory {
+    address public immutable marginalV1Deployer;
     address public immutable uniswapV3Factory;
     uint16 public immutable observationCardinalityMinimum;
 
     mapping(address => mapping(address => mapping(uint24 => address)))
         public getPool;
     mapping(uint24 => uint256) public getLeverage;
-
-    struct Params {
-        address token0;
-        address token1;
-        uint24 maintenance; // precision of 1e6
-        uint24 fee; // precision of 1e6
-        uint24 reward; // precision of 1e6
-        address oracle;
-        uint32 secondsAgo;
-        uint32 fundingPeriod;
-    }
-    Params public params;
 
     event PoolCreated(
         address token0,
@@ -36,9 +25,11 @@ contract MarginalV1Factory is IMarginalV1Factory {
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
 
     constructor(
+        address _marginalV1Deployer,
         address _uniswapV3Factory,
         uint16 _observationCardinalityMinimum
     ) {
+        marginalV1Deployer = _marginalV1Deployer;
         uniswapV3Factory = _uniswapV3Factory;
         observationCardinalityMinimum = _observationCardinalityMinimum;
 
@@ -77,22 +68,16 @@ contract MarginalV1Factory is IMarginalV1Factory {
             "observationCardinality < observationCardinalityMinimum"
         );
 
-        params = Params({
-            token0: token0,
-            token1: token1,
-            maintenance: maintenance, // different max leverages across pools
-            fee: 1000, // 10 bps across all pools
-            reward: 50000, // 5% of size added to min margin reqs
-            oracle: oracle,
-            secondsAgo: 43200, // 12 hr TWAP for oracle price
-            fundingPeriod: 2592000 // 30 day
-        });
-        pool = address(
-            new MarginalV1Pool{
-                salt: keccak256(abi.encode(token0, token1, maintenance))
-            }()
+        pool = IMarginalV1PoolDeployer(marginalV1Deployer).deploy(
+            token0,
+            token1,
+            maintenance,
+            1000, // fee: 10 bps across all pools
+            50000, // reward: 5% of size added to min margin reqs
+            oracle,
+            43200, // secondsAgo: 12 hr TWAP for oracle price
+            2592000 // fundingPeriod: 30 day
         );
-        delete params;
 
         // populate in reverse for key (token0, token1, maintenance)
         getPool[token0][token1][maintenance] = pool;

@@ -22,7 +22,7 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 import {IMarginalV1SettleCallback} from "./interfaces/callback/IMarginalV1SettleCallback.sol";
 import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
-import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
+import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
 contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
@@ -129,6 +129,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
         (
+            factory,
             token0,
             token1,
             maintenance,
@@ -137,8 +138,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             oracle,
             secondsAgo,
             fundingPeriod
-        ) = IMarginalV1Factory(msg.sender).params();
-        factory = msg.sender;
+        ) = IMarginalV1PoolDeployer(msg.sender).params();
     }
 
     function initialize(uint160 _sqrtPriceX96) external {
