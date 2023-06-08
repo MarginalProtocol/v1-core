@@ -236,11 +236,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tickCumulative,
             oracleTickCumulative
         );
-        uint256 marginMinimum = Position.marginMinimum(
-            position.size,
-            maintenance
-        );
-        require(margin >= marginMinimum, "margin < min"); // saves gas by not referencing oracle price but unsafe wrt liquidations
+        uint128 marginMinimum = position.marginMinimum(maintenance);
+        require(margin >= marginMinimum, "margin < min");
 
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
@@ -338,15 +335,25 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         int256 marginDelta,
         bytes calldata data
     ) external lock returns (uint256 margin0, uint256 margin1) {
-        Position.Info memory position = positions.get(msg.sender, id); // unsynced to save on gas on oracle fetch
+        State memory _state = stateSynced();
+        Position.Info memory position = positions.get(msg.sender, id);
         require(position.size > 0, "not position");
-        uint256 marginMinimum = Position.marginMinimum(
-            position.size,
-            maintenance
+
+        // zero seconds ago for oracle tickCumulative
+        int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
+
+        // update debts for funding
+        // TODO: test
+        position = position.sync(
+            _state.tickCumulative,
+            oracleTickCumulative,
+            fundingPeriod
         );
+        uint128 marginMinimum = position.marginMinimum(maintenance);
         require(
             marginDelta > 0 ||
-                position.margin - marginMinimum >= uint256(-marginDelta),
+                uint256(position.margin) >=
+                uint256(-marginDelta) + uint256(marginMinimum),
             "margin < min"
         );
 
@@ -377,7 +384,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128(); // safecast to avoid issues on liquidation
         }
 
+        // TODO: test w funding
         positions.set(msg.sender, id, position);
+
+        // update pool state to latest
+        // TODO: test
+        state = _state;
 
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }

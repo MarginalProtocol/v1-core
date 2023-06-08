@@ -123,18 +123,19 @@ contract MockPosition {
         return Position.fees(size, fee);
     }
 
-    function marginMinimum(
-        uint128 size,
-        uint24 maintenance
-    ) external view returns (uint256) {
-        return Position.marginMinimum(size, maintenance);
-    }
-
     function liquidationRewards(
         uint128 size,
         uint24 reward
     ) external pure returns (uint256) {
         return Position.liquidationRewards(size, reward);
+    }
+
+    // TODO: test
+    function marginMinimum(
+        Position.Info memory position,
+        uint24 maintenance
+    ) external view returns (uint256) {
+        return Position.marginMinimum(position, maintenance);
     }
 
     function amountsLocked(

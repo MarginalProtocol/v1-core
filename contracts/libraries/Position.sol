@@ -203,14 +203,6 @@ library Position {
         return (uint256(size) * fee) / 1e6;
     }
 
-    /// @notice Absolute minimum margin requirement
-    function marginMinimum(
-        uint128 size,
-        uint24 maintenance
-    ) internal pure returns (uint256) {
-        return (uint256(size) * maintenance) / 1e6;
-    }
-
     /// @notice Liquidation rewards to liquidator in (x, y) amounts
     /// @dev Rewards given proportional to size
     function liquidationRewards(
@@ -218,6 +210,40 @@ library Position {
         uint24 reward
     ) internal pure returns (uint256) {
         return (uint256(size) * reward) / 1e6;
+    }
+
+    /// @notice Absolute minimum margin requirement
+    function marginMinimum(
+        Info memory position,
+        uint24 maintenance
+    ) internal pure returns (uint128) {
+        if (!position.zeroForOne) {
+            // cx >= (1+M) * dy / P - sx; P = iy / ix
+            uint256 debt1Adjusted = (uint256(position.debt1) *
+                (1e6 + maintenance)) / 1e6;
+            uint256 prod = Math.mulDiv(
+                debt1Adjusted,
+                position.insurance0,
+                position.insurance1
+            );
+            return
+                prod > uint256(position.size)
+                    ? (prod - uint256(position.size)).toUint128()
+                    : 0;
+        } else {
+            // cy >= (1+M) * dx * P - sy; P = iy / ix
+            uint256 debt0Adjusted = (uint256(position.debt0) *
+                (1e6 + maintenance)) / 1e6;
+            uint256 prod = Math.mulDiv(
+                debt0Adjusted,
+                position.insurance1,
+                position.insurance0
+            );
+            return
+                prod > uint256(position.size)
+                    ? (prod - uint256(position.size)).toUint128()
+                    : 0;
+        }
     }
 
     /// @notice Amounts (x, y) of pool liquidity locked for position
