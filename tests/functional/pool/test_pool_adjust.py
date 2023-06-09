@@ -2,8 +2,16 @@ import pytest
 
 from ape import reverts
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
-from utils.utils import get_position_key, calc_amounts_from_liquidity_sqrt_price_x96
+from utils.constants import (
+    FUNDING_PERIOD,
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+)
+from utils.utils import (
+    get_position_key,
+    calc_amounts_from_liquidity_sqrt_price_x96,
+)
 
 
 @pytest.fixture
@@ -76,7 +84,66 @@ def one_for_zero_position_id(
     return int(tx.return_value)
 
 
-# TODO: test updates state
+def test_pool_adjust__updates_state_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+    chain,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    state = pool_initialized_with_liquidity.state()
+
+    # sync state
+    block_timestamp_next = chain.pending_timestamp
+    state.tickCumulative += state.tick * (block_timestamp_next - state.blockTimestamp)
+    state.blockTimestamp = block_timestamp_next
+
+    margin_delta = position.margin  # 2xing margin
+    callee.adjust(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one_position_id,
+        margin_delta,
+        sender=sender,
+    )
+
+    assert pool_initialized_with_liquidity.state() == state
+
+
+def test_pool_adjust__updates_state_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+    chain,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    state = pool_initialized_with_liquidity.state()
+
+    # sync state
+    block_timestamp_next = chain.pending_timestamp
+    state.tickCumulative += state.tick * (block_timestamp_next - state.blockTimestamp)
+    state.blockTimestamp = block_timestamp_next
+
+    margin_delta = position.margin  # 2xing margin
+    callee.adjust(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        one_for_zero_position_id,
+        margin_delta,
+        sender=sender,
+    )
+
+    assert pool_initialized_with_liquidity.state() == state
 
 
 def test_pool_adjust__sets_position_with_zero_for_one(
@@ -87,6 +154,8 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     token0,
     token1,
     zero_for_one_position_id,
+    position_lib,
+    liquidity_math_lib,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -99,17 +168,19 @@ def test_pool_adjust__sets_position_with_zero_for_one(
         margin_delta,
         sender=sender,
     )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # added margin
     position.margin += margin_delta
-    result = pool_initialized_with_liquidity.positions(key)
-
-    # sync
-    position.debt0 = (
-        result.debt0
-    )  # TODO: test sync with funding properly w fixture issues
-    position.tickCumulativeStart = result.tickCumulativeStart
-    position.oracleTickCumulativeStart = result.oracleTickCumulativeStart
-
-    assert result == position
+    assert pool_initialized_with_liquidity.positions(key) == position
 
 
 def test_pool_adjust__sets_position_with_one_for_zero(
@@ -120,6 +191,8 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     token0,
     token1,
     one_for_zero_position_id,
+    position_lib,
+    liquidity_math_lib,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -132,17 +205,19 @@ def test_pool_adjust__sets_position_with_one_for_zero(
         margin_delta,
         sender=sender,
     )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # added margin
     position.margin += margin_delta
-    result = pool_initialized_with_liquidity.positions(key)
-
-    # sync
-    position.debt1 = (
-        result.debt1
-    )  # TODO: test sync with funding properly w fixture issues
-    position.tickCumulativeStart = result.tickCumulativeStart
-    position.oracleTickCumulativeStart = result.oracleTickCumulativeStart
-
-    assert result == position
+    assert pool_initialized_with_liquidity.positions(key) == position
 
 
 def test_pool_adjust__transfers_funds_when_add_margin_with_zero_for_one(

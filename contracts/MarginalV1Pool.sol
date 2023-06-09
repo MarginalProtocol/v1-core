@@ -343,7 +343,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
 
         // update debts for funding
-        // TODO: test
         position = position.sync(
             _state.tickCumulative,
             oracleTickCumulative,
@@ -384,11 +383,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128(); // safecast to avoid issues on liquidation
         }
 
-        // TODO: test w funding
         positions.set(msg.sender, id, position);
 
         // update pool state to latest
-        // TODO: test
         state = _state;
 
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);

@@ -3,7 +3,7 @@ from math import log, sqrt
 from eth_abi.packed import encode_packed
 from eth_utils import keccak
 
-from utils.constants import FEE_UNIT, MAINTENANCE_UNIT
+from utils.constants import FEE_UNIT, MAINTENANCE_UNIT, FUNDING_PERIOD
 
 
 def get_position_key(address: str, id: int) -> bytes:
@@ -144,3 +144,28 @@ def calc_swap_amounts(
         amount1 += amount1 * fee // FEE_UNIT
 
     return (amount0, amount1)
+
+
+def calc_debts_after_funding(
+    debt0: int,
+    debt1: int,
+    zero_for_one: bool,
+    tick_cumulative_start: int,
+    oracle_tick_cumulative_start: int,
+    tick_cumulative_last: int,
+    oracle_tick_cumulative_last: int,
+) -> (int, int):
+    if zero_for_one:
+        tick_cumulative_delta = (
+            oracle_tick_cumulative_last - oracle_tick_cumulative_start
+        ) - (tick_cumulative_last - tick_cumulative_start)
+
+        debt0 = int(debt0 * (1.0001 ** (tick_cumulative_delta / FUNDING_PERIOD)))
+        return (debt0, debt1)
+    else:
+        tick_cumulative_delta = (tick_cumulative_last - tick_cumulative_start) - (
+            oracle_tick_cumulative_last - oracle_tick_cumulative_start
+        )
+
+        debt1 = int(debt1 * (1.0001 ** (tick_cumulative_delta / FUNDING_PERIOD)))
+        return (debt0, debt1)

@@ -224,7 +224,6 @@ library Position {
     }
 
     /// @notice Absolute minimum margin requirement
-    // TODO: require min margin > 0?
     function marginMinimum(
         Info memory position,
         uint24 maintenance
