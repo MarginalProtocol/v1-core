@@ -52,6 +52,13 @@ library Position {
         int56 oracleTickCumulativeLast,
         uint32 fundingPeriod
     ) internal pure returns (Info memory) {
+        // early exit if nothing to update
+        // TODO: test
+        if (
+            tickCumulativeLast == position.tickCumulativeStart &&
+            oracleTickCumulativeLast == position.oracleTickCumulativeStart
+        ) return position;
+
         (uint128 debt0, uint128 debt1) = debtsAfterFunding(
             position,
             tickCumulativeLast,

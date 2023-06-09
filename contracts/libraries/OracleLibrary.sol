@@ -10,17 +10,11 @@ library OracleLibrary {
         uint32 timeDelta
     ) internal pure returns (uint160) {
         // @uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol#L35
+        // TODO: need round to negative infinity? was causing rounding issues
         int56 tickCumulativeDelta = tickCumulativeEnd - tickCumulativeStart;
         int24 arithmeticMeanTick = int24(
             tickCumulativeDelta / int56(uint56(timeDelta))
         );
-
-        // Always round to negative infinity
-        if (
-            tickCumulativeDelta < 0 &&
-            (tickCumulativeDelta % int56(uint56(timeDelta)) != 0)
-        ) arithmeticMeanTick--;
-
         return TickMath.getSqrtRatioAtTick(arithmeticMeanTick);
     }
 }

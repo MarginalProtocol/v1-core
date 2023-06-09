@@ -66,6 +66,7 @@ contract MockUniswapV3Pool {
 
     /// @dev unlike Uniswap V3, naively returns back observations so order matters
     /// @dev assumes contracts query with e.g. secondsAgos[0] = secondsAgo; secondsAgos[1] = 0;
+    // TODO: fix to be more realistic
     function observe(
         uint32[] calldata secondsAgos
     )
