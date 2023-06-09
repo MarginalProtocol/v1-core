@@ -40,8 +40,8 @@ def test_pool_open__updates_state_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
@@ -130,8 +130,8 @@ def test_pool_open__updates_state_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
@@ -222,8 +222,8 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -290,8 +290,8 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -357,8 +357,8 @@ def test_pool_open__sets_position_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
@@ -430,8 +430,8 @@ def test_pool_open__sets_position_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
@@ -503,8 +503,8 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -572,8 +572,8 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -641,8 +641,8 @@ def test_pool_open__calls_open_callback_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -708,8 +708,8 @@ def test_pool_open__calls_open_callback_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
@@ -772,8 +772,8 @@ def test_pool_open__emits_open_with_zero_for_one(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -827,8 +827,8 @@ def test_pool_open__emits_open_with_one_for_zero(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -881,8 +881,8 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("liquidityDelta >= liquidity"):
         callee.open(
@@ -923,8 +923,8 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("liquidityDelta >= liquidity"):
         callee.open(
@@ -963,8 +963,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -1003,8 +1003,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -1044,8 +1044,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -1085,8 +1085,8 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("sqrtPriceLimitX96 exceeds min/max"):
         callee.open(
@@ -1125,8 +1125,8 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
@@ -1174,8 +1174,8 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity,
@@ -1224,8 +1224,8 @@ def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("amount1 < min"):
         callee_below_min1.open(
@@ -1266,8 +1266,8 @@ def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
 
     with reverts("amount0 < min"):
         callee_below_min0.open(
@@ -1312,7 +1312,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    margin_min = position_lib.marginMinimum(position.size, fee)
+    margin_min = position_lib.marginMinimum(position, fee)
     margin = margin_min - 1
 
     with reverts("margin < min"):
@@ -1358,7 +1358,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    margin_min = position_lib.marginMinimum(position.size, fee)
+    margin_min = position_lib.marginMinimum(position, fee)
     margin = margin_min - 1
 
     with reverts("margin < min"):

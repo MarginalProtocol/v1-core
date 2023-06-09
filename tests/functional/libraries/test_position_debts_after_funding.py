@@ -38,7 +38,7 @@ def test_position_debts_after_funding__with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.margin = position_lib.marginMinimum(position.size, maintenance)
+    position.margin = position_lib.marginMinimum(position, maintenance)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     tick_next = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
@@ -100,7 +100,7 @@ def test_position_debts_after_funding__with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.margin = position_lib.marginMinimum(position.size, maintenance)
+    position.margin = position_lib.marginMinimum(position, maintenance)
     position.rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     tick_next = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)

@@ -29,7 +29,9 @@ def zero_for_one_position_id(
         * maintenance
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
-    margin = int(1.10 * size) * maintenance // MAINTENANCE_UNIT  # 1
+    margin = (
+        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.10x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,

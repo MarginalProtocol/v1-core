@@ -8,6 +8,7 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
+// TODO: fuzz for edge cases and rounding
 library Position {
     using SafeCast for uint256;
 
@@ -119,6 +120,16 @@ library Position {
             position.insurance0,
             position.insurance1
         );
+
+        // TODO: test
+        require(
+            position.size > 0 &&
+                position.debt0 > 0 &&
+                position.debt1 > 0 &&
+                position.insurance0 > 0 &&
+                position.insurance1 > 0,
+            "size exceeds min/max"
+        );
     }
 
     /// @notice Size of position in (x, y) amounts
@@ -213,6 +224,7 @@ library Position {
     }
 
     /// @notice Absolute minimum margin requirement
+    // TODO: require min margin > 0?
     function marginMinimum(
         Info memory position,
         uint24 maintenance
