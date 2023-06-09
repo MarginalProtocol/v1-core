@@ -30,7 +30,7 @@ def test_create_pool__deploys_pool_contract(
     assert pool.fee() == 1000
     assert pool.reward() == 50000
     assert pool.secondsAgo() == 43200  # 12 hr TWAP for oracle price
-    assert pool.fundingPeriod() == 2592000  # 30 day funding period
+    assert pool.fundingPeriod() == 604800  # 7 day funding period
 
     # TODO: abstract with ape-yaml.config somehow?
     univ3_factory_address = factory.uniswapV3Factory()

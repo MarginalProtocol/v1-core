@@ -58,6 +58,7 @@ def univ3_factory_address():
 @pytest.fixture(scope="session")
 def rando_univ3_observations():
     # @dev order matters given mock
+    # @dev tick average price same as sqrt_price_initial_x96 in pool conftest
     return [
         (1684675403, 13002641612327, 151666952020109821882336874706, True),
         (1684718603, 13011354231527, 151666952020109821882336874706, True),

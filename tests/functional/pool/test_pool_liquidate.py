@@ -2,7 +2,12 @@ import pytest
 
 from ape import reverts
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.constants import (
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+    SECONDS_AGO,
+)
 from utils.utils import (
     get_position_key,
     calc_tick_from_sqrt_price_x96,
@@ -11,8 +16,40 @@ from utils.utils import (
 
 
 @pytest.fixture
+def oracle_next_obs_zero_for_one(rando_univ3_observations):
+    obs_last = rando_univ3_observations[-1]
+    obs_before = rando_univ3_observations[-2]
+    tick = (obs_last[1] - obs_before[1]) // (obs_last[0] - obs_before[0])
+
+    obs_timestamp = obs_last[0] + SECONDS_AGO
+    obs_tick_cumulative = obs_last[1] + (SECONDS_AGO * tick * 120) // 100
+    obs_liquidity_cumulative = obs_last[2]  # @dev irrelevant for test
+    obs = (obs_timestamp, obs_tick_cumulative, obs_liquidity_cumulative, True)
+    return obs
+
+
+@pytest.fixture
+def oracle_next_obs_one_for_zero(rando_univ3_observations):
+    obs_last = rando_univ3_observations[-1]
+    obs_before = rando_univ3_observations[-2]
+    tick = (obs_last[1] - obs_before[1]) // (obs_last[0] - obs_before[0])
+
+    obs_timestamp = obs_last[0] + SECONDS_AGO
+    obs_tick_cumulative = obs_last[1] + (SECONDS_AGO * tick * 80) // 100
+    obs_liquidity_cumulative = obs_last[2]  # @dev irrelevant for test
+    obs = (obs_timestamp, obs_tick_cumulative, obs_liquidity_cumulative, True)
+    return obs
+
+
+@pytest.fixture
 def zero_for_one_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    mock_univ3_pool,
+    oracle_next_obs_zero_for_one,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
@@ -30,8 +67,8 @@ def zero_for_one_position_id(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.15 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.15x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -42,12 +79,22 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
+
+    # change the oracle price up 20% to make the position unsafe
+    mock_univ3_pool.pushObservation(*oracle_next_obs_zero_for_one, sender=sender)
+
     return int(tx.return_value)
 
 
 @pytest.fixture
 def one_for_zero_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    mock_univ3_pool,
+    oracle_next_obs_one_for_zero,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
@@ -65,8 +112,8 @@ def one_for_zero_position_id(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
     )  # size will be ~ 1%
     margin = (
-        int(1.10 * size) * maintenance // MAINTENANCE_UNIT
-    )  # 1.10x for breathing room
+        int(1.15 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.15x for breathing room
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -77,79 +124,91 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
+
+    # change the oracle price down 20% to make the position unsafe
+    mock_univ3_pool.pushObservation(*oracle_next_obs_one_for_zero, sender=sender)
+
     return int(tx.return_value)
 
 
 @pytest.fixture
-def zero_for_one_position_adjusted_id(
+def zero_for_one_position_safe_id(
     pool_initialized_with_liquidity,
     callee,
     sender,
-    alice,
     token0,
     token1,
-    zero_for_one_position_id,
-    oracle_sqrt_price_initial_x96,
 ):
-    key = get_position_key(callee.address, zero_for_one_position_id)
-    position = pool_initialized_with_liquidity.positions(key)
-
+    state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    debt0_adjusted = (
-        position.debt0 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
-    )
-    collateral1_req = int(
-        debt0_adjusted * (oracle_sqrt_price_initial_x96**2) // (1 << 192)
-    )
-    margin1 = collateral1_req - position.size
-    margin1 *= 1.20  # go 20% larger than reqs to ensure safe
 
-    margin_delta = int(margin1) - position.margin
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
-    callee.adjust(
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.15 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.15x for breathing room
+
+    tx = callee.open(
         pool_initialized_with_liquidity.address,
-        alice.address,
-        zero_for_one_position_id,
-        margin_delta,
+        callee.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
-    return zero_for_one_position_id
+
+    return int(tx.return_value)
 
 
 @pytest.fixture
-def one_for_zero_position_adjusted_id(
+def one_for_zero_position_safe_id(
     pool_initialized_with_liquidity,
     callee,
     sender,
-    alice,
     token0,
     token1,
-    one_for_zero_position_id,
-    oracle_sqrt_price_initial_x96,
 ):
-    key = get_position_key(callee.address, one_for_zero_position_id)
-    position = pool_initialized_with_liquidity.positions(key)
-
+    state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    debt1_adjusted = (
-        position.debt1 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
-    )
-    collateral0_req = int(
-        debt1_adjusted * (1 << 192) // (oracle_sqrt_price_initial_x96**2)
-    )
-    margin0 = collateral0_req - position.size
-    margin0 *= 1.20  # go 20% larger than reqs to ensure safe
 
-    margin_delta = int(margin0) - position.margin
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
-    callee.adjust(
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.15 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.15x for breathing room
+
+    tx = callee.open(
         pool_initialized_with_liquidity.address,
-        alice.address,
-        one_for_zero_position_id,
-        margin_delta,
+        callee.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
         sender=sender,
     )
-    return one_for_zero_position_id
+
+    return int(tx.return_value)
 
 
 def test_pool_liquidate__updates_state_with_zero_for_one(
@@ -169,11 +228,6 @@ def test_pool_liquidate__updates_state_with_zero_for_one(
     position = pool_initialized_with_liquidity.positions(key)
     state = pool_initialized_with_liquidity.state()
 
-    block_timestamp_next = chain.pending_timestamp
-    tick_cumulative_next = state.tickCumulative + state.tick * (
-        block_timestamp_next - state.blockTimestamp
-    )
-
     reserve0, reserve1 = liquidity_math_lib.toAmounts(
         state.liquidity, state.sqrtPriceX96
     )
@@ -185,6 +239,11 @@ def test_pool_liquidate__updates_state_with_zero_for_one(
         reserve0 + amount0, reserve1 + amount1
     )
     tick_next = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
 
     state.liquidity = liquidity_next
     state.sqrtPriceX96 = sqrt_price_x96_next
@@ -303,7 +362,7 @@ def test_pool_liquidate__sets_position_with_zero_for_one(
     callee,
     position_lib,
     liquidity_math_lib,
-    rando_univ3_observations,
+    oracle_next_obs_zero_for_one,
     sender,
     alice,
     bob,
@@ -322,7 +381,7 @@ def test_pool_liquidate__sets_position_with_zero_for_one(
 
     state = pool_initialized_with_liquidity.state()
     tick_cumulative = state.tickCumulative
-    obs = rando_univ3_observations[-1]  # @dev last obs
+    obs = oracle_next_obs_zero_for_one  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
 
     position_liquidated.tickCumulativeStart = tick_cumulative
@@ -336,7 +395,7 @@ def test_pool_liquidate__sets_position_with_one_for_zero(
     callee,
     position_lib,
     liquidity_math_lib,
-    rando_univ3_observations,
+    oracle_next_obs_one_for_zero,
     sender,
     alice,
     bob,
@@ -354,7 +413,7 @@ def test_pool_liquidate__sets_position_with_one_for_zero(
 
     state = pool_initialized_with_liquidity.state()
     tick_cumulative = state.tickCumulative
-    obs = rando_univ3_observations[-1]  # @dev last obs
+    obs = oracle_next_obs_one_for_zero  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
 
     position_liquidated.tickCumulativeStart = tick_cumulative
@@ -549,9 +608,9 @@ def test_pool_liquidate__reverts_when_position_safe_with_zero_for_one(
     bob,
     token0,
     token1,
-    zero_for_one_position_adjusted_id,
+    zero_for_one_position_safe_id,
 ):
-    id = zero_for_one_position_adjusted_id
+    id = zero_for_one_position_safe_id
     with reverts("position safe"):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice
@@ -568,9 +627,9 @@ def test_pool_liquidate__reverts_when_position_safe_with_one_for_zero(
     bob,
     token0,
     token1,
-    one_for_zero_position_adjusted_id,
+    one_for_zero_position_safe_id,
 ):
-    id = one_for_zero_position_adjusted_id
+    id = one_for_zero_position_safe_id
     with reverts("position safe"):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice

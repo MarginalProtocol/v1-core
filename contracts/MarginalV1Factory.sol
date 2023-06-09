@@ -76,7 +76,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
             50000, // reward: 5% of size added to min margin reqs
             oracle,
             43200, // secondsAgo: 12 hr TWAP for oracle price
-            2592000 // fundingPeriod: 30 day
+            604800 // fundingPeriod: 7 day
         );
 
         // populate in reverse for key (token0, token1, maintenance)
