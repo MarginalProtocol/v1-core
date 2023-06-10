@@ -391,7 +391,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }
 
-    // TODO: test
     function settle(
         address recipient,
         uint112 id,

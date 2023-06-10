@@ -1,5 +1,7 @@
 import pytest
 
+from ape import reverts
+
 from utils.constants import (
     FUNDING_PERIOD,
     MIN_SQRT_RATIO,
@@ -663,16 +665,120 @@ def test_pool_settle__emits_settle_with_one_for_zero(
     assert event.amount1 == amount1  # positive since pool receiving
 
 
-def test_pool_settle__reverts_when_not_position_id():
-    pass
+def test_pool_settle__reverts_when_not_position_id(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    with reverts("not position"):
+        callee.settle(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            one_for_zero_position_id + 1,
+            sender=sender,
+        )
 
 
-def test_pool_settle__reverts_when_amount1_less_than_min():
-    pass
+def test_pool_settle__reverts_when_amount0_less_than_min(
+    pool_initialized_with_liquidity,
+    callee,
+    callee_below_min0,
+    alice,
+    sender,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    # callee below min0 as owner
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        callee_below_min0.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+    id = int(tx.return_value)
+
+    with reverts("amount0 < min"):
+        callee_below_min0.settle(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            id,
+            sender=sender,
+        )
 
 
-def test_pool_settle__reverts_when_amount0_less_than_min():
-    pass
+def test_pool_settle__reverts_when_amount1_less_than_min(
+    pool_initialized_with_liquidity,
+    callee,
+    callee_below_min1,
+    alice,
+    sender,
+    token0,
+    token1,
+):
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    # callee below min1 as owner
+    tx = callee.open(
+        pool_initialized_with_liquidity.address,
+        callee_below_min1.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+    id = int(tx.return_value)
+
+    with reverts("amount1 < min"):
+        callee_below_min1.settle(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            id,
+            sender=sender,
+        )
 
 
 # TODO:
