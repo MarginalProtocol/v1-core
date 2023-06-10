@@ -561,12 +561,106 @@ def test_pool_settle__calls_settle_callback_with_one_for_zero(
     assert event.sender == sender.address
 
 
-def test_pool_settle__emits_settle_with_zero_for_one():
-    pass
+def test_pool_settle__emits_settle_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    tx = callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # zero (debt) for one (size)
+    amount0 = position.debt0
+    amount1 = position.size + position.margin + position.rewards
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Settle)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.owner == callee.address
+    assert event.id == zero_for_one_position_id
+    assert event.recipient == alice.address
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.amount0 == amount0  # positive since pool receiving
+    assert event.amount1 == -amount1  # negative since pool sending out
 
 
-def test_pool_settle__emits_settle_with_one_for_zero():
-    pass
+def test_pool_settle__emits_settle_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    tx = callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        one_for_zero_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # one (debt) for zero (size)
+    amount1 = position.debt1
+    amount0 = position.size + position.margin + position.rewards
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Settle)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.owner == callee.address
+    assert event.id == one_for_zero_position_id
+    assert event.recipient == alice.address
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.amount0 == -amount0  # negative since pool sending out
+    assert event.amount1 == amount1  # positive since pool receiving
 
 
 def test_pool_settle__reverts_when_not_position_id():
