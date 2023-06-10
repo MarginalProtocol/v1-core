@@ -355,12 +355,116 @@ def test_pool_settle__sets_position_with_one_for_zero(
     assert pool_initialized_with_liquidity.positions(key) == position
 
 
-def test_pool_settle__transfers_funds_with_zero_for_one():
-    pass
+def test_pool_settle__transfers_funds_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_alice = token1.balanceOf(alice.address)
+
+    callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # zero (debt) for one (size)
+    amount0 = position.debt0
+    amount1 = position.size + position.margin + position.rewards
+
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool + amount0
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool - amount1
+    )
+    assert token0.balanceOf(sender.address) == balance0_sender - amount0
+    assert token1.balanceOf(alice.address) == balance1_alice + amount1
 
 
-def test_pool_settle__transfers_funds_with_one_for_zero():
-    pass
+def test_pool_settle__transfers_funds_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    balance1_sender = token1.balanceOf(sender.address)
+    balance0_alice = token0.balanceOf(alice.address)
+
+    callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        one_for_zero_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # one (debt) for zero (size)
+    amount0 = position.size + position.margin + position.rewards
+    amount1 = position.debt1
+
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool - amount0
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool + amount1
+    )
+    assert token1.balanceOf(sender.address) == balance1_sender - amount1
+    assert token0.balanceOf(alice.address) == balance0_alice + amount0
 
 
 def test_pool_settle__calls_settle_callback_with_zero_for_one():
