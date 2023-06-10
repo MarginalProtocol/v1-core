@@ -193,12 +193,88 @@ def test_pool_settle__updates_state_with_one_for_zero(
     assert pool_initialized_with_liquidity.state() == state
 
 
-def test_pool_settle__updates_reserves_locked_with_zero_for_one():
-    pass
+def test_pool_settle__updates_reserves_locked_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    zero_for_one_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # amounts locked in position should be removed from locked reserves
+    (amount0_unlocked, amount1_unlocked) = position_lib.amountsLocked(position)
+    assert pool_initialized_with_liquidity.reservesLocked() == (
+        reserve0_locked - amount0_unlocked,
+        reserve1_locked - amount1_unlocked,
+    )
 
 
-def test_pool_settle__updates_reserves_locked_with_one_for_zero():
-    pass
+def test_pool_settle__updates_reserves_locked_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    one_for_zero_position_id,
+    position_lib,
+    liquidity_math_lib,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    (
+        reserve0_locked,
+        reserve1_locked,
+    ) = pool_initialized_with_liquidity.reservesLocked()
+
+    callee.settle(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        one_for_zero_position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = pool_initialized_with_liquidity.state()
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        FUNDING_PERIOD,
+    )
+
+    # amounts locked in position should be removed from locked reserves
+    (amount0_unlocked, amount1_unlocked) = position_lib.amountsLocked(position)
+    assert pool_initialized_with_liquidity.reservesLocked() == (
+        reserve0_locked - amount0_unlocked,
+        reserve1_locked - amount1_unlocked,
+    )
 
 
 def test_pool_settle__sets_position_with_zero_for_one():

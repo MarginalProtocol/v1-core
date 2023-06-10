@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
 library OracleLibrary {
+    /// @dev Rounds toward zero for both positive and negative tick delta
     function oracleSqrtPriceX96(
         int56 tickCumulativeStart,
         int56 tickCumulativeEnd,
