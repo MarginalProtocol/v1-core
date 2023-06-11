@@ -40,13 +40,16 @@ def test_pool_swap__updates_state_with_exact_input_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
+
     (
         liquidity_after,
         sqrt_price_x96_after,
@@ -115,13 +118,16 @@ def test_pool_swap__updates_state_with_exact_input_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
+
     (
         liquidity_after,
         sqrt_price_x96_after,
@@ -190,13 +196,16 @@ def test_pool_swap__updates_state_with_exact_output_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
+
     (
         liquidity_after,
         sqrt_price_x96_after,
@@ -266,13 +275,16 @@ def test_pool_swap__updates_state_with_exact_output_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
+
     (
         liquidity_after,
         sqrt_price_x96_after,
@@ -338,13 +350,15 @@ def test_pool_swap__transfers_funds_with_exact_input_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     balance0_sender = token0.balanceOf(sender.address)
     balance1_alice = token1.balanceOf(alice.address)
@@ -402,13 +416,15 @@ def test_pool_swap__transfers_funds_with_exact_input_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     balance1_sender = token1.balanceOf(sender.address)
     balance0_alice = token0.balanceOf(alice.address)
@@ -466,13 +482,15 @@ def test_pool_swap__transfers_funds_with_exact_output_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     balance0_sender = token0.balanceOf(sender.address)
     balance1_alice = token1.balanceOf(alice.address)
@@ -530,13 +548,15 @@ def test_pool_swap__transfers_funds_with_exact_output_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     balance1_sender = token1.balanceOf(sender.address)
     balance0_alice = token0.balanceOf(alice.address)
@@ -594,13 +614,15 @@ def test_pool_swap__calls_swap_callback_with_exact_input_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -648,13 +670,15 @@ def test_pool_swap__calls_swap_callback_with_exact_input_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -702,13 +726,15 @@ def test_pool_swap__calls_swap_callback_with_exact_output_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -756,13 +782,15 @@ def test_pool_swap__calls_swap_callback_with_exact_output_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -810,13 +838,15 @@ def test_pool_swap__emits_swap_with_exact_input_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -869,13 +899,15 @@ def test_pool_swap__emits_swap_with_exact_input_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -928,13 +960,15 @@ def test_pool_swap__emits_swap_with_exact_output_zero_for_one(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    amount0 += fees0
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -987,13 +1021,15 @@ def test_pool_swap__emits_swap_with_exact_output_one_for_zero(
         amount_specified,
     )
 
-    # includes swap fees
     (amount0, amount1) = swap_math_lib.swapAmounts(
         state.liquidity,
         state.sqrtPriceX96,
         sqrt_price_x96_next,
-        fee,
     )
+
+    # include swap fees ignoring protocol fee (== 0)
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    amount1 += fees1
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,

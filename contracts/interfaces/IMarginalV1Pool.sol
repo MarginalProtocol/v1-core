@@ -23,7 +23,8 @@ interface IMarginalV1Pool {
             int24 tick,
             uint32 blockTimestamp,
             int56 tickCumulative,
-            uint112 totalPositions
+            uint104 totalPositions,
+            uint8 feeProtocol
         );
 
     function reservesLocked()

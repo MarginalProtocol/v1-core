@@ -12,6 +12,8 @@ contract MarginalV1Factory is IMarginalV1Factory {
     address public immutable uniswapV3Factory;
     uint16 public immutable observationCardinalityMinimum;
 
+    address public owner;
+
     mapping(address => mapping(address => mapping(uint24 => address)))
         public getPool;
     mapping(uint24 => uint256) public getLeverage;
@@ -23,12 +25,16 @@ contract MarginalV1Factory is IMarginalV1Factory {
         address pool
     );
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
+    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
     constructor(
         address _marginalV1Deployer,
         address _uniswapV3Factory,
         uint16 _observationCardinalityMinimum
     ) {
+        owner = msg.sender;
+        emit OwnerChanged(address(0), msg.sender);
+
         marginalV1Deployer = _marginalV1Deployer;
         uniswapV3Factory = _uniswapV3Factory;
         observationCardinalityMinimum = _observationCardinalityMinimum;
@@ -72,11 +78,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
             token0,
             token1,
             maintenance,
-            1000, // fee: 10 bps across all pools
-            50000, // reward: 5% of size added to min margin reqs
-            oracle,
-            43200, // secondsAgo: 12 hr TWAP for oracle price
-            604800 // fundingPeriod: 7 day
+            oracle
         );
 
         // populate in reverse for key (token0, token1, maintenance)
@@ -84,5 +86,27 @@ contract MarginalV1Factory is IMarginalV1Factory {
         getPool[token1][token0][maintenance] = pool;
 
         emit PoolCreated(token0, token1, maintenance, pool);
+    }
+
+    function setOwner(address _owner) external {
+        require(msg.sender == owner, "not owner");
+        emit OwnerChanged(owner, _owner);
+        owner = _owner;
+    }
+
+    // TODO: test
+    function enableLeverage(uint24 maintenance) external {
+        require(msg.sender == owner, "not owner");
+        require(
+            maintenance >= 100000 && maintenance < 1000000,
+            "maintenance exceeds min/max"
+        );
+        require(getLeverage[maintenance] == 0, "leverage enabled");
+
+        // l = 1 + 1 / (M + reward)
+        uint256 leverage = 1e6 + 1e12 / (uint256(maintenance) + 5e4);
+        getLeverage[maintenance] = leverage;
+
+        emit LeverageEnabled(maintenance, leverage);
     }
 }

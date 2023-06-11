@@ -2,7 +2,13 @@
 pragma solidity 0.8.17;
 
 interface IMarginalV1Factory {
+    function marginalV1Deployer() external view returns (address);
+
     function uniswapV3Factory() external view returns (address);
+
+    function observationCardinalityMinimum() external view returns (uint16);
+
+    function owner() external view returns (address);
 
     function getPool(
         address tokenA,

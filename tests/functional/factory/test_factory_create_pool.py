@@ -140,10 +140,7 @@ def test_create_pool__deletes_params(
     assert params.token0 == ZERO_ADDRESS
     assert params.token1 == ZERO_ADDRESS
     assert params.maintenance == 0
-    assert params.fee == 0
     assert params.oracle == ZERO_ADDRESS
-    assert params.secondsAgo == 0
-    assert params.fundingPeriod == 0
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])

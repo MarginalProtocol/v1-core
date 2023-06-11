@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from math import sqrt
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, FEE
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_swap_amounts
 
 
@@ -23,13 +23,10 @@ def test_swap_math_swap_amounts__with_exact_input_zero_for_one(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
 
-    result = swap_math_lib.swapAmounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
-    )
+    result = swap_math_lib.swapAmounts(liquidity, sqrt_price_x96, sqrt_price_x96_next)
     (amount0_delta, amount1_delta) = calc_swap_amounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
+        liquidity, sqrt_price_x96, sqrt_price_x96_next
     )
-    print("result", result)
     assert pytest.approx(result[0], rel=1e-15) == amount0_delta
     assert pytest.approx(result[1], rel=1e-15) == amount1_delta
 
@@ -49,14 +46,10 @@ def test_swap_math_swap_amounts__with_exact_input_one_for_zero(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
 
-    result = swap_math_lib.swapAmounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
-    )
+    result = swap_math_lib.swapAmounts(liquidity, sqrt_price_x96, sqrt_price_x96_next)
     (amount0_delta, amount1_delta) = calc_swap_amounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
+        liquidity, sqrt_price_x96, sqrt_price_x96_next
     )
-    print("result", result)
-
     assert pytest.approx(result[0], rel=1e-15) == amount0_delta
     assert pytest.approx(result[1], rel=1e-15) == amount1_delta
 
@@ -76,13 +69,10 @@ def test_swap_math_swap_amounts__with_exact_output_zero_for_one(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
 
-    result = swap_math_lib.swapAmounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
-    )
+    result = swap_math_lib.swapAmounts(liquidity, sqrt_price_x96, sqrt_price_x96_next)
     (amount0_delta, amount1_delta) = calc_swap_amounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
+        liquidity, sqrt_price_x96, sqrt_price_x96_next
     )
-    print("result", result)
 
     assert pytest.approx(result[0], rel=1e-15) == amount0_delta
     assert pytest.approx(result[1], rel=1e-15) == amount1_delta
@@ -103,13 +93,10 @@ def test_swap_math_swap_amounts__with_exact_output_one_for_zero(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
 
-    result = swap_math_lib.swapAmounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
-    )
+    result = swap_math_lib.swapAmounts(liquidity, sqrt_price_x96, sqrt_price_x96_next)
     (amount0_delta, amount1_delta) = calc_swap_amounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
+        liquidity, sqrt_price_x96, sqrt_price_x96_next
     )
-    print("result", result)
 
     assert pytest.approx(result[0], rel=1e-15) == amount0_delta
     assert pytest.approx(result[1], rel=1e-15) == amount1_delta
@@ -124,11 +111,9 @@ def test_swap_math_swap_amounts__with_exact_output_one_for_zero(
 def test_swap_math_swap_amounts__with_fuzz(
     swap_math_lib, liquidity, sqrt_price_x96, sqrt_price_x96_next
 ):
-    result = swap_math_lib.swapAmounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
-    )
+    result = swap_math_lib.swapAmounts(liquidity, sqrt_price_x96, sqrt_price_x96_next)
     (amount0_delta, amount1_delta) = calc_swap_amounts(
-        liquidity, sqrt_price_x96, sqrt_price_x96_next, FEE
+        liquidity, sqrt_price_x96, sqrt_price_x96_next
     )
     assert pytest.approx(result[0], rel=1e-15) == amount0_delta
     assert pytest.approx(result[1], rel=1e-15) == amount1_delta

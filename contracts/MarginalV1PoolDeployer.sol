@@ -10,11 +10,7 @@ contract MarginalV1PoolDeployer is IMarginalV1PoolDeployer {
         address token0;
         address token1;
         uint24 maintenance; // precision of 1e6
-        uint24 fee; // precision of 1e6
-        uint24 reward; // precision of 1e6
         address oracle;
-        uint32 secondsAgo;
-        uint32 fundingPeriod;
     }
     Params public params;
 
@@ -22,22 +18,14 @@ contract MarginalV1PoolDeployer is IMarginalV1PoolDeployer {
         address token0,
         address token1,
         uint24 maintenance,
-        uint24 fee,
-        uint24 reward,
-        address oracle,
-        uint32 secondsAgo,
-        uint32 fundingPeriod
+        address oracle
     ) external returns (address pool) {
         params = Params({
             factory: msg.sender,
             token0: token0,
             token1: token1,
             maintenance: maintenance,
-            fee: fee,
-            reward: reward,
-            oracle: oracle,
-            secondsAgo: secondsAgo,
-            fundingPeriod: fundingPeriod
+            oracle: oracle
         });
         pool = address(
             new MarginalV1Pool{

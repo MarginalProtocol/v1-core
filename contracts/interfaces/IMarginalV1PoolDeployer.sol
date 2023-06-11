@@ -10,21 +10,13 @@ interface IMarginalV1PoolDeployer {
             address token0,
             address token1,
             uint24 maintenance,
-            uint24 fee,
-            uint24 reward,
-            address oracle,
-            uint32 secondsAgo,
-            uint32 fundingPeriod
+            address oracle
         );
 
     function deploy(
         address token0,
         address token1,
         uint24 maintenance,
-        uint24 fee,
-        uint24 reward,
-        address oracle,
-        uint32 secondsAgo,
-        uint32 fundingPeriod
+        address oracle
     ) external returns (address pool);
 }

@@ -129,21 +129,17 @@ def calc_liquidity_sqrt_price_x96_from_reserves(
 
 
 def calc_swap_amounts(
-    liquidity: int, sqrt_price_x96: int, sqrt_price_x96_next: int, fee: int
+    liquidity: int, sqrt_price_x96: int, sqrt_price_x96_next: int
 ) -> (int, int):
-    zero_for_one = sqrt_price_x96_next < sqrt_price_x96
-
     amount0 = (liquidity << 96) // sqrt_price_x96_next - (
         liquidity << 96
     ) // sqrt_price_x96
     amount1 = (liquidity * (sqrt_price_x96_next - sqrt_price_x96)) // (1 << 96)
-
-    if zero_for_one:
-        amount0 += amount0 * fee // FEE_UNIT
-    else:
-        amount1 += amount1 * fee // FEE_UNIT
-
     return (amount0, amount1)
+
+
+def calc_swap_fees(amount_in: int, fee: int) -> int:
+    return (amount_in * fee) // FEE_UNIT
 
 
 def calc_debts_after_funding(

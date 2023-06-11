@@ -22,6 +22,7 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 import {IMarginalV1SettleCallback} from "./interfaces/callback/IMarginalV1SettleCallback.sol";
 import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
+import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
@@ -35,13 +36,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     address public immutable token0;
     address public immutable token1;
-
-    uint24 public immutable fee;
     uint24 public immutable maintenance;
-    uint24 public immutable reward;
 
-    uint32 public immutable secondsAgo;
-    uint32 public immutable fundingPeriod;
+    uint24 public constant fee = 1000; // 10 bps across all pools
+    uint24 public constant reward = 50000; // 5% of size added to min margin reqs
+
+    uint32 public constant secondsAgo = 43200; // 12 hr TWAP for oracle price
+    uint32 public constant fundingPeriod = 604800; // 7 day funding period
 
     // @dev Pool state represented in (L, sqrtP) space
     struct State {
@@ -50,7 +51,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         int24 tick;
         uint32 blockTimestamp;
         int56 tickCumulative;
-        uint112 totalPositions; // > ~ 1e25 years at max per block to fill on mainnet
+        uint104 totalPositions; // > ~ 5e22 years at max per block to fill on mainnet
+        uint8 feeProtocol;
     }
     State public state;
 
@@ -60,6 +62,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     }
     ReservesLocked public reservesLocked;
 
+    struct ProtocolFees {
+        uint128 token0;
+        uint128 token1;
+    }
+    ProtocolFees public protocolFees;
+
     mapping(bytes32 => Position.Info) public positions;
 
     uint256 private unlocked = 1; // uses OZ convention of 1 for false and 2 for true
@@ -68,6 +76,14 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         unlocked = 1;
         _;
         unlocked = 2;
+    }
+
+    modifier onlyFactoryOwner() {
+        require(
+            msg.sender == IMarginalV1Factory(factory).owner(),
+            "not factory owner"
+        );
+        _;
     }
 
     event Initialize(uint160 sqrtPriceX96, int24 tick);
@@ -126,6 +142,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint256 amount0,
         uint256 amount1
     );
+    event SetFeeProtocol(uint8 oldFeeProtocol, uint8 newFeeProtocol);
+    event CollectProtocol(
+        address sender,
+        address indexed recipient,
+        uint128 amount0,
+        uint128 amount1
+    );
 
     constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
         (
@@ -133,11 +156,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             token0,
             token1,
             maintenance,
-            fee,
-            reward,
-            oracle,
-            secondsAgo,
-            fundingPeriod
+            oracle
         ) = IMarginalV1PoolDeployer(msg.sender).params();
     }
 
@@ -150,7 +169,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             tick: tick,
             blockTimestamp: _blockTimestamp(),
             tickCumulative: 0,
-            totalPositions: 0
+            totalPositions: 0,
+            feeProtocol: 0
         });
         unlocked = 2;
         emit Initialize(_sqrtPriceX96, tick);
@@ -268,6 +288,14 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin;
             position.rewards = uint128(rewards0);
 
+            // account for protocol fees if fee on
+            // TODO: test
+            if (_state.feeProtocol > 0) {
+                uint256 delta = fees0 / _state.feeProtocol;
+                fees0 -= delta;
+                protocolFees.token0 += uint128(delta); // TODO: unsafe cast ok?
+            }
+
             // fees added to available liquidity
             (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
                 .liquiditySqrtPriceX96Next(
@@ -298,6 +326,14 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             position.margin = margin;
             position.rewards = uint128(rewards1);
+
+            // account for protocol fees if fee on
+            // TODO: test
+            if (_state.feeProtocol > 0) {
+                uint256 delta = fees1 / _state.feeProtocol;
+                fees1 -= delta;
+                protocolFees.token1 += uint128(delta); // TODO: unsafe cast ok?
+            }
 
             // fees added to available liquidity
             (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
@@ -627,24 +663,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             "sqrtPriceX96Next exceeds sqrtPriceLimitX96"
         );
 
+        // amounts without fees
         (amount0, amount1) = SwapMath.swapAmounts(
             _state.liquidity,
             _state.sqrtPriceX96,
-            sqrtPriceX96Next,
-            fee
+            sqrtPriceX96Next
         );
-
-        // update state liquidity, sqrt price accounting for fee growth
-        (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
-            .liquiditySqrtPriceX96Next(
-                _state.liquidity,
-                _state.sqrtPriceX96,
-                amount0,
-                amount1
-            );
-        _state.liquidity = liquidityAfter;
-        _state.sqrtPriceX96 = sqrtPriceX96After;
-        _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
 
         // optimistic amount out with callback for amount in
         if (!zeroForOne) {
@@ -654,6 +678,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     recipient,
                     uint256(-amount0)
                 );
+
+            uint256 fees1 = SwapMath.swapFees(uint256(amount1), fee);
+            amount1 += int256(fees1);
 
             uint256 balance1Before = balance1();
             IMarginalV1SwapCallback(msg.sender).marginalV1SwapCallback(
@@ -665,6 +692,26 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 balance1Before + uint256(amount1) <= balance1(),
                 "amount1 < min"
             );
+
+            // account for protocol fees if fee on
+            // TODO: test
+            if (_state.feeProtocol > 0) {
+                uint256 delta = fees1 / _state.feeProtocol;
+                amount1 -= int256(delta);
+                protocolFees.token1 += uint128(delta); // TODO: unsafe cast ok?
+            }
+
+            // update state liquidity, sqrt price accounting for fee growth
+            (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
+                .liquiditySqrtPriceX96Next(
+                    _state.liquidity,
+                    _state.sqrtPriceX96,
+                    amount0,
+                    amount1
+                );
+            _state.liquidity = liquidityAfter;
+            _state.sqrtPriceX96 = sqrtPriceX96After;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         } else {
             if (amount1 < 0)
                 TransferHelper.safeTransfer(
@@ -672,6 +719,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     recipient,
                     uint256(-amount1)
                 );
+
+            uint256 fees0 = SwapMath.swapFees(uint256(amount0), fee);
+            amount0 += int256(fees0);
 
             uint256 balance0Before = balance0();
             IMarginalV1SwapCallback(msg.sender).marginalV1SwapCallback(
@@ -683,6 +733,26 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 balance0Before + uint256(amount0) <= balance0(),
                 "amount0 < min"
             );
+
+            // account for protocol fees if fee on
+            // TODO: test
+            if (_state.feeProtocol > 0) {
+                uint256 delta = fees0 / _state.feeProtocol;
+                amount0 -= int256(delta);
+                protocolFees.token0 += uint128(delta); // TODO: unsafe cast ok?
+            }
+
+            // update state liquidity, sqrt price accounting for fee growth
+            (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
+                .liquiditySqrtPriceX96Next(
+                    _state.liquidity,
+                    _state.sqrtPriceX96,
+                    amount0,
+                    amount1
+                );
+            _state.liquidity = liquidityAfter;
+            _state.sqrtPriceX96 = sqrtPriceX96After;
+            _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         }
 
         // update pool state to latest
@@ -793,5 +863,41 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         _burn(msg.sender, shares);
 
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
+    }
+
+    function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
+        require(
+            feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10),
+            "protocolFees exceed min/max"
+        );
+        emit SetFeeProtocol(state.feeProtocol, feeProtocol);
+        state.feeProtocol = feeProtocol;
+    }
+
+    function collectProtocol(
+        address recipient
+    )
+        external
+        lock
+        onlyFactoryOwner
+        returns (uint128 amount0, uint128 amount1)
+    {
+        require(
+            protocolFees.token0 > 0 && protocolFees.token1 > 0,
+            "protocolFees < min"
+        );
+        amount0 = protocolFees.token0 - 1; // ensure slot not cleared for gas savings
+        amount1 = protocolFees.token1 - 1;
+
+        if (amount0 > 0) {
+            protocolFees.token0 -= amount0;
+            TransferHelper.safeTransfer(token0, recipient, amount0);
+        }
+        if (amount1 > 0) {
+            protocolFees.token1 -= amount1;
+            TransferHelper.safeTransfer(token1, recipient, amount1);
+        }
+
+        emit CollectProtocol(msg.sender, recipient, amount0, amount1);
     }
 }

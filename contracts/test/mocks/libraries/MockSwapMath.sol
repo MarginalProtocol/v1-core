@@ -7,15 +7,15 @@ contract MockSwapMath {
     function swapAmounts(
         uint128 liquidity,
         uint160 sqrtPriceX96,
-        uint160 sqrtPriceX96Next,
-        uint24 fee
+        uint160 sqrtPriceX96Next
     ) external pure returns (int256 amount0Delta, int256 amount1Delta) {
-        return
-            SwapMath.swapAmounts(
-                liquidity,
-                sqrtPriceX96,
-                sqrtPriceX96Next,
-                fee
-            );
+        return SwapMath.swapAmounts(liquidity, sqrtPriceX96, sqrtPriceX96Next);
+    }
+
+    function swapFees(
+        uint256 amountIn,
+        uint24 fee
+    ) external pure returns (uint256) {
+        return SwapMath.swapFees(amountIn, fee);
     }
 }

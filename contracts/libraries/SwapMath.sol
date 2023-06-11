@@ -6,13 +6,13 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
 
 library SwapMath {
-    /// @notice Computes amounts in and out on swap
+    /// @notice Computes amounts in and out on swap without fees
     /// @dev amount > 0 is amountIn, amount < 0 is amountOut
+    // TODO: retest without fees
     function swapAmounts(
         uint128 liquidity,
         uint160 sqrtPriceX96,
-        uint160 sqrtPriceX96Next,
-        uint24 fee
+        uint160 sqrtPriceX96Next
     ) internal pure returns (int256 amount0Delta, int256 amount1Delta) {
         // del x = L * del (1 / sqrt(P)); del y = L * del sqrt(P)
         bool zeroForOne = sqrtPriceX96Next < sqrtPriceX96;
@@ -39,12 +39,13 @@ library SwapMath {
                     FixedPoint96.Q96
                 )
             );
+    }
 
-        // fees on amount in
-        if (!zeroForOne) {
-            amount1Delta += int256((uint256(amount1Delta) * fee) / 1e6);
-        } else {
-            amount0Delta += int256((uint256(amount0Delta) * fee) / 1e6);
-        }
+    // TODO: test
+    function swapFees(
+        uint256 amountIn,
+        uint24 fee
+    ) internal pure returns (uint256) {
+        return (uint256(amountIn) * fee) / 1e6;
     }
 }
