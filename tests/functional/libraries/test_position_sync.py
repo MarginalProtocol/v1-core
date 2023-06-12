@@ -118,3 +118,91 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
     position.oracleTickCumulativeStart = oracle_tick_cumulative_last
 
     assert result == position
+
+
+def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
+    position_lib, rando_univ3_observations
+):
+    x = int(125.04e12)  # e.g. USDC reserves
+    y = int(71.70e21)  # e.g. WETH reserves
+    liquidity = int(sqrt(x * y))
+
+    price = y / x
+    sqrt_price = int(sqrt(price))
+    sqrt_price_x96 = sqrt_price << 96
+    maintenance = 250000
+
+    liquidity_delta = liquidity * 5 // 100
+    zero_for_one = True
+    tick_cumulative_start = rando_univ3_observations[0][1]
+    oracle_tick_cumulative_start = rando_univ3_observations[0][1]
+
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    position = position_lib.assemble(
+        liquidity,
+        sqrt_price_x96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        tick_cumulative_start,
+        oracle_tick_cumulative_start,
+    )
+    position.margin = position_lib.marginMinimum(position, maintenance)
+    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    assert (
+        position_lib.sync(
+            position,
+            tick_cumulative_start,
+            oracle_tick_cumulative_start,
+            FUNDING_PERIOD,
+        )
+        == position
+    )
+
+
+def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
+    position_lib, rando_univ3_observations
+):
+    x = int(125.04e12)  # e.g. USDC reserves
+    y = int(71.70e21)  # e.g. WETH reserves
+    liquidity = int(sqrt(x * y))
+
+    price = y / x
+    sqrt_price = int(sqrt(price))
+    sqrt_price_x96 = sqrt_price << 96
+    maintenance = 250000
+
+    liquidity_delta = liquidity * 5 // 100
+    zero_for_one = False
+    tick_cumulative_start = rando_univ3_observations[0][1]
+    oracle_tick_cumulative_start = rando_univ3_observations[0][1]
+
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    position = position_lib.assemble(
+        liquidity,
+        sqrt_price_x96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        tick_cumulative_start,
+        oracle_tick_cumulative_start,
+    )
+    position.margin = position_lib.marginMinimum(position, maintenance)
+    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    assert (
+        position_lib.sync(
+            position,
+            tick_cumulative_start,
+            oracle_tick_cumulative_start,
+            FUNDING_PERIOD,
+        )
+        == position
+    )
