@@ -8,7 +8,6 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 library SwapMath {
     /// @notice Computes amounts in and out on swap without fees
     /// @dev amount > 0 is amountIn, amount < 0 is amountOut
-    // TODO: retest without fees
     function swapAmounts(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -41,7 +40,7 @@ library SwapMath {
             );
     }
 
-    // TODO: test
+    /// @notice Computes swap fee on amount in
     function swapFees(
         uint256 amountIn,
         uint24 fee
