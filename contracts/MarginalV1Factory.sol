@@ -94,7 +94,6 @@ contract MarginalV1Factory is IMarginalV1Factory {
         owner = _owner;
     }
 
-    // TODO: test
     function enableLeverage(uint24 maintenance) external {
         require(msg.sender == owner, "not owner");
         require(
