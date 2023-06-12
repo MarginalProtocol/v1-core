@@ -247,7 +247,7 @@ library Position {
             return
                 prod > uint256(position.size)
                     ? (prod - uint256(position.size)).toUint128()
-                    : 0;
+                    : 0; // TODO: is this check necessary?
         } else {
             // cy >= (1+M) * dx * P - sy; P = iy / ix
             uint256 debt0Adjusted = (uint256(position.debt0) *
@@ -260,7 +260,7 @@ library Position {
             return
                 prod > uint256(position.size)
                     ? (prod - uint256(position.size)).toUint128()
-                    : 0;
+                    : 0; // TODO: is this check necessary?
         }
     }
 

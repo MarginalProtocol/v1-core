@@ -293,7 +293,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees0 / _state.feeProtocol;
                 fees0 -= delta;
-                protocolFees.token0 += uint128(delta); // TODO: unsafe cast ok?
+                protocolFees.token0 += uint128(delta);
             }
 
             // fees added to available liquidity
@@ -332,7 +332,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees1 / _state.feeProtocol;
                 fees1 -= delta;
-                protocolFees.token1 += uint128(delta); // TODO: unsafe cast ok?
+                protocolFees.token1 += uint128(delta);
             }
 
             // fees added to available liquidity
@@ -698,7 +698,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees1 / _state.feeProtocol;
                 amount1 -= int256(delta);
-                protocolFees.token1 += uint128(delta); // TODO: unsafe cast ok?
+                protocolFees.token1 += uint128(delta);
             }
 
             // update state liquidity, sqrt price accounting for fee growth
@@ -739,7 +739,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees0 / _state.feeProtocol;
                 amount0 -= int256(delta);
-                protocolFees.token0 += uint128(delta); // TODO: unsafe cast ok?
+                protocolFees.token0 += uint128(delta);
             }
 
             // update state liquidity, sqrt price accounting for fee growth
