@@ -289,7 +289,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.rewards = uint128(rewards0);
 
             // account for protocol fees if fee on
-            // TODO: test
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees0 / _state.feeProtocol;
                 fees0 -= delta;
@@ -328,7 +327,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.rewards = uint128(rewards1);
 
             // account for protocol fees if fee on
-            // TODO: test
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees1 / _state.feeProtocol;
                 fees1 -= delta;

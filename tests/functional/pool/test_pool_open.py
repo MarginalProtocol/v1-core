@@ -611,6 +611,211 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     assert amount1 == 0
 
 
+def test_pool_open__adds_protocol_fees_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    admin,
+    token0,
+    token1,
+    chain,
+):
+    pool_initialized_with_liquidity.setFeeProtocol(10, sender=admin)
+
+    state = pool_initialized_with_liquidity.state()
+    protocol_fees = pool_initialized_with_liquidity.protocolFees()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+
+    # factor in fees on size to available liquidity, sqrtP update
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees1 = position_lib.fees(position.size, fee)
+    # factor in protocol fees
+    delta = fees1 // state.feeProtocol
+    fees1 -= delta
+    protocol_fees.token1 += delta
+
+    state.liquidity -= liquidity_delta
+    state.sqrtPriceX96 = sqrt_price_x96_next
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    # @dev sqrt in OZ solidity results in slight diff with python math.sqrt
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(reserve0, reserve1 + fees1)
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    state.tickCumulative = tick_cumulative
+    state.blockTimestamp = block_timestamp_next
+    state.totalPositions += 1
+
+    result = pool_initialized_with_liquidity.state()
+    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert result.tick == state.tick
+    assert result.blockTimestamp == state.blockTimestamp
+    assert result.tickCumulative == state.tickCumulative
+    assert result.totalPositions == state.totalPositions
+
+    assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+
+def test_pool_open__adds_protocol_fees_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    admin,
+    token0,
+    token1,
+    chain,
+):
+    pool_initialized_with_liquidity.setFeeProtocol(10, sender=admin)
+
+    state = pool_initialized_with_liquidity.state()
+    protocol_fees = pool_initialized_with_liquidity.protocolFees()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity = state.liquidity
+    liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    callee.open(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+
+    # factor in fees on size to available liquidity, sqrtP update
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    fees0 = position_lib.fees(position.size, fee)
+    # factor in protocol fees
+    delta = fees0 // state.feeProtocol
+    fees0 -= delta
+    protocol_fees.token0 += delta
+
+    state.liquidity -= liquidity_delta
+    state.sqrtPriceX96 = sqrt_price_x96_next
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    # @dev sqrt in OZ solidity results in slight diff with python math.sqrt
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(reserve0 + fees0, reserve1)
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    state.tickCumulative = tick_cumulative
+    state.blockTimestamp = block_timestamp_next
+    state.totalPositions += 1
+
+    result = pool_initialized_with_liquidity.state()
+
+    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert result.tick == state.tick
+    assert result.blockTimestamp == state.blockTimestamp
+    assert result.tickCumulative == state.tickCumulative
+    assert result.totalPositions == state.totalPositions
+
+    assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+
 def test_pool_open__calls_open_callback_with_zero_for_one(
     pool_initialized_with_liquidity,
     position_lib,

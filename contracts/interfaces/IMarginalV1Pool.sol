@@ -32,6 +32,11 @@ interface IMarginalV1Pool {
         view
         returns (uint128 reserves0Locked, uint128 reserves1Locked);
 
+    function protocolFees()
+        external
+        view
+        returns (uint128 protocolFees0, uint128 protocolFees1);
+
     function positions(
         bytes32 key
     )
