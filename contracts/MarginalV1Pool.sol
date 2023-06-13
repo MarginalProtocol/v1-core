@@ -692,7 +692,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
 
             // account for protocol fees if fee on
-            // TODO: test
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees1 / _state.feeProtocol;
                 amount1 -= int256(delta);
@@ -733,7 +732,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
 
             // account for protocol fees if fee on
-            // TODO: test
             if (_state.feeProtocol > 0) {
                 uint256 delta = fees0 / _state.feeProtocol;
                 amount0 -= int256(delta);
@@ -863,6 +861,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }
 
+    // TODO: test
     function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
         require(
             feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10),
@@ -872,6 +871,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         state.feeProtocol = feeProtocol;
     }
 
+    // TODO: test
     function collectProtocol(
         address recipient
     )

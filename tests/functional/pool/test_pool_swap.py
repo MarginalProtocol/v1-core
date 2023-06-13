@@ -586,6 +586,180 @@ def test_pool_swap__transfers_funds_with_exact_output_one_for_zero(
     assert token0.balanceOf(alice.address) == balance0_alice - amount0
 
 
+def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    sqrt_price_math_lib,
+    swap_math_lib,
+    liquidity_math_lib,
+    position_lib,
+    sender,
+    alice,
+    admin,
+    token0,
+    token1,
+    chain,
+):
+    pool_initialized_with_liquidity.setFeeProtocol(10, sender=admin)
+
+    state = pool_initialized_with_liquidity.state()
+    fee = pool_initialized_with_liquidity.fee()
+    protocol_fees = pool_initialized_with_liquidity.protocolFees()
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    amount_specified = 1 * reserve0 // 100  # 1 % of reserves in
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
+        state.liquidity,
+        state.sqrtPriceX96,
+        zero_for_one,
+        amount_specified,
+    )
+
+    (amount0, amount1) = swap_math_lib.swapAmounts(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+    )
+
+    # include swap fees with protocol fee
+    fees0 = swap_math_lib.swapFees(amount0, fee)
+    delta = fees0 // state.feeProtocol
+    fees0 -= delta
+
+    amount0 += fees0
+    protocol_fees.token0 += delta
+
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = liquidity_math_lib.liquiditySqrtPriceX96Next(
+        state.liquidity,
+        state.sqrtPriceX96,
+        amount0,
+        amount1,
+    )
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+
+    # update the oracle
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
+    state.blockTimestamp = block_timestamp_next
+    state.tickCumulative = tick_cumulative
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    callee.swap(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        amount_specified,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+
+    assert pool_initialized_with_liquidity.state() == state
+    assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+
+def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    sqrt_price_math_lib,
+    swap_math_lib,
+    liquidity_math_lib,
+    position_lib,
+    sender,
+    alice,
+    admin,
+    token0,
+    token1,
+    chain,
+):
+    pool_initialized_with_liquidity.setFeeProtocol(10, sender=admin)
+
+    state = pool_initialized_with_liquidity.state()
+    fee = pool_initialized_with_liquidity.fee()
+    protocol_fees = pool_initialized_with_liquidity.protocolFees()
+
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    amount_specified = 1 * reserve1 // 100  # 1 % of reserves in
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
+        state.liquidity,
+        state.sqrtPriceX96,
+        zero_for_one,
+        amount_specified,
+    )
+
+    (amount0, amount1) = swap_math_lib.swapAmounts(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+    )
+
+    # include swap fees with protocol fee
+    fees1 = swap_math_lib.swapFees(amount1, fee)
+    delta = fees1 // state.feeProtocol
+    fees1 -= delta
+
+    amount1 += fees1
+    protocol_fees.token1 += delta
+
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = liquidity_math_lib.liquiditySqrtPriceX96Next(
+        state.liquidity,
+        state.sqrtPriceX96,
+        amount0,
+        amount1,
+    )
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+
+    # update the oracle
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
+    state.blockTimestamp = block_timestamp_next
+    state.tickCumulative = tick_cumulative
+
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    callee.swap(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        amount_specified,
+        sqrt_price_limit_x96,
+        sender=sender,
+    )
+
+    assert pool_initialized_with_liquidity.state() == state
+    assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+
 def test_pool_swap__calls_swap_callback_with_exact_input_zero_for_one(
     pool_initialized_with_liquidity,
     callee,
