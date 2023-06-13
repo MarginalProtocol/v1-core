@@ -870,7 +870,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         state.feeProtocol = feeProtocol;
     }
 
-    // TODO: test
     function collectProtocol(
         address recipient
     )
