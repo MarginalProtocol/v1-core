@@ -861,7 +861,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }
 
-    // TODO: test
     function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
         require(
             feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10),
