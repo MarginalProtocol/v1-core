@@ -60,6 +60,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
         require(token0 != address(0), "token0 == address(0)");
         require(getLeverage[maintenance] > 0, "leverage not enabled");
 
+        // TODO: generalize to support uni v4 hooks and uni v3 pools?
         address oracle = IUniswapV3Factory(uniswapV3Factory).getPool(
             token0,
             token1,

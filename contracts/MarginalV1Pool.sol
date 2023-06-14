@@ -188,6 +188,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         return IERC20(token1).balanceOf(address(this));
     }
 
+    // TODO: support uni v4 hooks?
     function oracleTickCumulatives(
         uint32[] memory secondsAgos
     ) private view returns (int56[] memory) {
