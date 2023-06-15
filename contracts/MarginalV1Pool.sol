@@ -367,7 +367,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function adjust(
         address recipient,
         uint104 id,
-        int256 marginDelta,
+        int128 marginDelta,
         bytes calldata data
     ) external lock returns (uint256 margin0, uint256 margin1) {
         State memory _state = stateSynced();
@@ -387,13 +387,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         require(
             marginDelta > 0 ||
                 uint256(position.margin) >=
-                uint256(-marginDelta) + uint256(marginMinimum),
+                uint256(uint128(-marginDelta)) + uint256(marginMinimum),
             "margin < min"
         );
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
-            margin0 = uint256(int256(uint256(position.margin)) + marginDelta);
+            margin0 = uint256(
+                int256(uint256(position.margin)) + int256(marginDelta)
+            );
             TransferHelper.safeTransfer(token0, recipient, position.margin);
 
             uint256 balance0Before = balance0();
@@ -403,9 +405,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 data
             );
             require(balance0Before + margin0 <= balance0(), "amount0 < min");
-            position.margin = margin0.toUint128(); // safecast to avoid issues on liquidation
+            position.margin = margin0.toUint128();
         } else {
-            margin1 = uint256(int256(uint256(position.margin)) + marginDelta);
+            margin1 = uint256(
+                int256(uint256(position.margin)) + int256(marginDelta)
+            );
             TransferHelper.safeTransfer(token1, recipient, position.margin);
 
             uint256 balance1Before = balance1();
@@ -415,7 +419,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 data
             );
             require(balance1Before + margin1 <= balance1(), "amount1 < min");
-            position.margin = margin1.toUint128(); // safecast to avoid issues on liquidation
+            position.margin = margin1.toUint128();
         }
 
         positions.set(msg.sender, id, position);

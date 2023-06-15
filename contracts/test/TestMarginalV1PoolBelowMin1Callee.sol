@@ -127,7 +127,7 @@ contract TestMarginalV1PoolBelowMin1Callee is
         address pool,
         address recipient,
         uint104 id,
-        int256 marginDelta
+        int128 marginDelta
     ) external returns (uint256 margin0, uint256 margin1) {
         return
             IMarginalV1Pool(pool).adjust(
