@@ -11,14 +11,14 @@ contract MockPosition {
 
     function get(
         address owner,
-        uint112 id
+        uint104 id
     ) external view returns (Position.Info memory) {
         return positions.get(owner, id);
     }
 
     function set(
         address owner,
-        uint112 id,
+        uint104 id,
         Position.Info memory position
     ) external {
         positions.set(owner, id, position);

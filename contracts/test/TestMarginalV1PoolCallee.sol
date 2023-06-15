@@ -126,7 +126,7 @@ contract TestMarginalV1PoolCallee is
     function adjust(
         address pool,
         address recipient,
-        uint112 id,
+        uint104 id,
         int256 marginDelta
     ) external returns (uint256 margin0, uint256 margin1) {
         return
@@ -164,7 +164,7 @@ contract TestMarginalV1PoolCallee is
     function settle(
         address pool,
         address recipient,
-        uint112 id
+        uint104 id
     ) external returns (int256 amount0, int256 amount1) {
         return
             IMarginalV1Pool(pool).settle(recipient, id, abi.encode(msg.sender));

@@ -366,7 +366,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     function adjust(
         address recipient,
-        uint112 id,
+        uint104 id,
         int256 marginDelta,
         bytes calldata data
     ) external lock returns (uint256 margin0, uint256 margin1) {
@@ -428,7 +428,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     function settle(
         address recipient,
-        uint112 id,
+        uint104 id,
         bytes calldata data
     ) external lock returns (int256 amount0, int256 amount1) {
         State memory _state = stateSynced();
@@ -544,7 +544,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function liquidate(
         address recipient,
         address owner,
-        uint112 id
+        uint104 id
     ) external lock returns (uint256 rewards0, uint256 rewards1) {
         State memory _state = stateSynced();
         Position.Info memory position = positions.get(owner, id);

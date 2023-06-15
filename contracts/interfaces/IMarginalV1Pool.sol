@@ -69,21 +69,21 @@ interface IMarginalV1Pool {
 
     function adjust(
         address recipient,
-        uint112 id,
+        uint104 id,
         int256 marginDelta,
         bytes calldata data
     ) external returns (uint256 margin0, uint256 margin1);
 
     function settle(
         address recipient,
-        uint112 id,
+        uint104 id,
         bytes calldata data
     ) external returns (int256 amount0, int256 amount1);
 
     function liquidate(
         address recipient,
         address owner,
-        uint112 id
+        uint104 id
     ) external returns (uint256 reward0, uint256 reward1);
 
     function swap(
