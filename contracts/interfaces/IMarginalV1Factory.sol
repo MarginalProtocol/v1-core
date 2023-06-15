@@ -24,4 +24,8 @@ interface IMarginalV1Factory {
         uint24 maintenance,
         uint24 uniswapV3Fee
     ) external returns (address pool);
+
+    function setOwner(address _owner) external;
+
+    function enableLeverage(uint24 maintenance) external;
 }

@@ -10,9 +10,15 @@ interface IMarginalV1Pool {
 
     function token1() external view returns (address);
 
+    function maintenance() external view returns (uint24);
+
     function fee() external view returns (uint24);
 
-    function maintenance() external view returns (uint24);
+    function reward() external view returns (uint24);
+
+    function secondsAgo() external view returns (uint32);
+
+    function fundingPeriod() external view returns (uint32);
 
     function state()
         external
@@ -104,4 +110,10 @@ interface IMarginalV1Pool {
         address recipient,
         uint256 shares
     ) external returns (uint256 amount0, uint256 amount1);
+
+    function setFeeProtocol(uint8 feeProtocol) external;
+
+    function collectProtocol(
+        address recipient
+    ) external returns (uint128 amount0, uint128 amount1);
 }
