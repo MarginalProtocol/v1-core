@@ -227,7 +227,6 @@ library Position {
     }
 
     /// @notice Absolute minimum margin requirement
-    // TODO: retest
     function marginMinimum(
         Info memory position,
         uint24 maintenance
@@ -240,7 +239,6 @@ library Position {
             uint256 debt1Adjusted = (uint256(position.debt1) *
                 (1e6 + maintenance)) / 1e6;
 
-            // TODO: test both cases
             uint256 prod = sqrtPriceX96 <= type(uint128).max
                 ? Math.mulDiv(
                     debt1Adjusted,
@@ -261,7 +259,6 @@ library Position {
             uint256 debt0Adjusted = (uint256(position.debt0) *
                 (1e6 + maintenance)) / 1e6;
 
-            // TODO: test both cases
             uint256 prod = sqrtPriceX96 <= type(uint128).max
                 ? Math.mulDiv(
                     debt0Adjusted,
@@ -294,7 +291,6 @@ library Position {
     }
 
     /// @notice Debt adjusted for funding
-    // TODO: retest
     function debtsAfterFunding(
         Info memory position,
         int56 tickCumulativeLast,
