@@ -25,23 +25,23 @@ def test_enable_leverage__emits_leverage_enabled(factory, admin):
 
 def test_enable_leverage__reverts_when_not_owner(factory, alice):
     maintenance = 200000
-    with reverts("not owner"):
+    with reverts(factory.Unauthorized):
         factory.enableLeverage(maintenance, sender=alice)
 
 
 def test_enable_leverage__reverts_when_maintenance_greater_than_max(factory, admin):
     maintenance = 1000001
-    with reverts("maintenance exceeds min/max"):
+    with reverts(factory.InvalidMaintenance):
         factory.enableLeverage(maintenance, sender=admin)
 
 
 def test_enable_leverage__reverts_when_maintenance_less_than_min(factory, admin):
     maintenance = 100000 - 1
-    with reverts("maintenance exceeds min/max"):
+    with reverts(factory.InvalidMaintenance):
         factory.enableLeverage(maintenance, sender=admin)
 
 
 def test_enable_leverage__reverts_when_leverage_enabled(factory, admin):
     maintenance = 250000
-    with reverts("leverage enabled"):
+    with reverts(factory.LeverageActive):
         factory.enableLeverage(maintenance, sender=admin)

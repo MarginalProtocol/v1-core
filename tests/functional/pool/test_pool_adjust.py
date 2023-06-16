@@ -156,6 +156,7 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -171,10 +172,11 @@ def test_pool_adjust__sets_position_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -193,6 +195,7 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -208,10 +211,11 @@ def test_pool_adjust__sets_position_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -522,7 +526,7 @@ def test_pool_adjust__reverts_when_not_position_id(
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
 
-    with reverts("not position"):
+    with reverts(pool_initialized_with_liquidity.InvalidPosition):
         callee.adjust(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -545,7 +549,7 @@ def test_pool_adjust__reverts_when_margin_out_greater_than_position_margin(
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
 
-    with reverts("margin < min"):
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
         callee.adjust(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -599,7 +603,7 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
     position = pool_initialized_with_liquidity.positions(key)
 
     margin_delta = position.margin
-    with reverts("amount1 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.adjust(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -653,7 +657,7 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
     position = pool_initialized_with_liquidity.positions(key)
 
     margin_delta = position.margin
-    with reverts("amount0 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.adjust(
             pool_initialized_with_liquidity.address,
             alice.address,

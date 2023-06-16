@@ -1,5 +1,5 @@
 def test_position_settle(position_lib):
-    position = (1000000, 100, 200, 50, 60, True, False, 10000, -100, 200000, 50000)
+    position = (1000000, 100, 200, 50, 60, True, False, 100, -100, 200000, 50000)
     result = position_lib.settle(position)
 
     position_after = (

@@ -12,6 +12,7 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     maintenance = 250000
     factor = 1.1
@@ -32,6 +33,7 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -56,8 +58,7 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
     )
     position.debt0 = debt0
     position.debt1 = debt1
-    position.tickCumulativeStart = tick_cumulative_last
-    position.oracleTickCumulativeStart = oracle_tick_cumulative_last
+    position.tickCumulativeDelta = oracle_tick_cumulative_last - tick_cumulative_last
 
     assert result == position
 
@@ -70,6 +71,7 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     maintenance = 250000
     factor = 0.9
@@ -90,6 +92,7 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -114,8 +117,7 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
     )
     position.debt0 = debt0
     position.debt1 = debt1
-    position.tickCumulativeStart = tick_cumulative_last
-    position.oracleTickCumulativeStart = oracle_tick_cumulative_last
+    position.tickCumulativeDelta = oracle_tick_cumulative_last - tick_cumulative_last
 
     assert result == position
 
@@ -130,6 +132,7 @@ def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     maintenance = 250000
 
     liquidity_delta = liquidity * 5 // 100
@@ -147,6 +150,7 @@ def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -174,6 +178,7 @@ def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     maintenance = 250000
 
     liquidity_delta = liquidity * 5 // 100
@@ -191,6 +196,7 @@ def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )

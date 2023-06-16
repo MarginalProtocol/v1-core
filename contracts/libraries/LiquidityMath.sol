@@ -34,11 +34,10 @@ library LiquidityMath {
 
         uint256 _sqrtPriceX96 = (uint256(liquidity) <<
             FixedPoint96.RESOLUTION) / reserve0;
-        require(
-            _sqrtPriceX96 >= SqrtPriceMath.MIN_SQRT_RATIO &&
-                _sqrtPriceX96 < SqrtPriceMath.MAX_SQRT_RATIO,
-            "sqrtPriceX96 exceeds min/max"
-        );
+        if (
+            !(_sqrtPriceX96 >= SqrtPriceMath.MIN_SQRT_RATIO &&
+                _sqrtPriceX96 < SqrtPriceMath.MAX_SQRT_RATIO)
+        ) revert SqrtPriceMath.InvalidSqrtPriceX96();
         sqrtPriceX96 = uint160(_sqrtPriceX96);
     }
 
@@ -56,8 +55,8 @@ library LiquidityMath {
 
         int256 reserve0Next = int256(uint256(reserve0)) + amount0;
         int256 reserve1Next = int256(uint256(reserve1)) + amount1;
-        require(reserve0Next > 0, "amount0 out > reserve0");
-        require(reserve1Next > 0, "amount1 out > reserve1");
+        if (reserve0Next <= 0) revert SqrtPriceMath.Amount0ExceedsReserve0();
+        if (reserve1Next <= 0) revert SqrtPriceMath.Amount1ExceedsReserve1();
 
         (liquidityNext, sqrtPriceX96Next) = toLiquiditySqrtPriceX96(
             uint256(reserve0Next).toUint128(),

@@ -41,5 +41,5 @@ def test_pool_initialize__reverts_when_initialized(pool, alice):
 
     pool.initialize(sqrt_price_x96, sender=alice)
 
-    with reverts("initialized"):
+    with reverts(pool.Initialized):
         pool.initialize(sqrt_price_x96, sender=alice)

@@ -1242,7 +1242,7 @@ def test_pool_swap__reverts_when_amount_specified_zero(
     amount_specified = 0
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
-    with reverts("amountSpecified == 0"):
+    with reverts(pool_initialized_with_liquidity.InvalidAmountSpecified):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1269,7 +1269,7 @@ def test_pool_swap__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
     state = pool_initialized_with_liquidity.state()
     sqrt_price_limit_x96 = state.sqrtPriceX96 + 1
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1294,7 +1294,7 @@ def test_pool_swap__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
     amount_specified = 1000000
     sqrt_price_limit_x96 = MIN_SQRT_RATIO
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1321,7 +1321,7 @@ def test_pool_swap__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
     state = pool_initialized_with_liquidity.state()
     sqrt_price_limit_x96 = state.sqrtPriceX96 - 1
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1346,7 +1346,7 @@ def test_pool_swap__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
     amount_specified = 1000000
     sqrt_price_limit_x96 = MAX_SQRT_RATIO
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1384,7 +1384,10 @@ def test_pool_swap__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next + 1
 
-    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+    with reverts(
+        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
+        sqrtPriceX96Next=sqrt_price_x96_next,
+    ):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1422,7 +1425,10 @@ def test_pool_swap__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next - 1
 
-    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+    with reverts(
+        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
+        sqrtPriceX96Next=sqrt_price_x96_next,
+    ):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1452,7 +1458,7 @@ def test_pool_swap__reverts_when_amount0_transferred_less_than_min_with_zero_for
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
-    with reverts("amount0 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1482,7 +1488,7 @@ def test_pool_swap__reverts_when_amount1_transferred_less_than_min_with_one_for_
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
-    with reverts("amount1 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.swap(
             pool_initialized_with_liquidity.address,
             alice.address,

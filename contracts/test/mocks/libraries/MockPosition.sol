@@ -57,6 +57,7 @@ contract MockPosition {
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
         bool zeroForOne,
+        int24 tick,
         int56 tickCumulativeStart,
         int56 oracleTickCumulativeStart
     ) external view returns (Position.Info memory) {
@@ -67,6 +68,7 @@ contract MockPosition {
                 sqrtPriceX96Next,
                 liquidityDelta,
                 zeroForOne,
+                tick,
                 tickCumulativeStart,
                 oracleTickCumulativeStart
             );

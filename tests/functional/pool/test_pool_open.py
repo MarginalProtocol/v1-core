@@ -68,6 +68,7 @@ def test_pool_open__updates_state_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -158,6 +159,7 @@ def test_pool_open__updates_state_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -234,6 +236,7 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -302,6 +305,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -375,6 +379,7 @@ def test_pool_open__sets_position_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -448,6 +453,7 @@ def test_pool_open__sets_position_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -515,6 +521,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -584,6 +591,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -673,6 +681,7 @@ def test_pool_open__adds_protocol_fees_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -775,6 +784,7 @@ def test_pool_open__adds_protocol_fees_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -858,6 +868,7 @@ def test_pool_open__calls_open_callback_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -924,6 +935,7 @@ def test_pool_open__calls_open_callback_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -1089,7 +1101,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("liquidityDelta >= liquidity"):
+    with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1131,7 +1143,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("liquidityDelta >= liquidity"):
+    with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1171,7 +1183,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_sqrt_price_x9
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1211,7 +1223,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_min_sqrt_ratio_w
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1252,7 +1264,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_less_than_sqrt_price_x96_w
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1293,7 +1305,7 @@ def test_pool_open__reverts_when_sqrt_price_limit_x96_greater_than_max_sqrt_rati
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("sqrtPriceLimitX96 exceeds min/max"):
+    with reverts(pool_initialized_with_liquidity.InvalidSqrtPriceLimitX96):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1342,7 +1354,10 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next + 1
 
-    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+    with reverts(
+        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
+        sqrtPriceX96Next=sqrt_price_x96_next,
+    ):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1391,7 +1406,10 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next - 1
 
-    with reverts("sqrtPriceX96Next exceeds sqrtPriceLimitX96"):
+    with reverts(
+        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
+        sqrtPriceX96Next=sqrt_price_x96_next,
+    ):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1432,7 +1450,7 @@ def test_pool_open__reverts_when_amount1_transferred_less_than_min_with_zero_for
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("amount1 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1474,7 +1492,7 @@ def test_pool_open__reverts_when_amount0_transferred_less_than_min_with_one_for_
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    with reverts("amount0 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1499,7 +1517,6 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
 
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = True
@@ -1514,13 +1531,16 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    margin_min = position_lib.marginMinimum(position, fee)
+    margin_min = position_lib.marginMinimum(position, maintenance)
     margin = margin_min - 1
 
-    with reverts("margin < min"):
+    with reverts(
+        pool_initialized_with_liquidity.MarginLessThanMin, marginMinimum=margin_min
+    ):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1545,7 +1565,6 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    fee = pool_initialized_with_liquidity.fee()
 
     liquidity_delta = state.liquidity * 5 // 100
     zero_for_one = False
@@ -1560,13 +1579,16 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    margin_min = position_lib.marginMinimum(position, fee)
+    margin_min = position_lib.marginMinimum(position, maintenance)
     margin = margin_min - 1
 
-    with reverts("margin < min"):
+    with reverts(
+        pool_initialized_with_liquidity.MarginLessThanMin, marginMinimum=margin_min
+    ):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,

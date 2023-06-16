@@ -17,6 +17,7 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
@@ -33,6 +34,7 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -64,6 +66,7 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
@@ -80,6 +83,7 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -111,6 +115,7 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
@@ -127,6 +132,7 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -158,6 +164,7 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
@@ -174,6 +181,7 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -205,6 +213,7 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
@@ -221,6 +230,7 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -266,6 +276,7 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
@@ -282,6 +293,7 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -327,6 +339,7 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
@@ -343,6 +356,7 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -388,6 +402,7 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
     price = y / x
     sqrt_price = int(sqrt(price))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
@@ -404,6 +419,7 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )

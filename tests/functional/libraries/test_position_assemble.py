@@ -1,6 +1,6 @@
 from math import sqrt
 
-from utils.utils import calc_sqrt_price_x96_next_open
+from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
 def test_position_assemble__with_zero_for_one(position_lib):
@@ -9,6 +9,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
     liquidity = int(sqrt(x * y))
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     zero_for_one = True
     liquidated = False
     tick_cumulative = 10000
@@ -40,8 +41,8 @@ def test_position_assemble__with_zero_for_one(position_lib):
         insurance1,
         zero_for_one,
         liquidated,
-        tick_cumulative,
-        oracle_tick_cumulative,
+        tick,
+        oracle_tick_cumulative - tick_cumulative,
         margin,
         rewards,
     )
@@ -51,6 +52,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -63,6 +65,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
     liquidity = int(sqrt(x * y))
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
+    tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     zero_for_one = False
     liquidated = False
     tick_cumulative = 10000
@@ -94,8 +97,8 @@ def test_position_assemble__with_one_for_zero(position_lib):
         insurance1,
         zero_for_one,
         liquidated,
-        tick_cumulative,
-        oracle_tick_cumulative,
+        tick,
+        oracle_tick_cumulative - tick_cumulative,
         margin,
         rewards,
     )
@@ -105,6 +108,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
         sqrt_price_x96_next,
         liquidity_delta,
         zero_for_one,
+        tick,
         tick_cumulative,
         oracle_tick_cumulative,
     )

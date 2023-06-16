@@ -383,9 +383,7 @@ def test_pool_liquidate__sets_position_with_zero_for_one(
     tick_cumulative = state.tickCumulative
     obs = oracle_next_obs_zero_for_one  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
-
-    position_liquidated.tickCumulativeStart = tick_cumulative
-    position_liquidated.oracleTickCumulativeStart = oracle_tick_cumulative
+    position_liquidated.tickCumulativeDelta = oracle_tick_cumulative - tick_cumulative
 
     assert pool_initialized_with_liquidity.positions(key) == position_liquidated
 
@@ -415,9 +413,7 @@ def test_pool_liquidate__sets_position_with_one_for_zero(
     tick_cumulative = state.tickCumulative
     obs = oracle_next_obs_one_for_zero  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
-
-    position_liquidated.tickCumulativeStart = tick_cumulative
-    position_liquidated.oracleTickCumulativeStart = oracle_tick_cumulative
+    position_liquidated.tickCumulativeDelta = oracle_tick_cumulative - tick_cumulative
 
     assert pool_initialized_with_liquidity.positions(key) == position_liquidated
 
@@ -569,7 +565,7 @@ def test_pool_liquidate__reverts_when_not_position_id(
     zero_for_one_position_id,
 ):
     id = zero_for_one_position_id + 1
-    with reverts("not position"):
+    with reverts(pool_initialized_with_liquidity.InvalidPosition):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice
         )
@@ -592,7 +588,7 @@ def test_pool_liquidate__reverts_when_liquidated(
         bob.address, callee.address, id, sender=alice
     )
 
-    with reverts("not position"):
+    with reverts(pool_initialized_with_liquidity.InvalidPosition):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice
         )
@@ -611,7 +607,7 @@ def test_pool_liquidate__reverts_when_position_safe_with_zero_for_one(
     zero_for_one_position_safe_id,
 ):
     id = zero_for_one_position_safe_id
-    with reverts("position safe"):
+    with reverts(pool_initialized_with_liquidity.PositionSafe):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice
         )
@@ -630,7 +626,7 @@ def test_pool_liquidate__reverts_when_position_safe_with_one_for_zero(
     one_for_zero_position_safe_id,
 ):
     id = one_for_zero_position_safe_id
-    with reverts("position safe"):
+    with reverts(pool_initialized_with_liquidity.PositionSafe):
         pool_initialized_with_liquidity.liquidate(
             bob.address, callee.address, id, sender=alice
         )

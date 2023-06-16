@@ -28,15 +28,15 @@ def test_pool_set_fee_protocol__emits_set_fee_protocol(pool_initialized, admin):
 
 
 def test_pool_set_fee_protocol__reverts_when_not_factory_owner(pool_initialized, alice):
-    with reverts("not factory owner"):
+    with reverts(pool_initialized.Unauthorized):
         pool_initialized.setFeeProtocol(5, sender=alice)
 
 
 def test_pool_set_fee_protocol__reverts_when_less_than_min(pool_initialized, admin):
-    with reverts("protocolFees exceed min/max"):
+    with reverts(pool_initialized.InvalidFeeProtocol):
         pool_initialized.setFeeProtocol(3, sender=admin)
 
 
 def test_pool_set_fee_protocol__reverts_when_greater_than_min(pool_initialized, admin):
-    with reverts("protocolFees exceed min/max"):
+    with reverts(pool_initialized.InvalidFeeProtocol):
         pool_initialized.setFeeProtocol(11, sender=admin)

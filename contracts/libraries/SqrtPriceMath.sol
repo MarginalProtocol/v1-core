@@ -11,6 +11,10 @@ library SqrtPriceMath {
     uint160 internal constant MAX_SQRT_RATIO =
         1461446703485210103287273052203988822378723970342;
 
+    error InvalidSqrtPriceX96();
+    error Amount0ExceedsReserve0();
+    error Amount1ExceedsReserve1();
+
     /// @notice Calculates sqrtP after opening a position
     /// @dev Choice of insurance function made in this function
     function sqrtPriceX96NextOpen(
@@ -38,10 +42,8 @@ library SqrtPriceMath {
                 2 * (liquidity - liquidityDelta),
                 uint256(liquidity) + root
             );
-        require(
-            nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO,
-            "sqrtPriceX96Next exceeds min/max"
-        );
+        if (!(nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO))
+            revert InvalidSqrtPriceX96();
         return uint160(nextX96);
     }
 
@@ -80,10 +82,8 @@ library SqrtPriceMath {
                 // sqrt(P') = L / (L / sqrt(P) + del x)
                 uint256 reserve0 = (uint256(liquidity) <<
                     FixedPoint96.RESOLUTION) / sqrtPriceX96;
-                require(
-                    reserve0 > uint256(-amountSpecified),
-                    "amountSpecified out exceeds reserve0"
-                );
+                if (reserve0 <= uint256(-amountSpecified))
+                    revert Amount0ExceedsReserve0();
                 nextX96 = Math.mulDiv(
                     liquidity,
                     FixedPoint96.Q96,
@@ -97,20 +97,16 @@ library SqrtPriceMath {
                     sqrtPriceX96,
                     FixedPoint96.Q96
                 );
-                require(
-                    reserve1 > uint256(-amountSpecified),
-                    "amountSpecified out exceeds reserve1"
-                );
+                if (reserve1 <= uint256(-amountSpecified))
+                    revert Amount1ExceedsReserve1();
                 nextX96 =
                     sqrtPriceX96 -
                     (uint256(-amountSpecified) << FixedPoint96.RESOLUTION) /
                     liquidity;
             }
         }
-        require(
-            nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO,
-            "sqrtPriceX96Next exceeds min/max"
-        );
+        if (!(nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO))
+            revert InvalidSqrtPriceX96();
         return uint160(nextX96);
     }
 }

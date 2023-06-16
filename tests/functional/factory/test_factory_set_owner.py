@@ -17,5 +17,5 @@ def test_set_owner__emits_owner_changed(factory, alice, admin):
 
 
 def test_set_owner__reverts_when_not_owner(factory, alice):
-    with reverts("not owner"):
+    with reverts(factory.Unauthorized):
         factory.setOwner(alice.address, sender=alice)

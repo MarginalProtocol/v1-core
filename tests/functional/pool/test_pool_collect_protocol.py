@@ -98,14 +98,14 @@ def test_pool_collect_protocol__emits_collect_protocol(pool_after_swaps, admin, 
 
 
 def test_pool_collect_protocol__reverts_when_not_factory_owner(pool_after_swaps, alice):
-    with reverts("not factory owner"):
+    with reverts(pool_after_swaps.Unauthorized):
         pool_after_swaps.collectProtocol(alice.address, sender=alice)
 
 
 def test_pool_collect_protocol__reverts_when_protocol_fees_less_than_min(
     pool_initialized_with_liquidity_and_protocol_fee, admin, alice
 ):
-    with reverts("protocolFees < min"):
+    with reverts(pool_initialized_with_liquidity_and_protocol_fee.InvalidFeeProtocol):
         pool_initialized_with_liquidity_and_protocol_fee.collectProtocol(
             alice.address, sender=admin
         )

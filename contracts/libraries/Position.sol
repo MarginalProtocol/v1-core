@@ -4,7 +4,13 @@ pragma solidity 0.8.17;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+
+import {FixedPoint64} from "./FixedPoint64.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
+import {FixedPoint128} from "./FixedPoint128.sol";
+import {FixedPoint192} from "./FixedPoint192.sol";
+
 import {OracleLibrary} from "./OracleLibrary.sol";
 
 /// @dev Positions represented in (x, y) space
@@ -20,8 +26,8 @@ library Position {
         uint128 insurance1;
         bool zeroForOne;
         bool liquidated;
-        int56 tickCumulativeStart;
-        int56 oracleTickCumulativeStart;
+        int56 tick;
+        int56 tickCumulativeDelta; // bar{a}_t - a_t
         uint128 margin;
         uint128 rewards;
     }
@@ -53,10 +59,10 @@ library Position {
         uint32 fundingPeriod
     ) internal pure returns (Info memory) {
         // early exit if nothing to update
-        if (
-            tickCumulativeLast == position.tickCumulativeStart &&
-            oracleTickCumulativeLast == position.oracleTickCumulativeStart
-        ) return position;
+        int56 tickCumulativeDeltaLast = oracleTickCumulativeLast -
+            tickCumulativeLast;
+        if (tickCumulativeDeltaLast == position.tickCumulativeDelta)
+            return position;
 
         (uint128 debt0, uint128 debt1) = debtsAfterFunding(
             position,
@@ -66,8 +72,7 @@ library Position {
         );
         position.debt0 = debt0;
         position.debt1 = debt1;
-        position.tickCumulativeStart = tickCumulativeLast;
-        position.oracleTickCumulativeStart = oracleTickCumulativeLast;
+        position.tickCumulativeDelta = tickCumulativeDeltaLast;
         return position;
     }
 
@@ -77,9 +82,8 @@ library Position {
     ) internal pure returns (Info memory positionAfter) {
         positionAfter.zeroForOne = position.zeroForOne;
         positionAfter.liquidated = true;
-        positionAfter.tickCumulativeStart = position.tickCumulativeStart;
-        positionAfter.oracleTickCumulativeStart = position
-            .oracleTickCumulativeStart;
+        positionAfter.tick = position.tick;
+        positionAfter.tickCumulativeDelta = position.tickCumulativeDelta;
     }
 
     /// @notice Settles existing position
@@ -88,9 +92,8 @@ library Position {
     ) internal pure returns (Info memory positionAfter) {
         positionAfter.zeroForOne = position.zeroForOne;
         positionAfter.liquidated = position.liquidated;
-        positionAfter.tickCumulativeStart = position.tickCumulativeStart;
-        positionAfter.oracleTickCumulativeStart = position
-            .oracleTickCumulativeStart;
+        positionAfter.tick = position.tick;
+        positionAfter.tickCumulativeDelta = position.tickCumulativeDelta;
     }
 
     /// @notice Assembles a new position from pool state
@@ -101,12 +104,16 @@ library Position {
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
         bool zeroForOne,
+        int24 tick,
         int56 tickCumulativeStart,
         int56 oracleTickCumulativeStart
     ) internal pure returns (Info memory position) {
         position.zeroForOne = zeroForOne;
-        position.tickCumulativeStart = tickCumulativeStart;
-        position.oracleTickCumulativeStart = oracleTickCumulativeStart;
+        position.tick = int56(tick);
+        position.tickCumulativeDelta =
+            oracleTickCumulativeStart -
+            tickCumulativeStart;
+
         position.size = size(
             liquidity,
             sqrtPriceX96,
@@ -125,16 +132,6 @@ library Position {
             liquidityDelta,
             position.insurance0,
             position.insurance1
-        );
-
-        // TODO: test
-        require(
-            position.size > 0 &&
-                position.debt0 > 0 &&
-                position.debt1 > 0 &&
-                position.insurance0 > 0 &&
-                position.insurance1 > 0,
-            "size exceeds min/max"
         );
     }
 
@@ -230,32 +227,52 @@ library Position {
     }
 
     /// @notice Absolute minimum margin requirement
+    // TODO: retest
     function marginMinimum(
         Info memory position,
         uint24 maintenance
     ) internal pure returns (uint128) {
+        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(
+            int24(position.tick)
+        ); // price before open
         if (!position.zeroForOne) {
-            // cx >= (1+M) * dy / P - sx; P = iy / ix
+            // cx >= (1+M) * dy / P - sx
             uint256 debt1Adjusted = (uint256(position.debt1) *
                 (1e6 + maintenance)) / 1e6;
-            uint256 prod = Math.mulDiv(
-                debt1Adjusted,
-                position.insurance0,
-                position.insurance1
-            );
+
+            // TODO: test both cases
+            uint256 prod = sqrtPriceX96 <= type(uint128).max
+                ? Math.mulDiv(
+                    debt1Adjusted,
+                    FixedPoint192.Q192,
+                    uint256(sqrtPriceX96) * uint256(sqrtPriceX96)
+                )
+                : Math.mulDiv(
+                    debt1Adjusted,
+                    FixedPoint128.Q128,
+                    Math.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint64.Q64)
+                );
             return
                 prod > uint256(position.size)
                     ? (prod - uint256(position.size)).toUint128()
                     : 0; // check necessary due to funding
         } else {
-            // cy >= (1+M) * dx * P - sy; P = iy / ix
+            // cy >= (1+M) * dx * P - sy
             uint256 debt0Adjusted = (uint256(position.debt0) *
                 (1e6 + maintenance)) / 1e6;
-            uint256 prod = Math.mulDiv(
-                debt0Adjusted,
-                position.insurance1,
-                position.insurance0
-            );
+
+            // TODO: test both cases
+            uint256 prod = sqrtPriceX96 <= type(uint128).max
+                ? Math.mulDiv(
+                    debt0Adjusted,
+                    uint256(sqrtPriceX96) * uint256(sqrtPriceX96),
+                    FixedPoint192.Q192
+                )
+                : Math.mulDiv(
+                    debt0Adjusted,
+                    Math.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint64.Q64),
+                    FixedPoint128.Q128
+                );
             return
                 prod > uint256(position.size)
                     ? (prod - uint256(position.size)).toUint128()
@@ -277,19 +294,22 @@ library Position {
     }
 
     /// @notice Debt adjusted for funding
+    // TODO: retest
     function debtsAfterFunding(
         Info memory position,
         int56 tickCumulativeLast,
         int56 oracleTickCumulativeLast,
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
+        int56 tickCumulativeDeltaLast = oracleTickCumulativeLast -
+            tickCumulativeLast;
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                oracleTickCumulativeLast - position.oracleTickCumulativeStart,
-                tickCumulativeLast - position.tickCumulativeStart,
+                -position.tickCumulativeDelta, // a_0 - bar{a}_0
+                -tickCumulativeDeltaLast, // a_t - bar{a}_t
                 fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
-            );
+            ); // (a_t - bar{a}_t) - (a_0 - bar{a}_0)
             debt0 = position.debt0;
             debt1 = Math
                 .mulDiv(position.debt1, numeratorX96, FixedPoint96.Q96)
@@ -297,10 +317,10 @@ library Position {
         } else {
             // debt0Now = debt0Start * (bar{P} / P) ** (now - start) / fundingPeriod
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                tickCumulativeLast - position.tickCumulativeStart,
-                oracleTickCumulativeLast - position.oracleTickCumulativeStart,
+                position.tickCumulativeDelta, // bar{a}_0 - a_0
+                tickCumulativeDeltaLast, // bar{a}_t - a_t
                 fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
-            );
+            ); // (bar{a}_t - a_t) - (bar{a}_0 - a_0)
             debt0 = Math
                 .mulDiv(position.debt0, numeratorX96, FixedPoint96.Q96)
                 .toUint128();

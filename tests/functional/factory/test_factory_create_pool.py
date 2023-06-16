@@ -147,7 +147,7 @@ def test_create_pool__deletes_params(
 def test_create_pool__reverts_when_same_token(
     factory, alice, rando_token_a_address, maintenance, rando_univ3_fee
 ):
-    with reverts("A == B"):
+    with reverts(factory.InvalidTokens):
         factory.createPool(
             rando_token_a_address,
             rando_token_a_address,
@@ -161,7 +161,7 @@ def test_create_pool__reverts_when_same_token(
 def test_create_pool__reverts_when_token_is_zero_address(
     factory, alice, rando_token_a_address, maintenance, rando_univ3_fee
 ):
-    with reverts("token0 == address(0)"):
+    with reverts(factory.InvalidTokens):
         factory.createPool(
             ZERO_ADDRESS,
             rando_token_a_address,
@@ -170,7 +170,7 @@ def test_create_pool__reverts_when_token_is_zero_address(
             sender=alice,
         )
 
-    with reverts("token0 == address(0)"):
+    with reverts(factory.InvalidTokens):
         factory.createPool(
             rando_token_a_address,
             ZERO_ADDRESS,
@@ -183,7 +183,7 @@ def test_create_pool__reverts_when_token_is_zero_address(
 def test_create_pool__reverts_when_invalid_maintenance(
     factory, alice, rando_token_a_address, rando_token_b_address, rando_univ3_fee
 ):
-    with reverts("leverage not enabled"):
+    with reverts(factory.InvalidMaintenance):
         factory.createPool(
             rando_token_a_address,
             rando_token_b_address,
@@ -202,7 +202,7 @@ def test_create_pool__reverts_when_invalid_oracle(
     maintenance,
     rando_univ3_fee,
 ):
-    with reverts("not Uniswap pool"):
+    with reverts(factory.InvalidOracle):
         factory.createPool(
             rando_token_a_address,
             rando_token_b_address,
@@ -229,7 +229,7 @@ def test_create_pool__reverts_when_observation_cardinality_less_than_min(
     slot0.observationCardinalityNext = obs_cardinality_min - 1
     rando_univ3_pool.setSlot0(slot0, sender=alice)
 
-    with reverts("observationCardinality < observationCardinalityMinimum"):
+    with reverts(factory.InvalidObservationCardinality):
         factory.createPool(
             rando_token_a_address,
             rando_token_b_address,

@@ -95,6 +95,7 @@ def test_pool_settle__updates_state_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
     chain,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
@@ -114,10 +115,11 @@ def test_pool_settle__updates_state_with_zero_for_one(
     )
 
     # sync position for funding
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -150,6 +152,7 @@ def test_pool_settle__updates_state_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
     chain,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
@@ -169,10 +172,11 @@ def test_pool_settle__updates_state_with_one_for_zero(
     )
 
     # sync position for funding
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -204,6 +208,7 @@ def test_pool_settle__updates_reserves_locked_with_zero_for_one(
     token1,
     zero_for_one_position_id,
     position_lib,
+    mock_univ3_pool,
     liquidity_math_lib,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
@@ -222,10 +227,11 @@ def test_pool_settle__updates_reserves_locked_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -246,6 +252,7 @@ def test_pool_settle__updates_reserves_locked_with_one_for_zero(
     token1,
     one_for_zero_position_id,
     position_lib,
+    mock_univ3_pool,
     liquidity_math_lib,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
@@ -264,10 +271,11 @@ def test_pool_settle__updates_reserves_locked_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -289,6 +297,7 @@ def test_pool_settle__sets_position_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -306,10 +315,11 @@ def test_pool_settle__sets_position_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -328,6 +338,7 @@ def test_pool_settle__sets_position_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -345,10 +356,11 @@ def test_pool_settle__sets_position_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -367,6 +379,7 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -390,10 +403,11 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -423,6 +437,7 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -446,10 +461,11 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -479,6 +495,7 @@ def test_pool_settle__calls_settle_callback_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -496,10 +513,11 @@ def test_pool_settle__calls_settle_callback_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -526,6 +544,7 @@ def test_pool_settle__calls_settle_callback_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -543,10 +562,11 @@ def test_pool_settle__calls_settle_callback_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -573,6 +593,7 @@ def test_pool_settle__emits_settle_with_zero_for_one(
     zero_for_one_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -590,10 +611,11 @@ def test_pool_settle__emits_settle_with_zero_for_one(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -624,6 +646,7 @@ def test_pool_settle__emits_settle_with_one_for_zero(
     one_for_zero_position_id,
     position_lib,
     liquidity_math_lib,
+    mock_univ3_pool,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -641,10 +664,11 @@ def test_pool_settle__emits_settle_with_one_for_zero(
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
         state.tickCumulative,
-        position.oracleTickCumulativeStart,  # @dev doesn't change given naive mock implementation
+        oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
 
@@ -674,7 +698,7 @@ def test_pool_settle__reverts_when_not_position_id(
     token1,
     one_for_zero_position_id,
 ):
-    with reverts("not position"):
+    with reverts(pool_initialized_with_liquidity.InvalidPosition):
         callee.settle(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -723,7 +747,7 @@ def test_pool_settle__reverts_when_amount0_less_than_min(
     )
     id = int(tx.return_value)
 
-    with reverts("amount0 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.settle(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -772,7 +796,7 @@ def test_pool_settle__reverts_when_amount1_less_than_min(
     )
     id = int(tx.return_value)
 
-    with reverts("amount1 < min"):
+    with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.settle(
             pool_initialized_with_liquidity.address,
             alice.address,

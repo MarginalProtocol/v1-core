@@ -27,6 +27,13 @@ contract MarginalV1Factory is IMarginalV1Factory {
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
+    error Unauthorized();
+    error InvalidTokens();
+    error InvalidMaintenance();
+    error InvalidOracle();
+    error InvalidObservationCardinality();
+    error LeverageActive();
+
     constructor(
         address _marginalV1Deployer,
         address _uniswapV3Factory,
@@ -53,12 +60,11 @@ contract MarginalV1Factory is IMarginalV1Factory {
         uint24 maintenance,
         uint24 uniswapV3Fee
     ) external returns (address pool) {
-        require(tokenA != tokenB, "A == B");
         (address token0, address token1) = tokenA < tokenB
             ? (tokenA, tokenB)
             : (tokenB, tokenA);
-        require(token0 != address(0), "token0 == address(0)");
-        require(getLeverage[maintenance] > 0, "leverage not enabled");
+        if (tokenA == tokenB || token0 == address(0)) revert InvalidTokens();
+        if (getLeverage[maintenance] == 0) revert InvalidMaintenance();
 
         // TODO: generalize to support uni v4 hooks and uni v3 pools?
         address oracle = IUniswapV3Factory(uniswapV3Factory).getPool(
@@ -66,14 +72,12 @@ contract MarginalV1Factory is IMarginalV1Factory {
             token1,
             uniswapV3Fee
         );
-        require(oracle != address(0), "not Uniswap pool");
+        if (oracle == address(0)) revert InvalidOracle();
 
         (, , , uint16 observationCardinality, , , ) = IUniswapV3Pool(oracle)
             .slot0();
-        require(
-            observationCardinality >= observationCardinalityMinimum,
-            "observationCardinality < observationCardinalityMinimum"
-        );
+        if (observationCardinality < observationCardinalityMinimum)
+            revert InvalidObservationCardinality();
 
         pool = IMarginalV1PoolDeployer(marginalV1Deployer).deploy(
             token0,
@@ -90,18 +94,16 @@ contract MarginalV1Factory is IMarginalV1Factory {
     }
 
     function setOwner(address _owner) external {
-        require(msg.sender == owner, "not owner");
+        if (msg.sender != owner) revert Unauthorized();
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
 
     function enableLeverage(uint24 maintenance) external {
-        require(msg.sender == owner, "not owner");
-        require(
-            maintenance >= 100000 && maintenance < 1000000,
-            "maintenance exceeds min/max"
-        );
-        require(getLeverage[maintenance] == 0, "leverage enabled");
+        if (msg.sender != owner) revert Unauthorized();
+        if (!(maintenance >= 100000 && maintenance < 1000000))
+            revert InvalidMaintenance();
+        if (getLeverage[maintenance] > 0) revert LeverageActive();
 
         // l = 1 + 1 / (M + reward)
         uint256 leverage = 1e6 + 1e12 / (uint256(maintenance) + 5e4);
