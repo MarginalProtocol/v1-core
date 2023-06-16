@@ -220,3 +220,23 @@ def tick_math_lib(project, accounts):
 @pytest.fixture(scope="session")
 def transfer_helper_lib(project, accounts):
     return project.MockTransferHelper.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def fixed_point_64_lib(project, accounts):
+    return project.MockFixedPoint64.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def fixed_point_96_lib(project, accounts):
+    return project.MockFixedPoint96.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def fixed_point_128_lib(project, accounts):
+    return project.MockFixedPoint128.deploy(sender=accounts[0])
+
+
+@pytest.fixture(scope="session")
+def fixed_point_192_lib(project, accounts):
+    return project.MockFixedPoint192.deploy(sender=accounts[0])
