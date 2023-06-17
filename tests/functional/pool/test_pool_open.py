@@ -401,7 +401,8 @@ def test_pool_open__sets_position_with_zero_for_one(
     )
 
     result = pool_initialized_with_liquidity.positions(key)
-    assert tx.return_value == id
+    assert tx.return_value[0] == id
+    assert tx.return_value[1] == position.size
     assert result == position
 
 
@@ -475,7 +476,8 @@ def test_pool_open__sets_position_with_one_for_zero(
     )
 
     result = pool_initialized_with_liquidity.positions(key)
-    assert tx.return_value == id
+    assert tx.return_value[0] == id
+    assert tx.return_value[1] == position.size
     assert result == position
 
 
@@ -1002,7 +1004,7 @@ def test_pool_open__emits_open_with_zero_for_one(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id = tx.return_value
+    id, _ = tx.return_value
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1
@@ -1057,7 +1059,7 @@ def test_pool_open__emits_open_with_one_for_zero(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id = tx.return_value
+    id, _ = tx.return_value
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1

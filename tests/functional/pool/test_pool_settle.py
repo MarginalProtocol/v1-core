@@ -47,7 +47,7 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 @pytest.fixture
@@ -82,7 +82,7 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 def test_pool_settle__updates_state_with_zero_for_one(
@@ -745,7 +745,7 @@ def test_pool_settle__reverts_when_amount0_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value)
+    id = int(tx.return_value[0])
 
     with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.settle(
@@ -794,7 +794,7 @@ def test_pool_settle__reverts_when_amount1_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value)
+    id = int(tx.return_value[0])
 
     with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.settle(

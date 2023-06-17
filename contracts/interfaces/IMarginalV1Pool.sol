@@ -71,7 +71,7 @@ interface IMarginalV1Pool {
         uint160 sqrtPriceLimitX96,
         uint128 margin,
         bytes calldata data
-    ) external returns (uint256 id);
+    ) external returns (uint256 id, uint256 size);
 
     function adjust(
         address recipient,

@@ -229,7 +229,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint160 sqrtPriceLimitX96,
         uint128 margin,
         bytes calldata data
-    ) external lock returns (uint256 id) {
+    ) external lock returns (uint256 id, uint256 size) {
         State memory _state = stateSynced();
         if (liquidityDelta >= _state.liquidity) revert InvalidLiquidityDelta(); // TODO: min liquidity, min liquidity delta (size)
         if (
@@ -362,6 +362,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         }
 
         id = _state.totalPositions;
+        size = position.size;
         positions.set(recipient, _state.totalPositions, position);
         _state.totalPositions++;
 

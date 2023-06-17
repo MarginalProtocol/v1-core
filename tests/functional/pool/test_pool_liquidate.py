@@ -83,7 +83,7 @@ def zero_for_one_position_id(
     # change the oracle price up 20% to make the position unsafe
     mock_univ3_pool.pushObservation(*oracle_next_obs_zero_for_one, sender=sender)
 
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 @pytest.fixture
@@ -128,7 +128,7 @@ def one_for_zero_position_id(
     # change the oracle price down 20% to make the position unsafe
     mock_univ3_pool.pushObservation(*oracle_next_obs_one_for_zero, sender=sender)
 
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 @pytest.fixture
@@ -168,7 +168,7 @@ def zero_for_one_position_safe_id(
         sender=sender,
     )
 
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 @pytest.fixture
@@ -208,7 +208,7 @@ def one_for_zero_position_safe_id(
         sender=sender,
     )
 
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 def test_pool_liquidate__updates_state_with_zero_for_one(

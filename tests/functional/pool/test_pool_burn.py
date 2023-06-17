@@ -37,7 +37,7 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value)
+    return int(tx.return_value[0])
 
 
 def test_pool_burn__updates_state(
