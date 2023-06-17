@@ -29,8 +29,9 @@ interface IMarginalV1Pool {
             int24 tick,
             uint32 blockTimestamp,
             int56 tickCumulative,
-            uint104 totalPositions,
-            uint8 feeProtocol
+            uint96 totalPositions,
+            uint8 feeProtocol,
+            bool initialized
         );
 
     function reservesLocked()
@@ -75,21 +76,21 @@ interface IMarginalV1Pool {
 
     function adjust(
         address recipient,
-        uint104 id,
+        uint96 id,
         int128 marginDelta,
         bytes calldata data
     ) external returns (uint256 margin0, uint256 margin1);
 
     function settle(
         address recipient,
-        uint104 id,
+        uint96 id,
         bytes calldata data
     ) external returns (int256 amount0, int256 amount1);
 
     function liquidate(
         address recipient,
         address owner,
-        uint104 id
+        uint96 id
     ) external returns (uint256 reward0, uint256 reward1);
 
     function swap(

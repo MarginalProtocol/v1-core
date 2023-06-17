@@ -51,8 +51,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         int24 tick;
         uint32 blockTimestamp;
         int56 tickCumulative;
-        uint104 totalPositions; // > ~ 5e22 years at max per block to fill on mainnet
+        uint96 totalPositions; // > ~ 2e20 years at max per block to fill on mainnet
         uint8 feeProtocol;
+        bool initialized;
     }
     State public state;
 
@@ -183,7 +184,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             blockTimestamp: _blockTimestamp(),
             tickCumulative: 0,
             totalPositions: 0,
-            feeProtocol: 0
+            feeProtocol: 0,
+            initialized: true
         });
         unlocked = 2;
         emit Initialize(_sqrtPriceX96, tick);
@@ -381,7 +383,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     function adjust(
         address recipient,
-        uint104 id,
+        uint96 id,
         int128 marginDelta,
         bytes calldata data
     ) external lock returns (uint256 margin0, uint256 margin1) {
@@ -448,7 +450,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     function settle(
         address recipient,
-        uint104 id,
+        uint96 id,
         bytes calldata data
     ) external lock returns (int256 amount0, int256 amount1) {
         State memory _state = stateSynced();
@@ -560,7 +562,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function liquidate(
         address recipient,
         address owner,
-        uint104 id
+        uint96 id
     ) external lock returns (uint256 rewards0, uint256 rewards1) {
         State memory _state = stateSynced();
         Position.Info memory position = positions.get(owner, id);

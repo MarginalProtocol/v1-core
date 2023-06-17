@@ -36,7 +36,7 @@ library Position {
     function get(
         mapping(bytes32 => Info) storage positions,
         address owner,
-        uint104 id
+        uint96 id
     ) internal view returns (Info memory) {
         return positions[keccak256(abi.encodePacked(owner, id))];
     }
@@ -45,7 +45,7 @@ library Position {
     function set(
         mapping(bytes32 => Info) storage positions,
         address owner,
-        uint104 id,
+        uint96 id,
         Info memory position
     ) internal {
         positions[keccak256(abi.encodePacked(owner, id))] = position;

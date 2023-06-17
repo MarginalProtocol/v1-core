@@ -7,7 +7,7 @@ from utils.constants import FEE_UNIT, MAINTENANCE_UNIT, FUNDING_PERIOD
 
 
 def get_position_key(address: str, id: int) -> bytes:
-    return keccak(encode_packed(["address", "uint104"], [address, id]))
+    return keccak(encode_packed(["address", "uint96"], [address, id]))
 
 
 def calc_tick_from_sqrt_price_x96(sqrt_price_x96: int) -> int:
