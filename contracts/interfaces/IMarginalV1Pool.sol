@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.5.0;
 
-interface IMarginalV1Pool {
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IMarginalV1Pool is IERC20 {
     function factory() external view returns (address);
 
     function oracle() external view returns (address);
