@@ -240,6 +240,7 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
+    position.margin = margin
 
     # get amounts locked to back position
     (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)
@@ -309,6 +310,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
+    position.margin = margin
 
     # get amounts locked to back position
     (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)

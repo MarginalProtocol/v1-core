@@ -66,7 +66,6 @@ contract MarginalV1Factory is IMarginalV1Factory {
         if (tokenA == tokenB || token0 == address(0)) revert InvalidTokens();
         if (getLeverage[maintenance] == 0) revert InvalidMaintenance();
 
-        // TODO: generalize to support uni v4 hooks and uni v3 pools?
         address oracle = IUniswapV3Factory(uniswapV3Factory).getPool(
             token0,
             token1,

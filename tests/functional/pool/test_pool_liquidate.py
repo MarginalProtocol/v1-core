@@ -233,8 +233,6 @@ def test_pool_liquidate__updates_state_with_zero_for_one(
     )
 
     amount0, amount1 = position_lib.amountsLocked(position)
-    amount1 += position.margin
-
     liquidity_next, sqrt_price_x96_next = liquidity_math_lib.toLiquiditySqrtPriceX96(
         reserve0 + amount0, reserve1 + amount1
     )
@@ -284,8 +282,6 @@ def test_pool_liquidate__updates_state_with_one_for_zero(
     )
 
     amount0, amount1 = position_lib.amountsLocked(position)
-    amount0 += position.margin
-
     liquidity_next, sqrt_price_x96_next = liquidity_math_lib.toLiquiditySqrtPriceX96(
         reserve0 + amount0, reserve1 + amount1
     )

@@ -278,19 +278,29 @@ library Position {
     }
 
     /// @notice Amounts (x, y) of pool liquidity locked for position
+    /// @dev Includes margin in the event position were to be liquidated
     function amountsLocked(
         Info memory position
     ) internal pure returns (uint128 amount0, uint128 amount1) {
         if (!position.zeroForOne) {
-            amount0 = position.size + position.debt0 + position.insurance0;
+            amount0 =
+                position.size +
+                position.margin +
+                position.debt0 +
+                position.insurance0;
             amount1 = position.insurance1;
         } else {
             amount0 = position.insurance0;
-            amount1 = position.size + position.debt1 + position.insurance1;
+            amount1 =
+                position.size +
+                position.margin +
+                position.debt1 +
+                position.insurance1;
         }
     }
 
     /// @notice Debt adjusted for funding
+    /// @dev Ref @with-backed/papr/src/UniswapOracleFundingRateController.sol#L156
     function debtsAfterFunding(
         Info memory position,
         int56 tickCumulativeLast,

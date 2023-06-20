@@ -203,7 +203,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         return IERC20(token1).balanceOf(address(this));
     }
 
-    // TODO: support uni v4 hooks?
     function oracleTickCumulatives(
         uint32[] memory secondsAgos
     ) private view returns (int56[] memory) {
@@ -273,6 +272,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (margin < marginMinimum) revert MarginLessThanMin(marginMinimum);
+        position.margin = margin;
 
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
@@ -301,7 +301,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (balance0Before + amount0 > balance0())
                 revert Amount0LessThanMin();
 
-            position.margin = margin;
             position.rewards = uint128(rewards0);
 
             // account for protocol fees if fee on
@@ -340,7 +339,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (balance1Before + amount1 > balance1())
                 revert Amount1LessThanMin();
 
-            position.margin = margin;
             position.rewards = uint128(rewards1);
 
             // account for protocol fees if fee on
@@ -422,6 +420,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
             if (balance0Before + margin0 > balance0())
                 revert Amount0LessThanMin();
+
+            reservesLocked.token0 = uint256(
+                int256(uint256(reservesLocked.token0)) + int256(marginDelta)
+            ).toUint128();
             position.margin = margin0.toUint128();
         } else {
             margin1 = uint256(
@@ -437,6 +439,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
             if (balance1Before + margin1 > balance1())
                 revert Amount1LessThanMin();
+
+            reservesLocked.token1 = uint256(
+                int256(uint256(reservesLocked.token1)) + int256(marginDelta)
+            ).toUint128();
             position.margin = margin1.toUint128();
         }
 
@@ -492,7 +498,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 .liquiditySqrtPriceX96Next(
                     _state.liquidity,
                     _state.sqrtPriceX96,
-                    int256(uint256(amount0Unlocked - position.size)), // insurance0 + debt0
+                    int256(
+                        uint256(
+                            amount0Unlocked - position.size - position.margin
+                        )
+                    ), // insurance0 + debt0
                     int256(uint256(amount1Unlocked)) + amount1 // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
@@ -527,7 +537,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     _state.liquidity,
                     _state.sqrtPriceX96,
                     int256(uint256(amount0Unlocked)) + amount0, // insurance0 + debt0
-                    int256(uint256(amount1Unlocked - position.size)) // insurance1 + debt1
+                    int256(
+                        uint256(
+                            amount1Unlocked - position.size - position.margin
+                        )
+                    ) // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
             _state.sqrtPriceX96 = sqrtPriceX96Next;
@@ -597,10 +611,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         if (!position.zeroForOne) {
             rewards0 = uint256(position.rewards);
-            amount0 += position.margin;
         } else {
             rewards1 = uint256(position.rewards);
-            amount1 += position.margin;
         }
 
         (_state.liquidity, _state.sqrtPriceX96) = LiquidityMath
