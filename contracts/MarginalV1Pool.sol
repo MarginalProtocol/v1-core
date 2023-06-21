@@ -263,8 +263,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tickCumulative,
             oracleTickCumulative
         );
-        if (zeroForOne ? position.debt0 == 0 : position.debt1 == 0)
-            revert InvalidPosition(); // TODO: test
+        if (
+            position.size == 0 ||
+            (zeroForOne ? position.debt0 == 0 : position.debt1 == 0)
+        ) revert InvalidPosition(); // TODO: test
 
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (margin < marginMinimum) revert MarginLessThanMin(marginMinimum);
