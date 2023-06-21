@@ -1,3 +1,1 @@
-# TODO: reserves avail before + reserves locked before + fees
-# TODO:  == reserves avail after + reserves locked after
-# TODO: use liquidity math lib
+# TODO: test liquidity never lost after settle or liquidate ignoring funding

@@ -29,7 +29,7 @@ library Position {
         int56 tick;
         int56 tickCumulativeDelta; // bar{a}_t - a_t
         uint128 margin;
-        uint128 rewards;
+        uint128 liquidityLocked;
     }
 
     /// @notice Gets a position from positions mapping
@@ -113,6 +113,7 @@ library Position {
         position.tickCumulativeDelta =
             oracleTickCumulativeStart -
             tickCumulativeStart;
+        position.liquidityLocked = liquidityDelta;
 
         position.size = size(
             liquidity,

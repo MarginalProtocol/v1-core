@@ -7,6 +7,7 @@ from utils.constants import (
     MIN_SQRT_RATIO,
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
+    REWARD,
 )
 from utils.utils import (
     calc_amounts_from_liquidity_sqrt_price_x96,
@@ -199,7 +200,7 @@ def test_pool_settle__updates_state_with_one_for_zero(
     assert pool_initialized_with_liquidity.state() == state
 
 
-def test_pool_settle__updates_reserves_locked_with_zero_for_one(
+def test_pool_settle__updates_liquidity_locked_with_zero_for_one(
     pool_initialized_with_liquidity,
     callee,
     alice,
@@ -213,10 +214,7 @@ def test_pool_settle__updates_reserves_locked_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
 
     callee.settle(
         pool_initialized_with_liquidity.address,
@@ -235,15 +233,12 @@ def test_pool_settle__updates_reserves_locked_with_zero_for_one(
         FUNDING_PERIOD,
     )
 
-    # amounts locked in position should be removed from locked reserves
-    (amount0_unlocked, amount1_unlocked) = position_lib.amountsLocked(position)
-    assert pool_initialized_with_liquidity.reservesLocked() == (
-        reserve0_locked - amount0_unlocked,
-        reserve1_locked - amount1_unlocked,
-    )
+    # liquidity locked in position should be removed from locked liquidity
+    liquidity_locked -= position.liquidityLocked
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
-def test_pool_settle__updates_reserves_locked_with_one_for_zero(
+def test_pool_settle__updates_liquidity_locked_with_one_for_zero(
     pool_initialized_with_liquidity,
     callee,
     alice,
@@ -257,10 +252,7 @@ def test_pool_settle__updates_reserves_locked_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
 
     callee.settle(
         pool_initialized_with_liquidity.address,
@@ -279,12 +271,9 @@ def test_pool_settle__updates_reserves_locked_with_one_for_zero(
         FUNDING_PERIOD,
     )
 
-    # amounts locked in position should be removed from locked reserves
-    (amount0_unlocked, amount1_unlocked) = position_lib.amountsLocked(position)
-    assert pool_initialized_with_liquidity.reservesLocked() == (
-        reserve0_locked - amount0_unlocked,
-        reserve1_locked - amount1_unlocked,
-    )
+    # liquidity locked in position should be removed from locked liquidity
+    liquidity_locked -= position.liquidityLocked
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
 def test_pool_settle__sets_position_with_zero_for_one(
@@ -301,10 +290,6 @@ def test_pool_settle__sets_position_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     callee.settle(
         pool_initialized_with_liquidity.address,
@@ -342,10 +327,6 @@ def test_pool_settle__sets_position_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     callee.settle(
         pool_initialized_with_liquidity.address,
@@ -383,10 +364,6 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -410,10 +387,11 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # zero (debt) for one (size)
     amount0 = position.debt0
-    amount1 = position.size + position.margin + position.rewards
+    amount1 = position.size + position.margin + rewards
 
     assert (
         token0.balanceOf(pool_initialized_with_liquidity.address)
@@ -441,10 +419,6 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -468,9 +442,10 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # one (debt) for zero (size)
-    amount0 = position.size + position.margin + position.rewards
+    amount0 = position.size + position.margin + rewards
     amount1 = position.debt1
 
     assert (
@@ -499,10 +474,6 @@ def test_pool_settle__calls_settle_callback_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     tx = callee.settle(
         pool_initialized_with_liquidity.address,
@@ -520,10 +491,11 @@ def test_pool_settle__calls_settle_callback_with_zero_for_one(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # zero (debt) for one (size)
     amount0 = position.debt0
-    amount1 = position.size + position.margin + position.rewards
+    amount1 = position.size + position.margin + rewards
 
     events = tx.decode_logs(callee.SettleCallback)
     assert len(events) == 1
@@ -548,10 +520,6 @@ def test_pool_settle__calls_settle_callback_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     tx = callee.settle(
         pool_initialized_with_liquidity.address,
@@ -569,9 +537,10 @@ def test_pool_settle__calls_settle_callback_with_one_for_zero(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # one (debt) for zero (size)
-    amount0 = position.size + position.margin + position.rewards
+    amount0 = position.size + position.margin + rewards
     amount1 = position.debt1
 
     events = tx.decode_logs(callee.SettleCallback)
@@ -597,10 +566,6 @@ def test_pool_settle__emits_settle_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     tx = callee.settle(
         pool_initialized_with_liquidity.address,
@@ -618,10 +583,11 @@ def test_pool_settle__emits_settle_with_zero_for_one(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # zero (debt) for one (size)
     amount0 = position.debt0
-    amount1 = position.size + position.margin + position.rewards
+    amount1 = position.size + position.margin + rewards
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Settle)
     assert len(events) == 1
@@ -650,10 +616,6 @@ def test_pool_settle__emits_settle_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
 
     tx = callee.settle(
         pool_initialized_with_liquidity.address,
@@ -671,10 +633,11 @@ def test_pool_settle__emits_settle_with_one_for_zero(
         oracle_tick_cumulatives[0],
         FUNDING_PERIOD,
     )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
 
     # one (debt) for zero (size)
     amount1 = position.debt1
-    amount0 = position.size + position.margin + position.rewards
+    amount0 = position.size + position.margin + rewards
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Settle)
     assert len(events) == 1

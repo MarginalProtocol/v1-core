@@ -2,9 +2,12 @@ import pytest
 from math import sqrt
 
 from ape import reverts
+
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
-# TODO: test multiple mints & swaps, test when reserves locked, test_mint_then_burn
+# TODO: test multiple mints & swaps
+# TODO: explicitly check: balances for locked + unlocked liquidity, liquidity gained from fees on locked liq mint
 
 
 def test_pool_mint__updates_state(
@@ -49,11 +52,8 @@ def test_pool_mint__mints_lp_shares(
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
 
     callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
-    assert (
-        pytest.approx(pool_initialized.balanceOf(alice.address), rel=1e-11)
-        == liquidity_delta
-    )  # TODO: fix for rounding
-    assert pytest.approx(pool_initialized.totalSupply(), rel=1e-11) == liquidity_delta
+    assert pool_initialized.balanceOf(alice.address) == liquidity_delta
+    assert pool_initialized.totalSupply() == liquidity_delta
 
 
 def test_pool_mint__mints_multiple_lp_shares(
@@ -82,16 +82,132 @@ def test_pool_mint__mints_multiple_lp_shares(
         pool_initialized.address, alice.address, liquidity_delta_alice, sender=sender
     )
 
-    assert pytest.approx(pool_initialized.balanceOf(alice.address), rel=1e-11) == (
-        2 * liquidity_delta_alice
+    assert pool_initialized.balanceOf(alice.address) == 2 * liquidity_delta_alice
+    assert pool_initialized.balanceOf(bob.address) == liquidity_delta_bob
+    assert (
+        pool_initialized.totalSupply()
+        == 2 * liquidity_delta_alice + liquidity_delta_bob
+    )
+
+
+def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_zero_for_one(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+
+    # open a short position
+    state = pool_initialized.state()
+    maintenance = pool_initialized.maintenance()
+    zero_for_one = True
+    liquidity_delta_open = liquidity_delta * 10 // 100  # 10% of available liquidity
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    size = int(
+        amount1
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    callee.open(
+        pool_initialized.address,
+        callee.address,
+        zero_for_one,
+        liquidity_delta_open,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+
+    total_supply = pool_initialized.totalSupply()
+    state = pool_initialized.state()
+    liquidity_locked = pool_initialized.liquidityLocked()
+
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+
+    shares_after_open = (total_supply * liquidity_delta) // (
+        liquidity_locked + state.liquidity
     )
     assert (
-        pytest.approx(pool_initialized.balanceOf(bob.address), rel=1e-11)
-        == liquidity_delta_bob
+        pool_initialized.balanceOf(alice.address) == liquidity_delta + shares_after_open
     )
-    assert pytest.approx(pool_initialized.totalSupply(), rel=1e-11) == (
-        2 * liquidity_delta_alice + liquidity_delta_bob
+    assert pool_initialized.totalSupply() == liquidity_delta + shares_after_open
+
+
+def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_one_for_zero(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+):
+    liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
+    liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
+
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+
+    # open a short position
+    state = pool_initialized.state()
+    maintenance = pool_initialized.maintenance()
+    zero_for_one = False
+    liquidity_delta_open = liquidity_delta * 10 // 100  # 10% of available liquidity
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
     )
+    size = int(
+        amount0
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
+    )  # size will be ~ 1%
+    margin = (
+        int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+    )  # 1.25x for breathing room
+
+    callee.open(
+        pool_initialized.address,
+        callee.address,
+        zero_for_one,
+        liquidity_delta_open,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+
+    total_supply = pool_initialized.totalSupply()
+    state = pool_initialized.state()
+    liquidity_locked = pool_initialized.liquidityLocked()
+
+    callee.mint(pool_initialized.address, alice.address, liquidity_delta, sender=sender)
+
+    shares_after_open = (total_supply * liquidity_delta) // (
+        liquidity_locked + state.liquidity
+    )
+    assert (
+        pool_initialized.balanceOf(alice.address) == liquidity_delta + shares_after_open
+    )
+    assert pool_initialized.totalSupply() == liquidity_delta + shares_after_open
 
 
 def test_pool_mint__transfers_funds(

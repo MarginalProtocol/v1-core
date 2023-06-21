@@ -36,10 +36,7 @@ interface IMarginalV1Pool is IERC20 {
             bool initialized
         );
 
-    function reservesLocked()
-        external
-        view
-        returns (uint128 reserves0Locked, uint128 reserves1Locked);
+    function liquidityLocked() external view returns (uint128);
 
     function protocolFees()
         external

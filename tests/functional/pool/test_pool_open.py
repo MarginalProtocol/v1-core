@@ -193,7 +193,7 @@ def test_pool_open__updates_state_with_one_for_zero(
     assert result.totalPositions == state.totalPositions
 
 
-def test_pool_open__updates_reserves_locked_with_zero_for_one(
+def test_pool_open__updates_liquidity_locked_with_zero_for_one(
     pool_initialized_with_liquidity,
     position_lib,
     sqrt_price_math_lib,
@@ -204,10 +204,7 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
     maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity = state.liquidity
@@ -242,10 +239,8 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
     )
     position.margin = margin
 
-    # get amounts locked to back position
-    (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)
-    reserve0_locked += amount0_locked
-    reserve1_locked += amount1_locked
+    # get liquidity locked to back position
+    liquidity_locked += position.liquidityLocked
 
     callee.open(
         pool_initialized_with_liquidity.address,
@@ -257,13 +252,10 @@ def test_pool_open__updates_reserves_locked_with_zero_for_one(
         sender=sender,
     )
 
-    assert pool_initialized_with_liquidity.reservesLocked() == (
-        reserve0_locked,
-        reserve1_locked,
-    )
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
-def test_pool_open__updates_reserves_locked_with_one_for_zero(
+def test_pool_open__updates_liquidity_locked_with_one_for_zero(
     pool_initialized_with_liquidity,
     position_lib,
     sqrt_price_math_lib,
@@ -274,10 +266,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
     token1,
 ):
     state = pool_initialized_with_liquidity.state()
-    (
-        reserve0_locked,
-        reserve1_locked,
-    ) = pool_initialized_with_liquidity.reservesLocked()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
     maintenance = pool_initialized_with_liquidity.maintenance()
 
     liquidity = state.liquidity
@@ -313,9 +302,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
     position.margin = margin
 
     # get amounts locked to back position
-    (amount0_locked, amount1_locked) = position_lib.amountsLocked(position)
-    reserve0_locked += amount0_locked
-    reserve1_locked += amount1_locked
+    liquidity_locked += position.liquidityLocked
 
     callee.open(
         pool_initialized_with_liquidity.address,
@@ -327,10 +314,7 @@ def test_pool_open__updates_reserves_locked_with_one_for_zero(
         sender=sender,
     )
 
-    assert pool_initialized_with_liquidity.reservesLocked() == (
-        reserve0_locked,
-        reserve1_locked,
-    )
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
 def test_pool_open__sets_position_with_zero_for_one(

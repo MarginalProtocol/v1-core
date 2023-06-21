@@ -6,6 +6,7 @@ from utils.constants import (
     MIN_SQRT_RATIO,
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
+    REWARD,
     SECONDS_AGO,
 )
 from utils.utils import (
@@ -301,7 +302,7 @@ def test_pool_liquidate__updates_state_with_one_for_zero(
     assert result == state
 
 
-def test_pool_liquidate__updates_reserves_locked_with_zero_for_one(
+def test_pool_liquidate__updates_liquidity_locked_with_zero_for_one(
     pool_initialized_with_liquidity,
     callee,
     position_lib,
@@ -315,19 +316,18 @@ def test_pool_liquidate__updates_reserves_locked_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    reserves_locked = pool_initialized_with_liquidity.reservesLocked()
-
-    amount0, amount1 = position_lib.amountsLocked(position)
-    reserves_locked.token0 -= amount0
-    reserves_locked.token1 -= amount1
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
     )
-    assert pool_initialized_with_liquidity.reservesLocked() == reserves_locked
+
+    liquidity_locked -= position.liquidityLocked
+
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
-def test_pool_liquidate__updates_reserves_locked_with_one_for_zero(
+def test_pool_liquidate__updates_liquidity_locked_with_one_for_zero(
     pool_initialized_with_liquidity,
     callee,
     position_lib,
@@ -341,16 +341,15 @@ def test_pool_liquidate__updates_reserves_locked_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    reserves_locked = pool_initialized_with_liquidity.reservesLocked()
-
-    amount0, amount1 = position_lib.amountsLocked(position)
-    reserves_locked.token0 -= amount0
-    reserves_locked.token1 -= amount1
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
     )
-    assert pool_initialized_with_liquidity.reservesLocked() == reserves_locked
+
+    liquidity_locked -= position.liquidityLocked
+
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
 
 
 def test_pool_liquidate__sets_position_with_zero_for_one(
@@ -428,7 +427,7 @@ def test_pool_liquidate__transfers_funds_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards1 = position.rewards
+    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
 
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -462,7 +461,7 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards0 = position.rewards
+    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
 
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
@@ -496,7 +495,7 @@ def test_pool_liquidate__emits_liquidate_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards1 = position.rewards
+    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
 
     tx = pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
@@ -529,7 +528,7 @@ def test_pool_liquidate__emits_liquidate_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards0 = position.rewards
+    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
 
     tx = pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
