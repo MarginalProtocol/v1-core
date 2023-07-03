@@ -56,10 +56,10 @@ interface IMarginalV1Pool is IERC20 {
             uint128 insurance1,
             bool zeroForOne,
             bool liquidated,
-            int56 tickCumulativeStart,
-            int56 oracleTickCumulativeStart,
+            int56 tick,
+            int56 tickCumulativeDelta,
             uint128 margin,
-            uint128 rewards
+            uint128 liquidityLocked
         );
 
     function initialize(uint160 _sqrtPriceX96) external;
