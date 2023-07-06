@@ -226,6 +226,7 @@ def test_pool_mint__transfers_funds(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, sqrt_price_x96_initial
     )
+    shares_before = pool_initialized.balanceOf(alice.address)
 
     sender_balance0 = token0.balanceOf(sender.address)
     sender_balance1 = token1.balanceOf(sender.address)
@@ -233,9 +234,11 @@ def test_pool_mint__transfers_funds(
     tx = callee.mint(
         pool_initialized.address, alice.address, liquidity_delta, sender=sender
     )
+    shares = pool_initialized.balanceOf(alice.address) - shares_before
+
     assert token0.balanceOf(pool_initialized.address) == amount0
     assert token1.balanceOf(pool_initialized.address) == amount1
-    assert tx.return_value == (amount0, amount1)
+    assert tx.return_value == (shares, amount0, amount1)
 
     assert token0.balanceOf(sender.address) == sender_balance0 - amount0
     assert token1.balanceOf(sender.address) == sender_balance1 - amount1

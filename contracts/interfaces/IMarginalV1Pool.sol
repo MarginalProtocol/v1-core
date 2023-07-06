@@ -104,12 +104,14 @@ interface IMarginalV1Pool is IERC20 {
         address recipient,
         uint128 liquidityDelta,
         bytes calldata data
-    ) external returns (uint256 amount0, uint256 amount1);
+    ) external returns (uint256 shares, uint256 amount0, uint256 amount1);
 
     function burn(
         address recipient,
         uint256 shares
-    ) external returns (uint256 amount0, uint256 amount1);
+    )
+        external
+        returns (uint128 liquidityDelta, uint256 amount0, uint256 amount1);
 
     function setFeeProtocol(uint8 feeProtocol) external;
 

@@ -49,7 +49,7 @@ contract TestMarginalV1PoolCallee is
         address pool,
         address recipient,
         uint128 liquidityDelta
-    ) external returns (uint256 amount0, uint256 amount1) {
+    ) external returns (uint256 shares, uint256 amount0, uint256 amount1) {
         return
             IMarginalV1Pool(pool).mint(
                 recipient,

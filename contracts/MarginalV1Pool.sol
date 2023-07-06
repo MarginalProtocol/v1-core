@@ -766,7 +766,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint128 liquidityDelta,
         bytes calldata data
-    ) external lock returns (uint256 amount0, uint256 amount1) {
+    ) external lock returns (uint256 shares, uint256 amount0, uint256 amount1) {
         State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
         if (liquidityDelta == 0) revert InvalidLiquidityDelta();
@@ -781,7 +781,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint128 totalLiquidityAfter = _state.liquidity +
             liquidityLocked +
             liquidityDelta;
-        uint256 shares = _totalSupply == 0
+        shares = _totalSupply == 0
             ? totalLiquidityAfter
             : Math.mulDiv(
                 _totalSupply,
@@ -815,14 +815,18 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function burn(
         address recipient,
         uint256 shares
-    ) external lock returns (uint256 amount0, uint256 amount1) {
+    )
+        external
+        lock
+        returns (uint128 liquidityDelta, uint256 amount0, uint256 amount1)
+    {
         State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
         if (shares == 0 || shares > _totalSupply) revert InvalidShares();
 
         // total liquidity is available liquidity if all locked liquidity were returned to pool
         uint128 totalLiquidityBefore = _state.liquidity + liquidityLocked;
-        uint128 liquidityDelta = uint128(
+        liquidityDelta = uint128(
             Math.mulDiv(totalLiquidityBefore, shares, _totalSupply)
         );
         if (liquidityDelta > _state.liquidity) revert InvalidLiquidityDelta();

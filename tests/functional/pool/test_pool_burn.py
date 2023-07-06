@@ -187,7 +187,8 @@ def test_pool_burn__transfers_funds(
 
     result_amount0 = token0.balanceOf(alice.address)
     result_amount1 = token1.balanceOf(alice.address)
-    assert tx.return_value == (result_amount0, result_amount1)
+
+    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
     assert pytest.approx(result_amount0, rel=1e-11) == amount0
     assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
@@ -390,7 +391,7 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_zero_for_one(
     result_amount0 = token0.balanceOf(alice.address)
     result_amount1 = token1.balanceOf(alice.address)
 
-    assert tx.return_value == (result_amount0, result_amount1)
+    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
     assert pytest.approx(result_amount0, rel=1e-11) == amount0
     assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
@@ -441,7 +442,7 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_one_for_zero(
     result_amount0 = token0.balanceOf(alice.address)
     result_amount1 = token1.balanceOf(alice.address)
 
-    assert tx.return_value == (result_amount0, result_amount1)
+    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
     assert pytest.approx(result_amount0, rel=1e-11) == amount0
     assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
