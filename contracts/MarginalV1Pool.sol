@@ -650,11 +650,18 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     sqrtPriceLimitX96 < SqrtPriceMath.MAX_SQRT_RATIO)
         ) revert InvalidSqrtPriceLimitX96();
 
+        // add fees back in after swap calcs if exact input
+        bool exactInput = amountSpecified > 0;
+        int256 amountSpecifiedLessFee = exactInput
+            ? amountSpecified -
+                int256(SwapMath.swapFees(uint256(amountSpecified), fee))
+            : amountSpecified;
+
         uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96NextSwap(
             _state.liquidity,
             _state.sqrtPriceX96,
             zeroForOne,
-            amountSpecified
+            amountSpecifiedLessFee
         );
         if (
             zeroForOne
@@ -678,7 +685,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     uint256(-amount0)
                 );
 
-            uint256 fees1 = SwapMath.swapFees(uint256(amount1), fee);
+            uint256 fees1 = exactInput
+                ? uint256(amountSpecified) - uint256(amount1) // TODO: check never negative
+                : SwapMath.swapFees(uint256(amount1), fee);
             amount1 += int256(fees1);
 
             uint256 balance1Before = balance1();
@@ -716,7 +725,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     uint256(-amount1)
                 );
 
-            uint256 fees0 = SwapMath.swapFees(uint256(amount0), fee);
+            uint256 fees0 = exactInput
+                ? uint256(amountSpecified) - uint256(amount0) // TODO: check never negative
+                : SwapMath.swapFees(uint256(amount0), fee);
             amount0 += int256(fees0);
 
             uint256 balance0Before = balance0();
