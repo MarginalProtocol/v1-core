@@ -88,7 +88,7 @@ contract TestMarginalV1PoolCallee is
         uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96,
         uint128 margin
-    ) external returns (uint256 id, uint256 size) {
+    ) external returns (uint256 id, uint256 size, uint256 debt) {
         return
             IMarginalV1Pool(pool).open(
                 recipient,
