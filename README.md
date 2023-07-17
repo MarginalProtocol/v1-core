@@ -22,14 +22,21 @@ ape plugins install .
 
 ## Tests
 
-Tests without fuzzing
+Tests without fuzzing, integration
 
 ```sh
-ape test -s -m "not fuzzing"
+ape test -s -m "not fuzzing and not integration"
 ```
 
-Tests with fuzzing
+Tests with fuzzing but not integration
 
 ```sh
-ape test -s -m "fuzzing"
+ape test -s -m "fuzzing and not integration"
 ```
+
+Tests for integrations
+
+```sh
+ape test -s -m "integration" --network ethereum:mainnet-fork:foundry
+```
+
