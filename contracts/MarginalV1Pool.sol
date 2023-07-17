@@ -168,6 +168,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             maintenance,
             oracle
         ) = IMarginalV1PoolDeployer(msg.sender).params();
+
+        // reverts if not enough historical observations
+        uint32[] memory secondsAgos = new uint32[](2);
+        secondsAgos[0] = secondsAgo;
+        secondsAgos[1] = 0;
+        oracleTickCumulatives(secondsAgos);
     }
 
     function initialize(uint160 _sqrtPriceX96) external {
