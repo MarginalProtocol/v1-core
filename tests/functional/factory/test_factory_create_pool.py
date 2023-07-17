@@ -229,7 +229,10 @@ def test_create_pool__reverts_when_observation_cardinality_less_than_min(
     slot0.observationCardinalityNext = obs_cardinality_min - 1
     rando_univ3_pool.setSlot0(slot0, sender=alice)
 
-    with reverts(factory.InvalidObservationCardinality):
+    with reverts(
+        factory.InvalidObservationCardinality,
+        observationCardinality=slot0.observationCardinality,
+    ):
         factory.createPool(
             rando_token_a_address,
             rando_token_b_address,

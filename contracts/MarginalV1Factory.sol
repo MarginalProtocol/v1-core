@@ -31,7 +31,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
     error InvalidTokens();
     error InvalidMaintenance();
     error InvalidOracle();
-    error InvalidObservationCardinality();
+    error InvalidObservationCardinality(uint16 observationCardinality);
     error LeverageActive();
 
     constructor(
@@ -76,7 +76,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
         (, , , uint16 observationCardinality, , , ) = IUniswapV3Pool(oracle)
             .slot0();
         if (observationCardinality < observationCardinalityMinimum)
-            revert InvalidObservationCardinality();
+            revert InvalidObservationCardinality(observationCardinality);
 
         pool = IMarginalV1PoolDeployer(marginalV1Deployer).deploy(
             token0,
