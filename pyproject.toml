@@ -1,4 +1,7 @@
 [tool.pytest.ini_options]
 python_files = "test_*.py"
 testpaths = "tests"
-markers = "fuzzing: Run Hypothesis fuzz test suite"
+markers = [
+  "fuzzing: Run Hypothesis fuzz test suite",
+  "integration: Run integration test suite",
+]

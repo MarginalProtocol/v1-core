@@ -170,6 +170,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         ) = IMarginalV1PoolDeployer(msg.sender).params();
 
         // reverts if not enough historical observations
+        // TODO: enough of a check on hist obs?
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = secondsAgo;
         secondsAgos[1] = 0;
