@@ -1,2 +1,2 @@
-eth-ape[dev]==0.6.9
+eth-ape[dev]==0.6.12
 git+https://github.com/MarginalProtocol/ape-solidity.git@feat/optimizer-config

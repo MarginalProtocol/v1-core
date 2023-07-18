@@ -5,7 +5,6 @@ plugins:
   - name: etherscan
   - name: solidity
   - name: foundry
-    version: 0.6.8
 
 default_ecosystem: ethereum
 
