@@ -1,11 +1,23 @@
 import pytest
 
+from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
+
 
 @pytest.fixture(scope="module")
 def assert_mainnet_fork(networks):
     assert (
         networks.active_provider.network.name == "mainnet-fork"
     ), "network not set to mainnet-fork"
+
+
+@pytest.fixture(scope="module")
+def sender(accounts):
+    return accounts[3]
+
+
+@pytest.fixture(scope="module")
+def whale(assert_mainnet_fork, accounts):
+    return accounts["0x8EB8a3b98659Cce290402893d0123abb75E3ab28"]  # avalanche bridge
 
 
 @pytest.fixture(scope="module")
@@ -59,4 +71,51 @@ def mrglv1_pool(create_mrglv1_pool, univ3_pool):
     )
 
 
-# TODO: initialized with liquidity ...
+@pytest.fixture(scope="module")
+def mrglv1_pool_initialized(mrglv1_pool, univ3_pool, sender):
+    slot0 = univ3_pool.slot0()
+    sqrt_price_x96_initial = slot0.sqrtPriceX96
+    mrglv1_pool.initialize(sqrt_price_x96_initial, sender=sender)
+    return mrglv1_pool
+
+
+@pytest.fixture(scope="module")
+def token0(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
+    liquidity = univ3_pool.liquidity()
+    sqrt_price_x96 = univ3_pool.slot0().sqrtPriceX96
+    reserve0, _ = calc_amounts_from_liquidity_sqrt_price_x96(liquidity, sqrt_price_x96)
+
+    token0 = USDC
+    amount0 = reserve0 * 10 // 100  # 10% of spot reserves
+    token0.approve(callee.address, 2**256 - 1, sender=sender)
+    token0.transfer(sender.address, amount0, sender=whale)
+    return token0
+
+
+@pytest.fixture(scope="module")
+def token1(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
+    liquidity = univ3_pool.liquidity()
+    sqrt_price_x96 = univ3_pool.slot0().sqrtPriceX96
+    _, reserve1 = calc_amounts_from_liquidity_sqrt_price_x96(liquidity, sqrt_price_x96)
+
+    token1 = WETH9
+    amount1 = reserve1 * 10 // 100  # 10% of spot reserves
+    token1.approve(callee.address, 2**256 - 1, sender=sender)
+    token1.transfer(sender.address, amount1, sender=whale)
+    return token1
+
+
+@pytest.fixture(scope="module")
+def mrglv1_pool_initialized_with_liquidity(
+    mrglv1_pool_initialized, univ3_pool, callee, token0, token1, sender
+):
+    spot_liquidity = univ3_pool.liquidity()
+    liquidity_delta = spot_liquidity * 100 // 10000  # 1% of spot reserves
+
+    callee.mint(
+        mrglv1_pool_initialized.address, sender.address, liquidity_delta, sender=sender
+    )
+    mrglv1_pool_initialized.approve(
+        mrglv1_pool_initialized.address, 2**256 - 1, sender=sender
+    )
+    return mrglv1_pool_initialized
