@@ -11,11 +11,6 @@ def assert_mainnet_fork(networks):
 
 
 @pytest.fixture(scope="module")
-def sender(accounts):
-    return accounts[3]
-
-
-@pytest.fixture(scope="module")
 def whale(assert_mainnet_fork, accounts):
     return accounts["0x8EB8a3b98659Cce290402893d0123abb75E3ab28"]  # avalanche bridge
 
@@ -80,7 +75,7 @@ def mrglv1_pool_initialized(mrglv1_pool, univ3_pool, sender):
 
 
 @pytest.fixture(scope="module")
-def token0(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
+def mrglv1_token0(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
     liquidity = univ3_pool.liquidity()
     sqrt_price_x96 = univ3_pool.slot0().sqrtPriceX96
     reserve0, _ = calc_amounts_from_liquidity_sqrt_price_x96(liquidity, sqrt_price_x96)
@@ -93,7 +88,7 @@ def token0(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
 
 
 @pytest.fixture(scope="module")
-def token1(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
+def mrglv1_token1(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
     liquidity = univ3_pool.liquidity()
     sqrt_price_x96 = univ3_pool.slot0().sqrtPriceX96
     _, reserve1 = calc_amounts_from_liquidity_sqrt_price_x96(liquidity, sqrt_price_x96)
@@ -107,7 +102,7 @@ def token1(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
 
 @pytest.fixture(scope="module")
 def mrglv1_pool_initialized_with_liquidity(
-    mrglv1_pool_initialized, univ3_pool, callee, token0, token1, sender
+    mrglv1_pool_initialized, univ3_pool, callee, mrglv1_token0, mrglv1_token1, sender
 ):
     spot_liquidity = univ3_pool.liquidity()
     liquidity_delta = spot_liquidity * 100 // 10000  # 1% of spot reserves

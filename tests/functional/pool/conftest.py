@@ -4,11 +4,6 @@ from math import sqrt
 
 
 @pytest.fixture(scope="module")
-def sender(accounts):
-    return accounts[3]
-
-
-@pytest.fixture(scope="module")
 def spot_reserve0(pool, token_a, token_b):
     x = int(125.04e12)  # e.g. USDC reserves on spot
     y = int(71.70e21)  # e.g. WETH reserves on spot

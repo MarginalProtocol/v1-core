@@ -17,6 +17,11 @@ def bob(accounts):
 
 
 @pytest.fixture(scope="session")
+def sender(accounts):
+    yield accounts[3]
+
+
+@pytest.fixture(scope="session")
 def rando_token_a_address():
     return "0x000000000000000000000000000000000000000A"
 
