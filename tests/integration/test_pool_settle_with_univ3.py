@@ -5,6 +5,7 @@ from utils.constants import (
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
     FUNDING_PERIOD,
+    REWARD,
 )
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
@@ -57,7 +58,7 @@ def open_position(
 
 @pytest.mark.integration
 @pytest.mark.parametrize("zero_for_one", [True, False])
-def test_pool_adjust_with_univ3__sets_position(
+def test_pool_settle_with_univ3__sets_position(
     mrglv1_pool_initialized_with_liquidity,
     univ3_pool,
     zero_for_one,
@@ -77,12 +78,10 @@ def test_pool_adjust_with_univ3__sets_position(
     dt = FUNDING_PERIOD // 7
     chain.mine(deltatime=dt)
 
-    margin_delta = position.margin  # 2xing margin
-    callee.adjust(
+    callee.settle(
         mrglv1_pool_initialized_with_liquidity.address,
         alice.address,
         position_id,
-        margin_delta,
         sender=sender,
     )
 
@@ -96,6 +95,77 @@ def test_pool_adjust_with_univ3__sets_position(
         FUNDING_PERIOD,
     )
 
-    # added margin
-    position.margin += margin_delta
+    # position should be settled so size, debts, insurance => 0
+    position = position_lib.settle(position)
     assert mrglv1_pool_initialized_with_liquidity.positions(key) == position
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("zero_for_one", [True, False])
+def test_pool_settle_with_univ3__transfers_funds(
+    mrglv1_pool_initialized_with_liquidity,
+    univ3_pool,
+    zero_for_one,
+    callee,
+    sender,
+    chain,
+    position_lib,
+    liquidity_math_lib,
+    mrglv1_token0,
+    mrglv1_token1,
+    open_position,
+):
+    position_id = open_position(zero_for_one)
+
+    key = get_position_key(callee.address, position_id)
+    position = mrglv1_pool_initialized_with_liquidity.positions(key)
+
+    dt = FUNDING_PERIOD // 7
+    chain.mine(deltatime=dt)
+
+    balance0_pool = mrglv1_token0.balanceOf(
+        mrglv1_pool_initialized_with_liquidity.address
+    )
+    balance1_pool = mrglv1_token1.balanceOf(
+        mrglv1_pool_initialized_with_liquidity.address
+    )
+
+    balance0_sender = mrglv1_token0.balanceOf(sender.address)
+    balance1_sender = mrglv1_token1.balanceOf(sender.address)
+
+    callee.settle(
+        mrglv1_pool_initialized_with_liquidity.address,
+        sender.address,
+        position_id,
+        sender=sender,
+    )
+
+    # sync position for funding
+    state = mrglv1_pool_initialized_with_liquidity.state()
+    oracle_tick_cumulatives, _ = univ3_pool.observe([0])
+    position = position_lib.sync(
+        position,
+        state.tickCumulative,
+        oracle_tick_cumulatives[0],
+        FUNDING_PERIOD,
+    )
+    rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    amount0 = (
+        position.debt0 if zero_for_one else -(position.size + position.margin + rewards)
+    )
+    amount1 = (
+        -(position.size + position.margin + rewards) if zero_for_one else position.debt1
+    )
+
+    assert (
+        mrglv1_token0.balanceOf(mrglv1_pool_initialized_with_liquidity.address)
+        == balance0_pool + amount0
+    )
+    assert (
+        mrglv1_token1.balanceOf(mrglv1_pool_initialized_with_liquidity.address)
+        == balance1_pool + amount1
+    )
+
+    assert mrglv1_token0.balanceOf(sender.address) == balance0_sender - amount0
+    assert mrglv1_token1.balanceOf(sender.address) == balance1_sender - amount1
