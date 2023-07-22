@@ -4,6 +4,15 @@ from ape import project, reverts
 from ape.utils import ZERO_ADDRESS
 
 
+def univ3_oracle(univ3_factory_address, token_a, token_b, fee):
+    # TODO: abstract with ape-yaml.config somehow?
+    univ3_factory = project.dependencies["uniswap-v3-core"]["0.8"].UniswapV3Factory.at(
+        univ3_factory_address
+    )
+    oracle = univ3_factory.getPool(token_a, token_b, fee)
+    return oracle
+
+
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__deploys_pool_contract(
     project,
@@ -32,14 +41,10 @@ def test_create_pool__deploys_pool_contract(
     assert pool.secondsAgo() == 43200  # 12 hr TWAP for oracle price
     assert pool.fundingPeriod() == 604800  # 7 day funding period
 
-    # TODO: abstract with ape-yaml.config somehow?
-    univ3_factory_address = factory.uniswapV3Factory()
-    univ3_factory = project.dependencies["uniswap-v3-core"]["0.8"].UniswapV3Factory.at(
-        univ3_factory_address
+    oracle = univ3_oracle(
+        factory.uniswapV3Factory(), pool.token0(), pool.token1(), rando_univ3_fee
     )
-    assert pool.oracle() == univ3_factory.getPool(
-        pool.token0(), pool.token1(), rando_univ3_fee
-    )
+    assert pool.oracle() == oracle
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -59,12 +64,23 @@ def test_create_pool__stores_pool_address(
         sender=alice,
     )
     pool_address = tx.return_value
+
+    oracle = univ3_oracle(
+        factory.uniswapV3Factory(),
+        rando_token_a_address,
+        rando_token_b_address,
+        rando_univ3_fee,
+    )
     assert (
-        factory.getPool(rando_token_a_address, rando_token_b_address, maintenance)
+        factory.getPool(
+            rando_token_a_address, rando_token_b_address, maintenance, oracle
+        )
         == pool_address
     )
     assert (
-        factory.getPool(rando_token_b_address, rando_token_a_address, maintenance)
+        factory.getPool(
+            rando_token_b_address, rando_token_a_address, maintenance, oracle
+        )
         == pool_address
     )
 
@@ -107,6 +123,14 @@ def test_create_pool__emits_pool_created(
         rando_univ3_fee,
         sender=alice,
     )
+
+    oracle = univ3_oracle(
+        factory.uniswapV3Factory(),
+        rando_token_a_address,
+        rando_token_b_address,
+        rando_univ3_fee,
+    )
+
     events = tx.decode_logs(factory.PoolCreated)
     assert len(events) == 1
     event = events[0]
@@ -114,6 +138,7 @@ def test_create_pool__emits_pool_created(
     assert event.token0 == rando_token_a_address
     assert event.token1 == rando_token_b_address
     assert event.maintenance == maintenance
+    assert event.oracle == oracle
     assert event.pool == tx.return_value
 
 
@@ -208,6 +233,34 @@ def test_create_pool__reverts_when_invalid_oracle(
             rando_token_b_address,
             maintenance,
             10,  # uni pool with 1 bps fee doesn't exist in mock
+            sender=alice,
+        )
+
+
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_create_pool__reverts_when_pool_active(
+    factory,
+    alice,
+    rando_token_a_address,
+    rando_token_b_address,
+    maintenance,
+    rando_univ3_fee,
+):
+    factory.createPool(
+        rando_token_a_address,
+        rando_token_b_address,
+        maintenance,
+        rando_univ3_fee,
+        sender=alice,
+    )
+
+    # should fail when try again with same params
+    with reverts(factory.PoolActive):
+        factory.createPool(
+            rando_token_a_address,
+            rando_token_b_address,
+            maintenance,
+            rando_univ3_fee,
             sender=alice,
         )
 

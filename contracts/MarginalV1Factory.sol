@@ -14,7 +14,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
 
     address public owner;
 
-    mapping(address => mapping(address => mapping(uint24 => address)))
+    mapping(address => mapping(address => mapping(uint24 => mapping(address => address))))
         public getPool;
     mapping(uint24 => uint256) public getLeverage;
 
@@ -22,6 +22,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
         address token0,
         address token1,
         uint24 maintenance,
+        address oracle,
         address pool
     );
     event LeverageEnabled(uint24 maintenance, uint256 leverage);
@@ -32,6 +33,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
     error InvalidMaintenance();
     error InvalidOracle();
     error InvalidObservationCardinality(uint16 observationCardinality);
+    error PoolActive();
     error LeverageActive();
 
     constructor(
@@ -72,6 +74,8 @@ contract MarginalV1Factory is IMarginalV1Factory {
             uniswapV3Fee
         );
         if (oracle == address(0)) revert InvalidOracle();
+        if (getPool[token0][token1][maintenance][oracle] != address(0))
+            revert PoolActive();
 
         (, , , uint16 observationCardinality, , , ) = IUniswapV3Pool(oracle)
             .slot0();
@@ -85,11 +89,11 @@ contract MarginalV1Factory is IMarginalV1Factory {
             oracle
         );
 
-        // populate in reverse for key (token0, token1, maintenance)
-        getPool[token0][token1][maintenance] = pool;
-        getPool[token1][token0][maintenance] = pool;
+        // populate in reverse for key (token0, token1, maintenance, oracle)
+        getPool[token0][token1][maintenance][oracle] = pool;
+        getPool[token1][token0][maintenance][oracle] = pool;
 
-        emit PoolCreated(token0, token1, maintenance, pool);
+        emit PoolCreated(token0, token1, maintenance, oracle, pool);
     }
 
     function setOwner(address _owner) external {

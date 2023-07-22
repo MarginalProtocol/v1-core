@@ -20,7 +20,10 @@ def test_factory_create_pool_with_univ3__deploys_pool_contract(
 
     assert pool.factory() == mrglv1_factory.address
     assert pool.oracle() == univ3_pool.address
-    assert mrglv1_factory.getPool(token0, token1, maintenance) == pool.address
+    assert (
+        mrglv1_factory.getPool(token0, token1, maintenance, univ3_pool.address)
+        == pool.address
+    )
 
 
 @pytest.mark.integration
@@ -60,6 +63,24 @@ def test_factory_create_pool_with_univ3__reverts_when_observation_cardinality_le
         mrglv1_factory.InvalidObservationCardinality,
         observationCardinality=slot0.observationCardinality,
     ):
+        mrglv1_factory.createPool(token0, token1, maintenance, univ3_fee, sender=alice)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_factory_create_pool_with_univ3__reverts_when_pool_active(
+    mrglv1_factory,
+    maintenance,
+    alice,
+    univ3_pool,
+):
+    token0 = univ3_pool.token0()
+    token1 = univ3_pool.token1()
+    univ3_fee = univ3_pool.fee()
+    mrglv1_factory.createPool(token0, token1, maintenance, univ3_fee, sender=alice)
+
+    # should revert when attempt to deploy again with same params
+    with reverts(mrglv1_factory.PoolActive):
         mrglv1_factory.createPool(token0, token1, maintenance, univ3_fee, sender=alice)
 
 

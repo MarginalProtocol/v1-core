@@ -173,7 +173,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // TODO: enough of a check on hist obs?
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = secondsAgo;
-        secondsAgos[1] = 0;
         oracleTickCumulatives(secondsAgos);
     }
 
@@ -583,7 +582,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // oracle price averaged over seconds ago for liquidation calc
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = secondsAgo;
-        secondsAgos[1] = 0;
 
         int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
             secondsAgos

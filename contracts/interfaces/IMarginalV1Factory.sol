@@ -13,7 +13,8 @@ interface IMarginalV1Factory {
     function getPool(
         address tokenA,
         address tokenB,
-        uint24 maintenance
+        uint24 maintenance,
+        address oracle
     ) external view returns (address);
 
     function getLeverage(uint24 maintenance) external view returns (uint256);
