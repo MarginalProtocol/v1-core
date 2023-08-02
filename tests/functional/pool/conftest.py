@@ -79,6 +79,16 @@ def callee_below_min1(project, accounts, token0, token1, sender):
 
 
 @pytest.fixture(scope="module")
+def callee_for_reentrancy(project, accounts, token0, token1, sender):
+    callee_reentrancy = project.TestMarginalV1PoolReentrancyCallee.deploy(
+        sender=accounts[0]
+    )
+    token0.approve(callee_reentrancy.address, 2**256 - 1, sender=sender)
+    token1.approve(callee_reentrancy.address, 2**256 - 1, sender=sender)
+    return callee_reentrancy
+
+
+@pytest.fixture(scope="module")
 def oracle_sqrt_price_initial_x96(
     pool_initialized_with_liquidity, mock_univ3_pool, oracle_lib
 ):
