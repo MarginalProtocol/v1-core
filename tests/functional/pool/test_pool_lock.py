@@ -5,12 +5,16 @@ from hexbytes import HexBytes
 from math import sqrt
 
 from utils.constants import MIN_SQRT_RATIO, MAINTENANCE_UNIT
-from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
+from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
 
 @pytest.fixture
 def zero_for_one_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee_for_reentrancy_with_open,
+    sender,
+    token0,
+    token1,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
@@ -31,9 +35,9 @@ def zero_for_one_position_id(
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    tx = callee.open(
+    tx = callee_for_reentrancy_with_open.open(
         pool_initialized_with_liquidity.address,
-        callee.address,
+        callee_for_reentrancy_with_open.address,
         zero_for_one,
         liquidity_delta,
         sqrt_price_limit_x96,
@@ -217,13 +221,54 @@ def test_pool_lock__reverts_when_reenter_on_open_callback(
             )
 
 
-# TODO: have another callee_for_reentrancy so able to open position successfully
-def test_pool_lock__reverts_when_reenter_on_adjust_callback():
-    pass
+def test_pool_lock__reverts_when_reenter_on_adjust_callback(
+    pool_initialized_with_liquidity,
+    sender,
+    alice,
+    callee_for_reentrancy_with_open,
+    calldatas_for_reentrancy,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    id = zero_for_one_position_id
+
+    key = get_position_key(callee_for_reentrancy_with_open.address, id)
+    position = pool_initialized_with_liquidity.positions(key)
+    margin_delta = position.margin
+
+    for calldata in calldatas_for_reentrancy:
+        with reverts("Locked() returned"):
+            callee_for_reentrancy_with_open.adjust(
+                pool_initialized_with_liquidity.address,
+                alice.address,
+                id,
+                margin_delta,
+                calldata,
+                sender=sender,
+            )
 
 
-def test_pool_lock__reverts_when_reenter_on_settle_callback():
-    pass
+def test_pool_lock__reverts_when_reenter_on_settle_callback(
+    pool_initialized_with_liquidity,
+    sender,
+    alice,
+    callee_for_reentrancy_with_open,
+    calldatas_for_reentrancy,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    id = zero_for_one_position_id
+    for calldata in calldatas_for_reentrancy:
+        with reverts("Locked() returned"):
+            callee_for_reentrancy_with_open.settle(
+                pool_initialized_with_liquidity.address,
+                alice.address,
+                id,
+                calldata,
+                sender=sender,
+            )
 
 
 def test_pool_lock__reverts_when_reenter_on_swap_callback(
