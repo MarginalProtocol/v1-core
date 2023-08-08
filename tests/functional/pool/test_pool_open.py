@@ -1,6 +1,8 @@
 import pytest
 
 from ape import reverts
+from datetime import timedelta
+from hypothesis import given, settings, strategies as st
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
 from utils.utils import (
@@ -518,8 +520,10 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
 
-    balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
-    balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
 
     callee.open(
         pool_initialized_with_liquidity.address,
@@ -531,12 +535,17 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         sender=sender,
     )
 
-    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
-    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
+    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0_pool
+    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1_pool
 
     # callee sends margin + fees + rewards in margin token
     assert amount0 == 0
     assert amount1 == margin + fees + rewards
+
+    balance0_sender -= amount0
+    balance1_sender -= amount1
+    assert token0.balanceOf(sender.address) == balance0_sender
+    assert token1.balanceOf(sender.address) == balance1_sender
 
 
 def test_pool_open__transfers_funds_with_one_for_zero(
@@ -588,8 +597,10 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
 
-    balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
-    balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
 
     callee.open(
         pool_initialized_with_liquidity.address,
@@ -601,12 +612,17 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         sender=sender,
     )
 
-    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0
-    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1
+    amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0_pool
+    amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1_pool
 
     # callee sends margin + fees + rewards in margin token
     assert amount0 == margin + fees + rewards
     assert amount1 == 0
+
+    balance0_sender -= amount0
+    balance1_sender -= amount1
+    assert token0.balanceOf(sender.address) == balance0_sender
+    assert token1.balanceOf(sender.address) == balance1_sender
 
 
 def test_pool_open__adds_protocol_fees_with_zero_for_one(
@@ -1590,7 +1606,182 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
         )
 
 
-# TODO:
 @pytest.mark.fuzzing
-def test_pool_open__with_fuzz():
-    pass
+@settings(deadline=timedelta(milliseconds=500))
+@given(
+    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000 - 1),
+    zero_for_one=st.booleans(),
+    margin=st.integers(min_value=0, max_value=2**128 - 1),
+)
+def test_pool_open__with_fuzz(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    liquidity_delta_pc,
+    zero_for_one,
+    margin,
+    chain,
+):
+    # @dev needed to reset chain state at end of function for each fuzz run
+    snapshot = chain.snapshot()
+
+    # mint large number of tokens to sender to avoid balance issues
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    token0.mint(sender.address, 2**128 - 1 - balance0_sender, sender=sender)
+    token1.mint(sender.address, 2**128 - 1 - balance1_sender, sender=sender)
+
+    # balances prior
+    balance0_sender = token0.balanceOf(sender.address)  # 2**128-1
+    balance1_sender = token1.balanceOf(sender.address)  # 2**128-1
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    # set up fuzz test of open
+    state = pool_initialized_with_liquidity.state()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    reward = pool_initialized_with_liquidity.reward()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity_delta = state.liquidity * liquidity_delta_pc // 1000000000
+    sqrt_price_limit_x96 = (
+        MAX_SQRT_RATIO - 1 if not zero_for_one else MIN_SQRT_RATIO + 1
+    )
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    # oracle updates
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+    obs = rando_univ3_observations[-1]  # @dev last obs
+    oracle_tick_cumulative = obs[1]
+
+    # position assembly
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        state.tick,
+        tick_cumulative,
+        oracle_tick_cumulative,
+    )
+    rewards = position_lib.liquidationRewards(position.size, reward)
+
+    fees = position_lib.fees(position.size, fee)
+    fees0 = 0 if zero_for_one else fees
+    fees1 = fees if zero_for_one else 0
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+    balance = balance0_sender if not zero_for_one else balance1_sender
+
+    # adjust in case outside of range where test would pass
+    if margin_min > 2**128 - 1:
+        pass
+    elif margin < margin_min:
+        margin = margin_min
+    elif margin + rewards + fees > balance:
+        margin = balance - rewards - fees
+
+    params = (
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+    )
+    tx = callee.open(*params, sender=sender)
+
+    id, size, debt = tx.return_value
+    assert id == state.totalPositions
+
+    key = get_position_key(alice.address, id)
+    result_position = pool_initialized_with_liquidity.positions(key)
+
+    assert size == result_position.size
+    assert margin == result_position.margin
+    assert debt == (result_position.debt0 if zero_for_one else result_position.debt1)
+
+    # check pool state transition
+    state.liquidity -= liquidity_delta
+    state.sqrtPriceX96 = sqrt_price_x96_next
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(reserve0 + fees0, reserve1 + fees1)
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    state.tickCumulative = tick_cumulative
+    state.blockTimestamp = block_timestamp_next
+    state.totalPositions += 1
+
+    result_state = pool_initialized_with_liquidity.state()
+    assert pytest.approx(result_state.liquidity, rel=1e-14) == state.liquidity
+    assert pytest.approx(result_state.sqrtPriceX96, rel=1e-14) == state.sqrtPriceX96
+    assert result_state.tick == state.tick
+    assert result_state.blockTimestamp == state.blockTimestamp
+    assert result_state.tickCumulative == state.tickCumulative
+    assert result_state.totalPositions == state.totalPositions
+
+    liquidity_locked += liquidity_delta
+    result_liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+    assert result_liquidity_locked == liquidity_locked
+
+    # check position set
+    state = result_state
+    position.rewards = rewards
+    position.margin = margin
+    assert result_position == position
+
+    # check balances
+    amount0 = margin + fees + rewards if not zero_for_one else 0
+    amount1 = 0 if not zero_for_one else margin + fees + rewards
+
+    balance0_sender -= amount0
+    balance1_sender -= amount1
+    balance0_pool += amount0
+    balance1_pool += amount1
+
+    result_balance0_sender = token0.balanceOf(sender.address)
+    result_balance1_sender = token1.balanceOf(sender.address)
+    result_balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    assert result_balance0_sender == balance0_sender
+    assert result_balance1_sender == balance1_sender
+    assert result_balance0_pool == balance0_pool
+    assert result_balance1_pool == balance1_pool
+
+    # TODO: check protocol fees (add fuzz param)
+
+    # check events
+    events = tx.decode_logs(pool_initialized_with_liquidity.Open)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.owner == alice.address
+    assert event.id == id
+    assert event.liquidityAfter == state.liquidity
+    assert event.sqrtPriceX96After == state.sqrtPriceX96
+    assert event.margin == margin
+
+    # revert to chain state prior to fuzz run
+    chain.restore(snapshot)
