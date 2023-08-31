@@ -467,8 +467,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
 
         liquidityLocked -= position.liquidityLocked;
-        (uint128 amount0Unlocked, uint128 amount1Unlocked) = position
-            .amountsLocked(); // TODO: fix for edge of margin => infty as overflows?
+        (uint256 amount0Unlocked, uint256 amount1Unlocked) = position
+            .amountsLocked();
 
         // flash size + margin + rewards out then callback for debt owed in
         if (!position.zeroForOne) {
@@ -493,11 +493,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     _state.liquidity,
                     _state.sqrtPriceX96,
                     int256(
-                        uint256(
-                            amount0Unlocked - position.size - position.margin
-                        )
+                        amount0Unlocked -
+                            uint256(position.size) -
+                            uint256(position.margin)
                     ), // insurance0 + debt0
-                    int256(uint256(amount1Unlocked)) + amount1 // insurance1 + debt1
+                    int256(amount1Unlocked) + amount1 // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
             _state.sqrtPriceX96 = sqrtPriceX96Next;
@@ -533,11 +533,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 .liquiditySqrtPriceX96Next(
                     _state.liquidity,
                     _state.sqrtPriceX96,
-                    int256(uint256(amount0Unlocked)) + amount0, // insurance0 + debt0
+                    int256(amount0Unlocked) + amount0, // insurance0 + debt0
                     int256(
-                        uint256(
-                            amount1Unlocked - position.size - position.margin
-                        )
+                        amount1Unlocked -
+                            uint256(position.size) -
+                            uint256(position.margin)
                     ) // insurance1 + debt1
                 );
             _state.liquidity = liquidityNext;
@@ -602,7 +602,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             revert PositionSafe();
 
         liquidityLocked -= position.liquidityLocked;
-        (uint128 amount0, uint128 amount1) = position.amountsLocked();
+        (uint256 amount0, uint256 amount1) = position.amountsLocked();
 
         if (!position.zeroForOne) {
             rewards0 = Position.liquidationRewards(position.size, reward);
@@ -610,12 +610,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             rewards1 = Position.liquidationRewards(position.size, reward);
         }
 
+        // TODO: fix for edge of margin => infty as overflows?
         (_state.liquidity, _state.sqrtPriceX96) = LiquidityMath
             .liquiditySqrtPriceX96Next(
                 _state.liquidity,
                 _state.sqrtPriceX96,
-                int256(uint256(amount0)),
-                int256(uint256(amount1))
+                int256(amount0),
+                int256(amount1)
             );
         _state.tick = TickMath.getTickAtSqrtRatio(_state.sqrtPriceX96);
 

@@ -142,7 +142,7 @@ contract MockPosition {
 
     function amountsLocked(
         Position.Info memory position
-    ) external view returns (uint128 amount0, uint128 amount1) {
+    ) external view returns (uint256 amount0, uint256 amount1) {
         return position.amountsLocked();
     }
 

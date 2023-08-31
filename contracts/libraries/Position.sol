@@ -282,21 +282,21 @@ library Position {
     /// @dev Includes margin in the event position were to be liquidated
     function amountsLocked(
         Info memory position
-    ) internal pure returns (uint128 amount0, uint128 amount1) {
+    ) internal pure returns (uint256 amount0, uint256 amount1) {
         if (!position.zeroForOne) {
             amount0 =
-                position.size +
-                position.margin +
-                position.debt0 +
-                position.insurance0;
+                uint256(position.size) +
+                uint256(position.margin) +
+                uint256(position.debt0) +
+                uint256(position.insurance0);
             amount1 = position.insurance1;
         } else {
             amount0 = position.insurance0;
             amount1 =
-                position.size +
-                position.margin +
-                position.debt1 +
-                position.insurance1;
+                uint256(position.size) +
+                uint256(position.margin) +
+                uint256(position.debt1) +
+                uint256(position.insurance1);
         }
     }
 
