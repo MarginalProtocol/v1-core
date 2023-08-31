@@ -1691,8 +1691,6 @@ def test_pool_open__with_fuzz(
 
     # adjust in case outside of range where test would pass
     if margin_min > 2**128 - 1:
-        # revert to chain state prior to fuzz run
-        chain.restore(snapshot)
         return
     elif margin < margin_min:
         margin = margin_min

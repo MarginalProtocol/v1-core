@@ -468,7 +468,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         liquidityLocked -= position.liquidityLocked;
         (uint128 amount0Unlocked, uint128 amount1Unlocked) = position
-            .amountsLocked();
+            .amountsLocked(); // TODO: fix for edge of margin => infty as overflows?
 
         // flash size + margin + rewards out then callback for debt owed in
         if (!position.zeroForOne) {

@@ -308,10 +308,12 @@ library Position {
         int56 oracleTickCumulativeLast,
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
+        // TODO: track last sync time in position info to impose bounds on avg funding rate?
         int56 tickCumulativeDeltaLast = oracleTickCumulativeLast -
             tickCumulativeLast;
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
+            // TODO: bounds on avg tick deltas
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
                 -position.tickCumulativeDelta, // a_0 - bar{a}_0
                 -tickCumulativeDeltaLast, // a_t - bar{a}_t
@@ -323,6 +325,7 @@ library Position {
                 .toUint128();
         } else {
             // debt0Now = debt0Start * (bar{P} / P) ** (now - start) / fundingPeriod
+            // TODO: bounds on avg tick deltas
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
                 position.tickCumulativeDelta, // bar{a}_0 - a_0
                 tickCumulativeDeltaLast, // bar{a}_t - a_t
