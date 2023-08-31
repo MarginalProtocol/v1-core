@@ -1,6 +1,8 @@
 import pytest
 
 from ape import reverts
+from datetime import timedelta
+from hypothesis import given, settings, strategies as st
 
 from utils.constants import (
     FUNDING_PERIOD,
@@ -667,7 +669,194 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
         )
 
 
-# TODO:
+# TODO: test for extreme small (~0) and large (~liquidity) margin_delta values
+
+
 @pytest.mark.fuzzing
-def test_pool_adjust__with_fuzz():
-    pass
+@settings(deadline=timedelta(milliseconds=1000))
+@given(
+    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000 - 1),
+    zero_for_one=st.booleans(),
+    margin=st.integers(min_value=0, max_value=2**128 - 1),
+    margin_delta_pc=st.integers(min_value=-1000000000, max_value=1000000000000),
+)
+def test_pool_adjust__with_fuzz(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    alice,
+    sender,
+    token0,
+    token1,
+    liquidity_delta_pc,
+    zero_for_one,
+    margin,
+    margin_delta_pc,
+    chain,
+):
+    # @dev needed to reset chain state at end of function for each fuzz run
+    snapshot = chain.snapshot()
+
+    # mint large number of tokens to sender to avoid balance issues
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    token0.mint(sender.address, 2**128 - 1 - balance0_sender, sender=sender)
+    token1.mint(sender.address, 2**128 - 1 - balance1_sender, sender=sender)
+
+    # balances sender
+    balance0_sender = token0.balanceOf(sender.address)  # 2**128-1
+    balance1_sender = token1.balanceOf(sender.address)  # 2**128-1
+
+    # set up fuzz test of adjust with position open
+    state = pool_initialized_with_liquidity.state()
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    reward = pool_initialized_with_liquidity.reward()
+    fee = pool_initialized_with_liquidity.fee()
+
+    liquidity_delta = state.liquidity * liquidity_delta_pc // 1000000000
+    sqrt_price_limit_x96 = (
+        MAX_SQRT_RATIO - 1 if not zero_for_one else MIN_SQRT_RATIO + 1
+    )
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
+        state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
+    )
+
+    # position assembly
+    position = position_lib.assemble(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        state.tick,
+        0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
+    )
+    rewards = position_lib.liquidationRewards(position.size, reward)
+    fees = position_lib.fees(position.size, fee)
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+    balance = balance0_sender if not zero_for_one else balance1_sender
+
+    # adjust in case outside of range where test would pass
+    if margin_min > 2**128 - 1:
+        pass
+    elif margin < margin_min:
+        margin = margin_min
+    elif margin + rewards + fees > balance:
+        margin = balance - rewards - fees
+
+    params = (
+        pool_initialized_with_liquidity.address,
+        callee.address,
+        zero_for_one,
+        liquidity_delta,
+        sqrt_price_limit_x96,
+        margin,
+    )
+    tx = callee.open(*params, sender=sender)
+    id, _, _ = tx.return_value
+
+    # state prior
+    state = pool_initialized_with_liquidity.state()
+
+    # balances prior
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balance0_alice = token0.balanceOf(alice.address)
+    balance1_alice = token1.balanceOf(alice.address)
+
+    # position prior
+    key = get_position_key(callee.address, id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # oracle updates
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+    obs = rando_univ3_observations[-1]  # @dev last obs
+    oracle_tick_cumulative = obs[1]
+    position = position_lib.sync(
+        position,
+        tick_cumulative,
+        oracle_tick_cumulative,
+        FUNDING_PERIOD,
+    )
+    margin_min = position_lib.marginMinimum(position, maintenance)
+
+    # prep for call to adjust
+    balance = balance0_sender if not zero_for_one else balance1_sender
+    margin_delta = position.margin * margin_delta_pc // 1000000000
+    margin = position.margin + margin_delta
+    if margin < margin_min:
+        margin_delta = margin_min - position.margin
+        margin = margin_min
+    elif margin > balance:
+        margin_delta = balance - position.margin
+        margin = balance
+
+    if margin_delta > 2**127 - 1 or margin_delta < -(2**127 - 1):
+        pass
+
+    params = (pool_initialized_with_liquidity.address, alice.address, id, margin_delta)
+    tx = callee.adjust(*params, sender=sender)
+
+    margin0, margin1 = tx.return_value
+    assert margin0 == (0 if zero_for_one else margin)
+    assert margin1 == (margin if zero_for_one else 0)
+
+    # received amounts
+    amount0 = 0 if zero_for_one else position.margin
+    amount1 = position.margin if zero_for_one else 0
+
+    # check pool state transition
+    state.tickCumulative = tick_cumulative
+    state.blockTimestamp = block_timestamp_next
+    result_state = pool_initialized_with_liquidity.state()
+    assert result_state == state
+
+    # check position set
+    state = result_state
+    position.margin = margin
+    result_position = pool_initialized_with_liquidity.positions(key)
+    assert result_position == position
+
+    # check balances
+    balance0_alice += amount0
+    balance1_alice += amount1
+    balance0_pool += margin0 - amount0
+    balance1_pool += margin1 - amount1
+    balance0_sender -= margin0
+    balance1_sender -= margin1
+
+    result_balance0_sender = token0.balanceOf(sender.address)
+    result_balance1_sender = token1.balanceOf(sender.address)
+    result_balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance0_alice = token0.balanceOf(alice.address)
+    result_balance1_alice = token1.balanceOf(alice.address)
+
+    assert result_balance0_sender == balance0_sender
+    assert result_balance1_sender == balance1_sender
+    assert result_balance0_pool == balance0_pool
+    assert result_balance1_pool == balance1_pool
+    assert result_balance0_alice == balance0_alice
+    assert result_balance1_alice == balance1_alice
+
+    # check events
+    events = tx.decode_logs(pool_initialized_with_liquidity.Adjust)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.owner == callee.address
+    assert event.id == id
+    assert event.recipient == alice.address
+    assert event.marginAfter == margin
+
+    # revert to chain state prior to fuzz run
+    chain.restore(snapshot)

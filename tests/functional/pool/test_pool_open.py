@@ -1606,6 +1606,9 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
         )
 
 
+# TODO: test for extreme small (~0) and large (~liquidity) liquidity_delta values
+
+
 @pytest.mark.fuzzing
 @settings(deadline=timedelta(milliseconds=500))
 @given(
