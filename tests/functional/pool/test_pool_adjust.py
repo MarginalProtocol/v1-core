@@ -742,7 +742,7 @@ def test_pool_adjust__with_fuzz(
 
     # adjust in case outside of range where test would pass
     if margin_min > 2**128 - 1:
-        pass
+        return
     elif margin < margin_min:
         margin = margin_min
     elif margin + rewards + fees > balance:
@@ -791,17 +791,20 @@ def test_pool_adjust__with_fuzz(
 
     # prep for call to adjust
     balance = balance0_sender if not zero_for_one else balance1_sender
-    margin_delta = position.margin * margin_delta_pc // 1000000000
+    margin_delta = (position.margin * margin_delta_pc) // 1000000000
     margin = position.margin + margin_delta
-    if margin < margin_min:
+
+    if margin <= margin_min:
         margin_delta = margin_min - position.margin
         margin = margin_min
-    elif margin > balance:
+    elif margin >= balance:
         margin_delta = balance - position.margin
         margin = balance
 
     if margin_delta > 2**127 - 1 or margin_delta < -(2**127 - 1):
-        pass
+        # revert to chain state prior to fuzz run
+        chain.restore(snapshot)
+        return
 
     params = (pool_initialized_with_liquidity.address, alice.address, id, margin_delta)
     tx = callee.adjust(*params, sender=sender)
