@@ -220,7 +220,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // oracle update
         _state.tickCumulative +=
             int56(_state.tick) *
-            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: think thru overflow
+            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: timestamp diff should be unchecked (allow overflow)?
         _state.blockTimestamp = _blockTimestamp();
         return _state;
     }
@@ -708,11 +708,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 revert Amount1LessThanMin();
 
             // account for protocol fees if fee on
-            if (_state.feeProtocol > 0) {
-                uint256 delta = fees1 / _state.feeProtocol;
-                amount1 -= int256(delta);
-                protocolFees.token1 += uint128(delta);
-            }
+            uint256 delta = _state.feeProtocol > 0
+                ? fees1 / _state.feeProtocol
+                : 0;
+            if (delta > 0) protocolFees.token1 += uint128(delta);
 
             // update state liquidity, sqrt price accounting for fee growth
             (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
@@ -720,7 +719,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                     _state.liquidity,
                     _state.sqrtPriceX96,
                     amount0,
-                    amount1
+                    amount1 - int256(delta) // exclude protocol fees if any
                 );
             _state.liquidity = liquidityAfter;
             _state.sqrtPriceX96 = sqrtPriceX96After;
@@ -748,18 +747,17 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 revert Amount0LessThanMin();
 
             // account for protocol fees if fee on
-            if (_state.feeProtocol > 0) {
-                uint256 delta = fees0 / _state.feeProtocol;
-                amount0 -= int256(delta);
-                protocolFees.token0 += uint128(delta);
-            }
+            uint256 delta = _state.feeProtocol > 0
+                ? fees0 / _state.feeProtocol
+                : 0;
+            if (delta > 0) protocolFees.token0 += uint128(delta);
 
             // update state liquidity, sqrt price accounting for fee growth
             (uint128 liquidityAfter, uint160 sqrtPriceX96After) = LiquidityMath
                 .liquiditySqrtPriceX96Next(
                     _state.liquidity,
                     _state.sqrtPriceX96,
-                    amount0,
+                    amount0 - int256(delta), // exclude protocol fees if any
                     amount1
                 );
             _state.liquidity = liquidityAfter;

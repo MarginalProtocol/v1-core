@@ -1,6 +1,8 @@
 import pytest
 
 from ape import reverts
+from datetime import timedelta
+from hypothesis import given, settings, strategies as st
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import (
@@ -645,7 +647,6 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
     # include swap fees with protocol fee
     fees0 = amount_specified - amount0
     delta = fees0 // state.feeProtocol
-    fees0 -= delta
 
     amount0 += fees0
     protocol_fees.token0 += delta
@@ -656,7 +657,7 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
     ) = liquidity_math_lib.liquiditySqrtPriceX96Next(
         state.liquidity,
         state.sqrtPriceX96,
-        amount0,
+        amount0 - delta,
         amount1,
     )
     state.liquidity = liquidity_after
@@ -675,7 +676,13 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
     state.sqrtPriceX96 = sqrt_price_x96_after
     state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
 
-    callee.swap(
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_alice = token1.balanceOf(alice.address)
+
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    tx = callee.swap(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one,
@@ -686,6 +693,34 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
 
     assert pool_initialized_with_liquidity.state() == state
     assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+    # check funds, return values, event remains as expected
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool + amount0
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool + amount1
+    )
+
+    assert token0.balanceOf(sender.address) == balance0_sender - amount0
+    assert token1.balanceOf(alice.address) == balance1_alice - amount1
+
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.recipient == alice.address
+    assert event.amount0 == amount0
+    assert event.amount1 == amount1
+    assert event.sqrtPriceX96 == state.sqrtPriceX96
+    assert event.liquidity == state.liquidity
+    assert event.tick == state.tick
 
 
 def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
@@ -735,7 +770,6 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
     # include swap fees with protocol fee
     fees1 = amount_specified - amount1
     delta = fees1 // state.feeProtocol
-    fees1 -= delta
 
     amount1 += fees1
     protocol_fees.token1 += delta
@@ -747,7 +781,7 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
         state.liquidity,
         state.sqrtPriceX96,
         amount0,
-        amount1,
+        amount1 - delta,
     )
     state.liquidity = liquidity_after
     state.sqrtPriceX96 = sqrt_price_x96_after
@@ -765,7 +799,13 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
     state.sqrtPriceX96 = sqrt_price_x96_after
     state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
 
-    callee.swap(
+    balance1_sender = token1.balanceOf(sender.address)
+    balance0_alice = token0.balanceOf(alice.address)
+
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    tx = callee.swap(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one,
@@ -776,6 +816,34 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
 
     assert pool_initialized_with_liquidity.state() == state
     assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
+
+    # check funds, return values, event remains as expected
+    assert (
+        token0.balanceOf(pool_initialized_with_liquidity.address)
+        == balance0_pool + amount0
+    )
+    assert (
+        token1.balanceOf(pool_initialized_with_liquidity.address)
+        == balance1_pool + amount1
+    )
+
+    assert token1.balanceOf(sender.address) == balance1_sender - amount1
+    assert token0.balanceOf(alice.address) == balance0_alice - amount0
+
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
+    events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.recipient == alice.address
+    assert event.amount0 == amount0
+    assert event.amount1 == amount1
+    assert event.sqrtPriceX96 == state.sqrtPriceX96
+    assert event.liquidity == state.liquidity
+    assert event.tick == state.tick
 
 
 def test_pool_swap__calls_swap_callback_with_exact_input_zero_for_one(
@@ -1058,6 +1126,9 @@ def test_pool_swap__emits_swap_with_exact_input_zero_for_one(
         sender=sender,
     )
 
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
     events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
     assert len(events) == 1
     event = events[0]
@@ -1122,6 +1193,9 @@ def test_pool_swap__emits_swap_with_exact_input_one_for_zero(
         sender=sender,
     )
 
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
     events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
     assert len(events) == 1
     event = events[0]
@@ -1183,6 +1257,9 @@ def test_pool_swap__emits_swap_with_exact_output_zero_for_one(
         sender=sender,
     )
 
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
     events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
     assert len(events) == 1
     event = events[0]
@@ -1243,6 +1320,9 @@ def test_pool_swap__emits_swap_with_exact_output_one_for_zero(
         sqrt_price_limit_x96,
         sender=sender,
     )
+
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
     assert len(events) == 1

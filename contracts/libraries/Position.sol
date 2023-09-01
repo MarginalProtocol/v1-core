@@ -26,7 +26,7 @@ library Position {
         uint128 insurance1;
         bool zeroForOne;
         bool liquidated;
-        int56 tick;
+        int56 tick; // TODO: split into int24 tick, uint32 blockTimestamp
         int56 tickCumulativeDelta; // bar{a}_t - a_t
         uint128 margin;
         uint128 liquidityLocked;

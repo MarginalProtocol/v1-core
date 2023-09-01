@@ -45,6 +45,6 @@ library SwapMath {
         uint256 amountIn,
         uint24 fee
     ) internal pure returns (uint256) {
-        return (uint256(amountIn) * fee) / 1e6;
+        return (amountIn * uint256(fee)) / 1e6;
     }
 }
