@@ -678,6 +678,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         ) revert SqrtPriceX96ExceedsLimit(sqrtPriceX96Next);
 
         // amounts without fees
+        // TODO: fix rounding issues so exact output == amount specified
         (amount0, amount1) = SwapMath.swapAmounts(
             _state.liquidity,
             _state.sqrtPriceX96,

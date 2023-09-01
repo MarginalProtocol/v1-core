@@ -7,6 +7,7 @@ from hypothesis import given, settings, strategies as st
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import (
     calc_amounts_from_liquidity_sqrt_price_x96,
+    calc_liquidity_sqrt_price_x96_from_reserves,
     calc_tick_from_sqrt_price_x96,
 )
 
@@ -1609,7 +1610,191 @@ def test_pool_swap__reverts_when_amount1_transferred_less_than_min_with_one_for_
         )
 
 
-# TODO:
 @pytest.mark.fuzzing
-def test_pool_swap__with_fuzz():
-    pass
+@settings(deadline=timedelta(milliseconds=500))
+@given(
+    amount_specified_pc=st.integers(
+        min_value=-(1000000000 - 1), max_value=1000000000000000
+    ),
+    zero_for_one=st.booleans(),
+)
+def test_pool_swap__with_fuzz(
+    pool_initialized_with_liquidity,
+    callee,
+    sqrt_price_math_lib,
+    swap_math_lib,
+    sender,
+    alice,
+    token0,
+    token1,
+    amount_specified_pc,
+    zero_for_one,
+    chain,
+):
+    # @dev needed to reset chain state at end of function for each fuzz run
+    snapshot = chain.snapshot()
+
+    # mint large number of tokens to sender to avoid balance issues
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    token0.mint(sender.address, 2**128 - 1 - balance0_sender, sender=sender)
+    token1.mint(sender.address, 2**128 - 1 - balance1_sender, sender=sender)
+
+    # balances prior
+    balance0_sender = token0.balanceOf(sender.address)  # 2**128-1
+    balance1_sender = token1.balanceOf(sender.address)  # 2**128-1
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balance0_alice = token0.balanceOf(alice.address)
+    balance1_alice = token1.balanceOf(alice.address)
+
+    amount_specified = 0
+    if amount_specified_pc == 0:
+        return
+    elif amount_specified_pc > 0:
+        amount_specified = (
+            (balance0_pool * amount_specified_pc) // 1000000000
+            if zero_for_one
+            else (balance1_pool * amount_specified_pc) // 1000000000
+        )
+    else:
+        amount_specified = (
+            (balance1_pool * amount_specified_pc) // 1000000000
+            if zero_for_one
+            else (balance0_pool * amount_specified_pc) // 1000000000
+        )
+
+    # set up fuzz test of swap
+    state = pool_initialized_with_liquidity.state()
+    fee = pool_initialized_with_liquidity.fee()
+
+    exact_input = amount_specified > 0
+    sqrt_price_limit_x96 = (
+        MAX_SQRT_RATIO - 1 if not zero_for_one else MIN_SQRT_RATIO + 1
+    )
+
+    # oracle updates
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
+    # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
+    amount_specified_less_fee = (
+        amount_specified - swap_math_lib.swapFees(amount_specified, fee)
+        if exact_input
+        else amount_specified
+    )
+    sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
+        state.liquidity,
+        state.sqrtPriceX96,
+        zero_for_one,
+        amount_specified_less_fee,
+    )
+    (amount0, amount1) = swap_math_lib.swapAmounts(
+        state.liquidity,
+        state.sqrtPriceX96,
+        sqrt_price_x96_next,
+    )
+
+    # include swap fees on input amount ignoring protocol fee (== 0)
+    fees = (
+        swap_math_lib.swapFees(amount0, fee)
+        if zero_for_one
+        else swap_math_lib.swapFees(amount1, fee)
+    )
+    if exact_input:
+        fees = (
+            amount_specified - amount0 if zero_for_one else amount_specified - amount1
+        )
+
+    fees0 = fees if zero_for_one else 0
+    fees1 = 0 if zero_for_one else fees
+    amount0 += fees0
+    amount1 += fees1
+
+    params = (
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        zero_for_one,
+        amount_specified,
+        sqrt_price_limit_x96,
+    )
+    tx = callee.swap(*params, sender=sender)
+
+    assert tx.return_value[0] == amount0
+    assert tx.return_value[1] == amount1
+
+    # check pool state transition
+    # TODO: also test with protocol fee
+    (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        state.liquidity, state.sqrtPriceX96
+    )
+    (
+        liquidity_after,
+        sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(
+        reserve0 + amount0, reserve1 + amount1
+    )
+    state.liquidity = liquidity_after
+    state.sqrtPriceX96 = sqrt_price_x96_after
+    state.tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96_after)
+
+    state.blockTimestamp = block_timestamp_next
+    state.tickCumulative = tick_cumulative
+
+    result_state = pool_initialized_with_liquidity.state()
+    assert pytest.approx(result_state.liquidity, rel=1e-14) == state.liquidity
+    assert pytest.approx(result_state.sqrtPriceX96, rel=1e-14) == state.sqrtPriceX96
+    assert result_state.tick == state.tick
+    assert result_state.blockTimestamp == state.blockTimestamp
+    assert result_state.tickCumulative == state.tickCumulative
+    assert result_state.totalPositions == state.totalPositions
+
+    state = result_state  # for event checks below
+
+    # check balances
+    amount0_sender = -amount0 if zero_for_one else 0
+    amount1_sender = 0 if zero_for_one else -amount1
+
+    amount0_alice = 0 if zero_for_one else -amount0
+    amount1_alice = -amount1 if zero_for_one else 0
+
+    balance0_pool += amount0
+    balance1_pool += amount1
+    balance0_sender += amount0_sender
+    balance1_sender += amount1_sender
+    balance0_alice += amount0_alice
+    balance1_alice += amount1_alice
+
+    result_balance0_sender = token0.balanceOf(sender.address)
+    result_balance1_sender = token1.balanceOf(sender.address)
+    result_balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance0_alice = token0.balanceOf(alice.address)
+    result_balance1_alice = token1.balanceOf(alice.address)
+
+    assert result_balance0_sender == balance0_sender
+    assert result_balance1_sender == balance1_sender
+    assert result_balance0_pool == balance0_pool
+    assert result_balance1_pool == balance1_pool
+    assert result_balance0_alice == balance0_alice
+    assert result_balance1_alice == balance1_alice
+
+    # TODO: check protocol fees (add fuzz param)
+
+    # check events
+    events = tx.decode_logs(pool_initialized_with_liquidity.Swap)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.recipient == alice.address
+    assert event.amount0 == amount0
+    assert event.amount1 == amount1
+    assert event.sqrtPriceX96 == state.sqrtPriceX96
+    assert event.liquidity == state.liquidity
+    assert event.tick == state.tick
+
+    # revert to chain state prior to fuzz run
+    chain.restore(snapshot)
