@@ -22,12 +22,16 @@ def test_liquidity_math_to_liquidity_sqrt_price_x96(liquidity_math_lib):
 
 @pytest.mark.fuzzing
 @given(
-    reserve0=st.integers(min_value=100, max_value=2**128 - 1),  # TODO: fix min value
-    reserve1=st.integers(min_value=100, max_value=2**128 - 1),
+    reserve0=st.integers(min_value=1, max_value=2**256 - 1),
+    reserve1=st.integers(min_value=1, max_value=2**256 - 1),
 )
 def test_liquidity_math_to_liquidity_sqrt_price_x96__with_fuzz(
     liquidity_math_lib, reserve0, reserve1
 ):
+    # ignore cases where liquidity won't fit in uint128
+    if reserve0 * reserve1 > 2**256 - 1:
+        return
+
     (liquidity, sqrt_price_x96) = calc_liquidity_sqrt_price_x96_from_reserves(
         reserve0, reserve1
     )

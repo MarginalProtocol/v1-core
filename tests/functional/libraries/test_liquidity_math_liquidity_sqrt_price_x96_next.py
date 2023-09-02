@@ -1,10 +1,6 @@
 import pytest
-
 from ape import reverts
-from hypothesis import given
-from hypothesis import strategies as st
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_liquidity_sqrt_price_x96_from_reserves
 
 
@@ -178,10 +174,8 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__with_amount0_zero_amount1
     assert pytest.approx(result[1], rel=1e-16) == sqrt_price_x96_next
 
 
-# TODO: fix
-@pytest.mark.skip(reason="Method not found error")
-def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_greater(
-    liquidity_math_lib,
+def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount1_out_greater_than_reserve(
+    liquidity_math_lib, sqrt_price_math_lib
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
@@ -189,9 +183,9 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_
     (reserve0, reserve1) = liquidity_math_lib.toAmounts(liquidity, sqrt_price_x96)
 
     amount0 = reserve0 * 100 // 10000  # 1% of liquidity added
-    amount1 = -reserve1 - 1
+    amount1 = -reserve1
 
-    with reverts("amount1 out > reserve1"):
+    with reverts(sqrt_price_math_lib.Amount1ExceedsReserve1):
         liquidity_math_lib.liquiditySqrtPriceX96Next(
             liquidity,
             sqrt_price_x96,
@@ -200,20 +194,18 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_
         )
 
 
-# TODO: fix
-@pytest.mark.skip(reason="Method not found error")
-def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount1_out_greater(
-    liquidity_math_lib,
+def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_greater_than_reserve(
+    liquidity_math_lib, sqrt_price_math_lib
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
     (liquidity, sqrt_price_x96) = calc_liquidity_sqrt_price_x96_from_reserves(x, y)
     (reserve0, reserve1) = liquidity_math_lib.toAmounts(liquidity, sqrt_price_x96)
 
-    amount0 = -reserve0 - 1
+    amount0 = -reserve0
     amount1 = reserve1 * 100 // 10000  # 1% of liquidity added
 
-    with reverts("amount0 out > reserve0"):
+    with reverts(sqrt_price_math_lib.Amount0ExceedsReserve0):
         liquidity_math_lib.liquiditySqrtPriceX96Next(
             liquidity,
             sqrt_price_x96,

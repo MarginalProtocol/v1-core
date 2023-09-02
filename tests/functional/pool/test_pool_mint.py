@@ -2,12 +2,11 @@ import pytest
 from math import sqrt
 
 from ape import reverts
+from datetime import timedelta
+from hypothesis import given, settings, strategies as st
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
-
-# TODO: test multiple mints & swaps
-# TODO: explicitly check: balances for locked + unlocked liquidity, liquidity gained from fees on locked liq mint
 
 
 def test_pool_mint__updates_state(
@@ -358,7 +357,115 @@ def test_pool_mint__reverts_when_amount1_transferred_less_than_min(
         )
 
 
-# TODO:
 @pytest.mark.fuzzing
-def test_pool_mint__with_fuzz():
-    pass
+@settings(deadline=timedelta(milliseconds=500))
+@given(
+    liquidity_delta=st.integers(min_value=1, max_value=2**128 - 1),
+    zero_for_one=st.booleans(),
+)
+def test_pool_mint__initial_mint_with_fuzz(
+    pool_initialized,
+    callee,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    spot_reserve0,
+    spot_reserve1,
+    liquidity_delta,
+    zero_for_one,
+    chain,
+):
+    # @dev needed to reset chain state at end of function for each fuzz run
+    snapshot = chain.snapshot()
+
+    # mint large number of tokens to sender to avoid balance issues
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    token0.mint(sender.address, 2**255 - 1 - balance0_sender, sender=sender)
+    token1.mint(sender.address, 2**255 - 1 - balance1_sender, sender=sender)
+
+    # balances prior
+    balance0_sender = token0.balanceOf(sender.address)  # 2**255-1
+    balance1_sender = token1.balanceOf(sender.address)  # 2**255-1
+    balance0_pool = token0.balanceOf(pool_initialized.address)
+    balance1_pool = token1.balanceOf(pool_initialized.address)
+
+    shares_alice = pool_initialized.balanceOf(alice.address)
+    total_supply = pool_initialized.totalSupply()
+
+    # set up fuzz test of initial mint
+    state = pool_initialized.state()
+    liquidity_locked = pool_initialized.liquidityLocked()
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    shares = liquidity_delta
+
+    params = (
+        pool_initialized.address,
+        alice.address,
+        liquidity_delta,
+    )
+    tx = callee.mint(*params, sender=sender)
+
+    assert tx.return_value[0] == shares
+    assert tx.return_value[1] == amount0
+    assert tx.return_value[2] == amount1
+
+    # check pool state transition (including liquidity locked)
+    state.liquidity += liquidity_delta
+    state.tickCumulative = tick_cumulative_next
+    state.blockTimestamp = block_timestamp_next
+    result_state = pool_initialized.state()
+
+    assert result_state == state
+
+    liquidity_locked += 0
+    result_liquidity_locked = pool_initialized.liquidityLocked()
+
+    assert result_liquidity_locked == liquidity_locked
+
+    # check balances (including lp shares)
+    shares_alice += shares
+    total_supply += shares
+    result_shares_alice = pool_initialized.balanceOf(alice.address)
+    result_total_supply = pool_initialized.totalSupply()
+
+    assert result_shares_alice == shares_alice
+    assert result_total_supply == total_supply
+
+    balance0_sender -= amount0
+    balance1_sender -= amount1
+    balance0_pool += amount0
+    balance1_pool += amount1
+
+    result_balance0_sender = token0.balanceOf(sender.address)
+    result_balance1_sender = token1.balanceOf(sender.address)
+    result_balance0_pool = token0.balanceOf(pool_initialized.address)
+    result_balance1_pool = token1.balanceOf(pool_initialized.address)
+
+    assert result_balance0_sender == balance0_sender
+    assert result_balance1_sender == balance1_sender
+    assert result_balance0_pool == balance0_pool
+    assert result_balance1_pool == balance1_pool
+
+    # check events
+    events = tx.decode_logs(pool_initialized.Mint)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.sender == callee.address
+    assert event.owner == alice.address
+    assert event.liquidityDelta == liquidity_delta
+    assert event.amount0 == amount0
+    assert event.amount1 == amount1
+
+    # revert to chain state prior to fuzz run
+    chain.restore(snapshot)

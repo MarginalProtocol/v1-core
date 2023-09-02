@@ -24,9 +24,7 @@ def test_liquidity_math_to_amounts(liquidity_math_lib):
 
 @pytest.mark.fuzzing
 @given(
-    liquidity=st.integers(
-        min_value=1000, max_value=2**128 - 1
-    ),  # TODO: fix min value
+    liquidity=st.integers(min_value=1, max_value=2**128 - 1),
     sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
 )
 def test_liquidity_math_to_amounts__with_fuzz(
