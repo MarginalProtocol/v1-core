@@ -319,8 +319,12 @@ library Position {
         uint24 tickCumulativeRateMax,
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
-        int56 deltaMax = int56(uint56(tickCumulativeRateMax)) *
-            int56(uint56(blockTimestampLast - position.blockTimestamp)); // TODO: overflow issues?
+        int56 deltaMax;
+        unchecked {
+            deltaMax =
+                int56(uint56(tickCumulativeRateMax)) *
+                int56(uint56(blockTimestampLast - position.blockTimestamp));
+        } // TODO: unchecked ok?
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
             // delta = (a_t - bar{a}_t) - (a_0 - bar{a}_0), clamped by funding rate bounds
