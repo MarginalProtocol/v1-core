@@ -1,6 +1,6 @@
 from math import sqrt
 
-from utils.constants import REWARD, FUNDING_PERIOD
+from utils.constants import REWARD, FUNDING_PERIOD, TICK_CUMULATIVE_RATE_MAX
 from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
@@ -19,6 +19,8 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -34,6 +36,7 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -44,21 +47,33 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
 
     result = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
     )
 
+    tick_cumulative_delta_last = oracle_tick_cumulative_last - tick_cumulative_last
     debt0, debt1 = position_lib.debtsAfterFunding(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+        position,
+        block_timestamp_last,
+        tick_cumulative_delta_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
     )
     position.debt0 = debt0
     position.debt1 = debt1
-    position.tickCumulativeDelta = oracle_tick_cumulative_last - tick_cumulative_last
+    position.blockTimestamp = block_timestamp_last
+    position.tickCumulativeDelta = tick_cumulative_delta_last
 
     assert result == position
 
@@ -78,6 +93,8 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -93,6 +110,7 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -103,26 +121,38 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
 
     result = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
     )
 
+    tick_cumulative_delta_last = oracle_tick_cumulative_last - tick_cumulative_last
     debt0, debt1 = position_lib.debtsAfterFunding(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
+        position,
+        block_timestamp_last,
+        tick_cumulative_delta_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
     )
     position.debt0 = debt0
     position.debt1 = debt1
-    position.tickCumulativeDelta = oracle_tick_cumulative_last - tick_cumulative_last
+    position.blockTimestamp = block_timestamp_last
+    position.tickCumulativeDelta = tick_cumulative_delta_last
 
     assert result == position
 
 
-def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
+def test_position_sync__when_block_timestamps_same_with_zero_for_one(
     position_lib, rando_univ3_observations
 ):
     x = int(125.04e12)  # e.g. USDC reserves
@@ -137,6 +167,8 @@ def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -151,6 +183,7 @@ def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -160,15 +193,17 @@ def test_position_sync__when_tick_cumulatives_same_with_zero_for_one(
     assert (
         position_lib.sync(
             position,
+            block_timestamp_start,
             tick_cumulative_start,
             oracle_tick_cumulative_start,
+            TICK_CUMULATIVE_RATE_MAX,
             FUNDING_PERIOD,
         )
         == position
     )
 
 
-def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
+def test_position_sync__when_block_timestamps_same_with_one_for_zero(
     position_lib, rando_univ3_observations
 ):
     x = int(125.04e12)  # e.g. USDC reserves
@@ -183,6 +218,8 @@ def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -197,6 +234,7 @@ def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -206,8 +244,10 @@ def test_position_sync__when_tick_cumulatives_same_with_one_for_zero(
     assert (
         position_lib.sync(
             position,
+            block_timestamp_start,
             tick_cumulative_start,
             oracle_tick_cumulative_start,
+            TICK_CUMULATIVE_RATE_MAX,
             FUNDING_PERIOD,
         )
         == position

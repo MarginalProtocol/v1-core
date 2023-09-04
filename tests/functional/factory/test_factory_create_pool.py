@@ -143,32 +143,6 @@ def test_create_pool__emits_pool_created(
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_create_pool__deletes_params(
-    factory,
-    alice,
-    rando_token_a_address,
-    rando_token_b_address,
-    maintenance,
-    rando_univ3_fee,
-):
-    _ = factory.createPool(
-        rando_token_a_address,
-        rando_token_b_address,
-        maintenance,
-        rando_univ3_fee,
-        sender=alice,
-    )
-    pool_deployer = project.MarginalV1PoolDeployer.at(factory.marginalV1Deployer())
-
-    params = pool_deployer.params()
-    assert params.factory == ZERO_ADDRESS
-    assert params.token0 == ZERO_ADDRESS
-    assert params.token1 == ZERO_ADDRESS
-    assert params.maintenance == 0
-    assert params.oracle == ZERO_ADDRESS
-
-
-@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_create_pool__reverts_when_same_token(
     factory, alice, rando_token_a_address, maintenance, rando_univ3_fee
 ):

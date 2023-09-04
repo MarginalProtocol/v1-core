@@ -3,7 +3,6 @@ import pytest
 from ape import reverts
 from datetime import timedelta
 from hypothesis import given, settings, strategies as st
-from math import log
 
 from utils.constants import (
     FUNDING_PERIOD,
@@ -12,6 +11,7 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     REWARD,
     SECONDS_AGO,
+    TICK_CUMULATIVE_RATE_MAX,
 )
 from utils.utils import (
     get_position_key,
@@ -374,6 +374,7 @@ def test_pool_liquidate__sets_position_with_zero_for_one(
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
     position_liquidated = position_lib.liquidate(position)
+    block_timestamp_next = chain.pending_timestamp
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
@@ -383,6 +384,8 @@ def test_pool_liquidate__sets_position_with_zero_for_one(
     tick_cumulative = state.tickCumulative
     obs = oracle_next_obs_zero_for_one  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
+
+    position_liquidated.blockTimestamp = block_timestamp_next
     position_liquidated.tickCumulativeDelta = oracle_tick_cumulative - tick_cumulative
 
     assert pool_initialized_with_liquidity.positions(key) == position_liquidated
@@ -400,10 +403,12 @@ def test_pool_liquidate__sets_position_with_one_for_zero(
     token0,
     token1,
     one_for_zero_position_id,
+    chain,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
     position_liquidated = position_lib.liquidate(position)
+    block_timestamp_next = chain.pending_timestamp
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
@@ -413,6 +418,8 @@ def test_pool_liquidate__sets_position_with_one_for_zero(
     tick_cumulative = state.tickCumulative
     obs = oracle_next_obs_one_for_zero  # @dev last obs
     oracle_tick_cumulative = obs[1]  # tick cumulative
+
+    position_liquidated.blockTimestamp = block_timestamp_next
     position_liquidated.tickCumulativeDelta = oracle_tick_cumulative - tick_cumulative
 
     assert pool_initialized_with_liquidity.positions(key) == position_liquidated
@@ -696,6 +703,7 @@ def test_pool_liquidate__with_fuzz(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     rewards = position_lib.liquidationRewards(position.size, reward)
     fees = position_lib.fees(position.size, fee)
@@ -759,8 +767,10 @@ def test_pool_liquidate__with_fuzz(
     oracle_tick_cumulative = obs_next[1]  # oracle tick cumulative
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         tick_cumulative,
         oracle_tick_cumulative,
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
 

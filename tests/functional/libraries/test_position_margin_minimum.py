@@ -22,6 +22,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_zer
     sqrt_price_x96 = sqrt_price << 96
     tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     zero_for_one = True
+    block_timestamp = 1684675403
     tick_cumulative = 0
     oracle_tick_cumulative = 0
 
@@ -36,6 +37,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_zer
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -63,6 +65,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_one
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = False
+    block_timestamp = 1684675403
     tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     tick_cumulative = 0
     oracle_tick_cumulative = 0
@@ -78,6 +81,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_one
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -106,6 +110,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
     sqrt_price_x96 = sqrt_price << 96
     tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     zero_for_one = True
+    block_timestamp = 1684675403
     tick_cumulative = 0
     oracle_tick_cumulative = 0
 
@@ -120,6 +125,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -147,6 +153,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
     sqrt_price = int(sqrt(y / x))
     sqrt_price_x96 = sqrt_price << 96
     zero_for_one = False
+    block_timestamp = 1684675403
     tick = calc_tick_from_sqrt_price_x96(sqrt_price_x96)
     tick_cumulative = 0
     oracle_tick_cumulative = 0
@@ -162,6 +169,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )

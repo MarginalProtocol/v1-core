@@ -18,6 +18,8 @@ interface IMarginalV1Pool is IERC20 {
 
     function reward() external view returns (uint24);
 
+    function tickCumulativeRateMax() external view returns (uint24);
+
     function secondsAgo() external view returns (uint32);
 
     function fundingPeriod() external view returns (uint32);
@@ -56,7 +58,8 @@ interface IMarginalV1Pool is IERC20 {
             uint128 insurance1,
             bool zeroForOne,
             bool liquidated,
-            int56 tick,
+            int24 tick,
+            uint32 blockTimestamp,
             int56 tickCumulativeDelta,
             uint128 margin,
             uint128 liquidityLocked

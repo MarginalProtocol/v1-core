@@ -26,8 +26,9 @@ library Position {
         uint128 insurance1;
         bool zeroForOne;
         bool liquidated;
-        int56 tick; // TODO: split into int24 tick, uint32 blockTimestamp
-        int56 tickCumulativeDelta; // bar{a}_t - a_t
+        int24 tick; // tick before open
+        uint32 blockTimestamp; // timestamp at last sync
+        int56 tickCumulativeDelta; // bar{a}_t - a_t; tick cumulative delta at last sync
         uint128 margin;
         uint128 liquidityLocked;
     }
@@ -54,24 +55,31 @@ library Position {
     /// @notice Realizes funding payments via updates to position debt amounts
     function sync(
         Info memory position,
+        uint32 blockTimestampLast,
         int56 tickCumulativeLast,
         int56 oracleTickCumulativeLast,
+        uint24 tickCumulativeRateMax,
         uint32 fundingPeriod
     ) internal pure returns (Info memory) {
         // early exit if nothing to update
-        int56 tickCumulativeDeltaLast = oracleTickCumulativeLast -
-            tickCumulativeLast;
-        if (tickCumulativeDeltaLast == position.tickCumulativeDelta)
-            return position;
+        if (blockTimestampLast == position.blockTimestamp) return position;
 
+        // oracle tick - marginal tick (bar{a}_t - a_t)
+        int56 tickCumulativeDeltaLast = OracleLibrary.oracleTickCumulativeDelta(
+            tickCumulativeLast,
+            oracleTickCumulativeLast
+        ); // TODO: unchecked ok?
         (uint128 debt0, uint128 debt1) = debtsAfterFunding(
             position,
-            tickCumulativeLast,
-            oracleTickCumulativeLast,
+            blockTimestampLast,
+            tickCumulativeDeltaLast,
+            tickCumulativeRateMax,
             fundingPeriod
         );
+
         position.debt0 = debt0;
         position.debt1 = debt1;
+        position.blockTimestamp = blockTimestampLast;
         position.tickCumulativeDelta = tickCumulativeDeltaLast;
         return position;
     }
@@ -83,6 +91,7 @@ library Position {
         positionAfter.zeroForOne = position.zeroForOne;
         positionAfter.liquidated = true;
         positionAfter.tick = position.tick;
+        positionAfter.blockTimestamp = position.blockTimestamp;
         positionAfter.tickCumulativeDelta = position.tickCumulativeDelta;
     }
 
@@ -93,6 +102,7 @@ library Position {
         positionAfter.zeroForOne = position.zeroForOne;
         positionAfter.liquidated = position.liquidated;
         positionAfter.tick = position.tick;
+        positionAfter.blockTimestamp = position.blockTimestamp;
         positionAfter.tickCumulativeDelta = position.tickCumulativeDelta;
     }
 
@@ -105,11 +115,13 @@ library Position {
         uint128 liquidityDelta,
         bool zeroForOne,
         int24 tick,
+        uint32 blockTimestampStart,
         int56 tickCumulativeStart,
         int56 oracleTickCumulativeStart
     ) internal pure returns (Info memory position) {
         position.zeroForOne = zeroForOne;
-        position.tick = int56(tick);
+        position.tick = tick;
+        position.blockTimestamp = blockTimestampStart;
         position.tickCumulativeDelta =
             oracleTickCumulativeStart -
             tickCumulativeStart;
@@ -232,9 +244,7 @@ library Position {
         Info memory position,
         uint24 maintenance
     ) internal pure returns (uint128) {
-        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(
-            int24(position.tick)
-        ); // price before open
+        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(position.tick); // price before open
         if (!position.zeroForOne) {
             // cx >= (1+M) * dy / P - sx
             uint256 debt1Adjusted = (uint256(position.debt1) *
@@ -304,33 +314,41 @@ library Position {
     /// @dev Ref @with-backed/papr/src/UniswapOracleFundingRateController.sol#L156
     function debtsAfterFunding(
         Info memory position,
-        int56 tickCumulativeLast,
-        int56 oracleTickCumulativeLast,
+        uint32 blockTimestampLast,
+        int56 tickCumulativeDeltaLast,
+        uint24 tickCumulativeRateMax,
         uint32 fundingPeriod
     ) internal pure returns (uint128 debt0, uint128 debt1) {
-        // TODO: track last sync time in position info to impose bounds on avg funding rate?
-        int56 tickCumulativeDeltaLast = oracleTickCumulativeLast -
-            tickCumulativeLast;
+        int56 deltaMax = int56(uint56(tickCumulativeRateMax)) *
+            int56(uint56(blockTimestampLast - position.blockTimestamp)); // TODO: overflow issues?
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
-            // TODO: bounds on avg tick deltas
+            // delta = (a_t - bar{a}_t) - (a_0 - bar{a}_0), clamped by funding rate bounds
+            int56 delta = position.tickCumulativeDelta -
+                tickCumulativeDeltaLast; // TODO: overflow issues?
+            if (delta > deltaMax) delta = deltaMax;
+            else if (delta < -deltaMax) delta = -deltaMax;
+
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                -position.tickCumulativeDelta, // a_0 - bar{a}_0
-                -tickCumulativeDeltaLast, // a_t - bar{a}_t
-                fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
-            ); // (a_t - bar{a}_t) - (a_0 - bar{a}_0)
+                delta,
+                fundingPeriod / 2 // div by 2 given sqrt price result
+            );
             debt0 = position.debt0;
             debt1 = Math
                 .mulDiv(position.debt1, numeratorX96, FixedPoint96.Q96)
                 .toUint128();
         } else {
             // debt0Now = debt0Start * (bar{P} / P) ** (now - start) / fundingPeriod
-            // TODO: bounds on avg tick deltas
+            // delta = (bar{a}_t - a_t) - (bar{a}_0 - a_0), clamped by funding rate bounds
+            int56 delta = tickCumulativeDeltaLast -
+                position.tickCumulativeDelta; // TODO: overflow issues?
+            if (delta > deltaMax) delta = deltaMax;
+            else if (delta < -deltaMax) delta = -deltaMax;
+
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
-                position.tickCumulativeDelta, // bar{a}_0 - a_0
-                tickCumulativeDeltaLast, // bar{a}_t - a_t
-                fundingPeriod / 2 // TODO: check ok, particularly with tick range limits
-            ); // (bar{a}_t - a_t) - (bar{a}_0 - a_0)
+                delta,
+                fundingPeriod / 2 // div by 2 given sqrt price result
+            );
             debt0 = Math
                 .mulDiv(position.debt0, numeratorX96, FixedPoint96.Q96)
                 .toUint128();

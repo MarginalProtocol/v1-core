@@ -2,7 +2,12 @@ import pytest
 
 from math import sqrt
 
-from utils.constants import MAINTENANCE_UNIT, REWARD, FUNDING_PERIOD
+from utils.constants import (
+    MAINTENANCE_UNIT,
+    REWARD,
+    FUNDING_PERIOD,
+    TICK_CUMULATIVE_RATE_MAX,
+)
 from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
@@ -21,6 +26,8 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -35,6 +42,7 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -70,6 +78,8 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -84,6 +94,7 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -119,6 +130,8 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -133,6 +146,7 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -168,6 +182,8 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -182,6 +198,7 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -217,6 +234,8 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -231,6 +250,7 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -249,14 +269,20 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
-    position = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
-    )
 
+    position = position_lib.sync(
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
+    )
     result = position_lib.safe(
         position,
         sqrt_price_x96,
@@ -280,6 +306,8 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -294,6 +322,7 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -312,14 +341,20 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
-    position = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
-    )
 
+    position = position_lib.sync(
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
+    )
     result = position_lib.safe(
         position,
         sqrt_price_x96,
@@ -343,6 +378,8 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = True
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -357,6 +394,7 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -375,14 +413,20 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
-    position = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
-    )
 
+    position = position_lib.sync(
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
+    )
     result = position_lib.safe(
         position,
         sqrt_price_x96,
@@ -406,6 +450,8 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
 
     liquidity_delta = liquidity * 5 // 100
     zero_for_one = False
+
+    block_timestamp_start = rando_univ3_observations[0][0]
     tick_cumulative_start = rando_univ3_observations[0][1]
     oracle_tick_cumulative_start = rando_univ3_observations[0][1]
 
@@ -420,6 +466,7 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp_start,
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
@@ -438,14 +485,20 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
 
     time_delta = FUNDING_PERIOD // 2
+    block_timestamp_last = block_timestamp_start + time_delta
     tick_cumulative_last = tick_cumulative_start + (tick_next * time_delta)
     oracle_tick_cumulative_last = oracle_tick_cumulative_start + (
         oracle_tick * time_delta
     )
-    position = position_lib.sync(
-        position, tick_cumulative_last, oracle_tick_cumulative_last, FUNDING_PERIOD
-    )
 
+    position = position_lib.sync(
+        position,
+        block_timestamp_last,
+        tick_cumulative_last,
+        oracle_tick_cumulative_last,
+        TICK_CUMULATIVE_RATE_MAX,
+        FUNDING_PERIOD,
+    )
     result = position_lib.safe(
         position,
         sqrt_price_x96,

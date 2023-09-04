@@ -40,6 +40,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     uint24 public constant fee = 1000; // 10 bps across all pools
     uint24 public constant reward = 50000; // 5% of size added to min margin reqs
+    uint24 public constant tickCumulativeRateMax = 920; // bound on funding rate of ~10% per funding period
 
     uint32 public constant secondsAgo = 43200; // 12 hr TWAP for oracle price
     uint32 public constant fundingPeriod = 604800; // 7 day funding period
@@ -160,14 +161,18 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error InvalidShares();
     error InvalidFeeProtocol();
 
-    constructor() ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
-        (
-            factory,
-            token0,
-            token1,
-            maintenance,
-            oracle
-        ) = IMarginalV1PoolDeployer(msg.sender).params();
+    constructor(
+        address _factory,
+        address _token0,
+        address _token1,
+        uint24 _maintenance,
+        address _oracle
+    ) ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
+        factory = _factory;
+        token0 = _token0;
+        token1 = _token1;
+        maintenance = _maintenance;
+        oracle = _oracle;
 
         // reverts if not enough historical observations
         // TODO: enough of a check on hist obs?
@@ -218,10 +223,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function stateSynced() private view returns (State memory) {
         State memory _state = state;
         // oracle update
-        _state.tickCumulative +=
-            int56(_state.tick) *
-            int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // TODO: timestamp diff should be unchecked (allow overflow)?
-        _state.blockTimestamp = _blockTimestamp();
+        // TODO: test overflow
+        unchecked {
+            _state.tickCumulative +=
+                int56(_state.tick) *
+                int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // overflow desired
+            _state.blockTimestamp = _blockTimestamp();
+        }
         return _state;
     }
 
@@ -266,6 +274,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             liquidityDelta,
             zeroForOne,
             _state.tick,
+            _state.blockTimestamp,
             _state.tickCumulative,
             oracleTickCumulative
         );
@@ -274,7 +283,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             (zeroForOne ? position.debt0 == 0 : position.debt1 == 0)
         ) revert InvalidPosition(); // TODO: test
 
-        uint128 marginMinimum = position.marginMinimum(maintenance);
+        uint128 marginMinimum = position.marginMinimum(maintenance); // TODO: check marginMinimum > 0?
         if (margin < marginMinimum) revert MarginLessThanMin(marginMinimum);
         position.margin = margin;
 
@@ -393,8 +402,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // update debts for funding
         position = position.sync(
+            _state.blockTimestamp,
             _state.tickCumulative,
             oracleTickCumulative,
+            tickCumulativeRateMax,
             fundingPeriod
         );
         uint128 marginMinimum = position.marginMinimum(maintenance);
@@ -461,8 +472,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // update debts for funding
         position = position.sync(
+            _state.blockTimestamp,
             _state.tickCumulative,
             oracleTickCumulative,
+            tickCumulativeRateMax,
             fundingPeriod
         );
 
@@ -587,15 +600,19 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             secondsAgos
         );
         uint160 oracleSqrtPriceX96 = OracleLibrary.oracleSqrtPriceX96(
-            oracleTickCumulativesLast[0],
-            oracleTickCumulativesLast[1],
+            OracleLibrary.oracleTickCumulativeDelta(
+                oracleTickCumulativesLast[0],
+                oracleTickCumulativesLast[1]
+            ),
             secondsAgo
         );
 
         // update debts for funding
         position = position.sync(
+            _state.blockTimestamp,
             _state.tickCumulative,
             oracleTickCumulativesLast[1], // zero seconds ago
+            tickCumulativeRateMax,
             fundingPeriod
         );
         if (position.safe(oracleSqrtPriceX96, maintenance))

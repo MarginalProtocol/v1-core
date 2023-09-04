@@ -9,6 +9,7 @@ from utils.constants import (
     MIN_SQRT_RATIO,
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
+    TICK_CUMULATIVE_RATE_MAX,
 )
 from utils.utils import (
     get_position_key,
@@ -159,9 +160,11 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     position_lib,
     liquidity_math_lib,
     mock_univ3_pool,
+    chain,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
+    block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
     callee.adjust(
@@ -177,8 +180,10 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         state.tickCumulative,
         oracle_tick_cumulatives[0],
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
 
@@ -198,9 +203,11 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     position_lib,
     liquidity_math_lib,
     mock_univ3_pool,
+    chain,
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
+    block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
     callee.adjust(
@@ -216,8 +223,10 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         state.tickCumulative,
         oracle_tick_cumulatives[0],
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
 
@@ -733,6 +742,7 @@ def test_pool_adjust__with_fuzz(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     rewards = position_lib.liquidationRewards(position.size, reward)
     fees = position_lib.fees(position.size, fee)
@@ -783,8 +793,10 @@ def test_pool_adjust__with_fuzz(
     oracle_tick_cumulative = obs[1]
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         tick_cumulative,
         oracle_tick_cumulative,
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
     margin_min = position_lib.marginMinimum(position, maintenance)

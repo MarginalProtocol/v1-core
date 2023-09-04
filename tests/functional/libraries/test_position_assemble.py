@@ -14,6 +14,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
     liquidated = False
     tick_cumulative = 10000
     oracle_tick_cumulative = -100
+    block_timestamp = 1684675403
     margin = 0
 
     liquidity_delta = liquidity * 5 // 100
@@ -41,6 +42,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
         zero_for_one,
         liquidated,
         tick,
+        block_timestamp,
         oracle_tick_cumulative - tick_cumulative,
         margin,
         liquidity_delta,
@@ -52,6 +54,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -69,6 +72,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
     liquidated = False
     tick_cumulative = 10000
     oracle_tick_cumulative = -100
+    block_timestamp = 1684675403
     margin = 0
 
     liquidity_delta = liquidity * 5 // 100
@@ -96,6 +100,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
         zero_for_one,
         liquidated,
         tick,
+        block_timestamp,
         oracle_tick_cumulative - tick_cumulative,
         margin,
         liquidity_delta,
@@ -107,6 +112,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
         liquidity_delta,
         zero_for_one,
         tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )

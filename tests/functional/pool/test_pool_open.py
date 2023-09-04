@@ -73,6 +73,7 @@ def test_pool_open__updates_state_with_zero_for_one(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     fees1 = position_lib.fees(position.size, fee)
     state.liquidity -= liquidity_delta
@@ -164,6 +165,7 @@ def test_pool_open__updates_state_with_one_for_zero(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     fees0 = position_lib.fees(position.size, fee)
     state.liquidity -= liquidity_delta
@@ -238,6 +240,7 @@ def test_pool_open__updates_liquidity_locked_with_zero_for_one(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     position.margin = margin
 
@@ -300,6 +303,7 @@ def test_pool_open__updates_liquidity_locked_with_one_for_zero(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     position.margin = margin
 
@@ -352,6 +356,7 @@ def test_pool_open__sets_position_with_zero_for_one(
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
+    block_timestamp = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
     )
@@ -368,6 +373,7 @@ def test_pool_open__sets_position_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -428,6 +434,7 @@ def test_pool_open__sets_position_with_one_for_zero(
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
+    block_timestamp = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
         chain.pending_timestamp - state.blockTimestamp
     )
@@ -444,6 +451,7 @@ def test_pool_open__sets_position_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        block_timestamp,
         tick_cumulative,
         oracle_tick_cumulative,
     )
@@ -514,6 +522,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -591,6 +600,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -688,6 +698,7 @@ def test_pool_open__adds_protocol_fees_with_zero_for_one(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -793,6 +804,7 @@ def test_pool_open__adds_protocol_fees_with_one_for_zero(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     fees0 = position_lib.fees(position.size, fee)
     # factor in protocol fees
@@ -877,6 +889,7 @@ def test_pool_open__calls_open_callback_with_zero_for_one(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     fees = position_lib.fees(position.size, fee)
     rewards = position_lib.liquidationRewards(position.size, reward)
@@ -942,6 +955,7 @@ def test_pool_open__calls_open_callback_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -1540,6 +1554,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
         state.tick,
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
+        0,  # @dev irrelevant for this test
     )
     margin_min = position_lib.marginMinimum(position, maintenance)
     margin = margin_min - 1
@@ -1586,6 +1601,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
@@ -1677,6 +1693,7 @@ def test_pool_open__with_fuzz(
         liquidity_delta,
         zero_for_one,
         state.tick,
+        block_timestamp_next,
         tick_cumulative,
         oracle_tick_cumulative,
     )

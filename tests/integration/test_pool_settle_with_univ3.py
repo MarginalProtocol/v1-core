@@ -6,6 +6,7 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     FUNDING_PERIOD,
     REWARD,
+    TICK_CUMULATIVE_RATE_MAX,
 )
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
@@ -78,6 +79,8 @@ def test_pool_settle_with_univ3__sets_position(
     dt = FUNDING_PERIOD // 7
     chain.mine(deltatime=dt)
 
+    block_timestamp_next = chain.pending_timestamp
+
     callee.settle(
         mrglv1_pool_initialized_with_liquidity.address,
         alice.address,
@@ -90,8 +93,10 @@ def test_pool_settle_with_univ3__sets_position(
     oracle_tick_cumulatives, _ = univ3_pool.observe([0])
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         state.tickCumulative,
         oracle_tick_cumulatives[0],
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
 
@@ -133,6 +138,8 @@ def test_pool_settle_with_univ3__transfers_funds(
     balance0_sender = mrglv1_token0.balanceOf(sender.address)
     balance1_sender = mrglv1_token1.balanceOf(sender.address)
 
+    block_timestamp_next = chain.pending_timestamp
+
     callee.settle(
         mrglv1_pool_initialized_with_liquidity.address,
         sender.address,
@@ -145,8 +152,10 @@ def test_pool_settle_with_univ3__transfers_funds(
     oracle_tick_cumulatives, _ = univ3_pool.observe([0])
     position = position_lib.sync(
         position,
+        block_timestamp_next,
         state.tickCumulative,
         oracle_tick_cumulatives[0],
+        TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
     rewards = position_lib.liquidationRewards(position.size, REWARD)

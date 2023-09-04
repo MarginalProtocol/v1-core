@@ -26,15 +26,19 @@ contract MockPosition {
 
     function sync(
         Position.Info memory position,
+        uint32 blockTimestampLast,
         int56 tickCumulativeLast,
         int56 oracleTickCumulativeLast,
+        uint24 tickCumulativeRateMax,
         uint32 fundingPeriod
     ) external pure returns (Position.Info memory) {
         return
             Position.sync(
                 position,
+                blockTimestampLast,
                 tickCumulativeLast,
                 oracleTickCumulativeLast,
+                tickCumulativeRateMax,
                 fundingPeriod
             );
     }
@@ -58,6 +62,7 @@ contract MockPosition {
         uint128 liquidityDelta,
         bool zeroForOne,
         int24 tick,
+        uint32 blockTimestampStart,
         int56 tickCumulativeStart,
         int56 oracleTickCumulativeStart
     ) external view returns (Position.Info memory) {
@@ -69,6 +74,7 @@ contract MockPosition {
                 liquidityDelta,
                 zeroForOne,
                 tick,
+                blockTimestampStart,
                 tickCumulativeStart,
                 oracleTickCumulativeStart
             );
@@ -148,14 +154,16 @@ contract MockPosition {
 
     function debtsAfterFunding(
         Position.Info memory position,
-        int56 tickCumulativeLast,
-        int56 oracleTickCumulativeLast,
+        uint32 blockTimestampLast,
+        int56 tickCumulativeDeltaLast,
+        uint24 tickCumulativeRateMax,
         uint32 fundingPeriod
     ) external pure returns (uint128 debt0, uint128 debt1) {
         return
             position.debtsAfterFunding(
-                tickCumulativeLast,
-                oracleTickCumulativeLast,
+                blockTimestampLast,
+                tickCumulativeDeltaLast,
+                tickCumulativeRateMax,
                 fundingPeriod
             );
     }

@@ -5,15 +5,20 @@ import {OracleLibrary} from "../../../libraries/OracleLibrary.sol";
 
 contract MockOracleLibrary {
     function oracleSqrtPriceX96(
-        int56 tickCumulativeStart,
-        int56 tickCumulativeEnd,
+        int56 tickCumulativeDelta,
         uint32 timeDelta
     ) external pure returns (uint160) {
+        return OracleLibrary.oracleSqrtPriceX96(tickCumulativeDelta, timeDelta);
+    }
+
+    function oracleTickCumulativeDelta(
+        int56 tickCumulativeStart,
+        int56 tickCumulativeEnd
+    ) external pure returns (int56) {
         return
-            OracleLibrary.oracleSqrtPriceX96(
+            OracleLibrary.oracleTickCumulativeDelta(
                 tickCumulativeStart,
-                tickCumulativeEnd,
-                timeDelta
+                tickCumulativeEnd
             );
     }
 }
