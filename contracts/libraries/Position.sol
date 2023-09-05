@@ -328,8 +328,10 @@ library Position {
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
             // delta = (a_t - bar{a}_t) - (a_0 - bar{a}_0), clamped by funding rate bounds
-            int56 delta = position.tickCumulativeDelta -
-                tickCumulativeDeltaLast; // TODO: overflow issues?
+            int56 delta = OracleLibrary.oracleTickCumulativeDelta(
+                tickCumulativeDeltaLast,
+                position.tickCumulativeDelta
+            ); // TODO: unchecked ok?
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
@@ -344,8 +346,10 @@ library Position {
         } else {
             // debt0Now = debt0Start * (bar{P} / P) ** (now - start) / fundingPeriod
             // delta = (bar{a}_t - a_t) - (bar{a}_0 - a_0), clamped by funding rate bounds
-            int56 delta = tickCumulativeDeltaLast -
-                position.tickCumulativeDelta; // TODO: overflow issues?
+            int56 delta = OracleLibrary.oracleTickCumulativeDelta(
+                position.tickCumulativeDelta,
+                tickCumulativeDeltaLast
+            ); // TODO: unchecked ok?
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
