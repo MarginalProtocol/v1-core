@@ -185,9 +185,7 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount1_out_
     amount0 = reserve0 * 100 // 10000  # 1% of liquidity added
     amount1 = -reserve1
 
-    # TODO: fix issues w gh actions
-    # TODO: with reverts(sqrt_price_math_lib.Amount1ExceedsReserve1):
-    with reverts():
+    with reverts(sqrt_price_math_lib.Amount1ExceedsReserve1):
         liquidity_math_lib.liquiditySqrtPriceX96Next(
             liquidity,
             sqrt_price_x96,
@@ -207,9 +205,7 @@ def test_liquidity_math_liquidity_sqrt_price_x96_next__reverts_when_amount0_out_
     amount0 = -reserve0
     amount1 = reserve1 * 100 // 10000  # 1% of liquidity added
 
-    # TODO: fix issues w gh actions
-    # TODO: with reverts(sqrt_price_math_lib.Amount0ExceedsReserve0):
-    with reverts():
+    with reverts(sqrt_price_math_lib.Amount0ExceedsReserve0):
         liquidity_math_lib.liquiditySqrtPriceX96Next(
             liquidity,
             sqrt_price_x96,
