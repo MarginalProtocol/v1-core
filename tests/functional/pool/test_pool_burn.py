@@ -619,3 +619,183 @@ def test_pool_burn__after_initial_mint_with_fuzz(
 
     # revert to chain state prior to fuzz run
     chain.restore(snapshot)
+
+
+@pytest.mark.fuzzing
+@settings(deadline=timedelta(milliseconds=1000))
+@given(
+    liquidity_delta=st.integers(min_value=1, max_value=2**128 - 1),
+    zero_for_one=st.booleans(),
+    shares_pc=st.integers(min_value=1, max_value=1000000000),
+)
+def test_pool_burn__after_multiple_mint_with_fuzz(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    liquidity_delta,
+    zero_for_one,
+    shares_pc,
+    chain,
+):
+    # @dev needed to reset chain state at end of function for each fuzz run
+    snapshot = chain.snapshot()
+
+    # open a position so some liquidity locked
+    state = pool_initialized_with_liquidity.state()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+
+    assert state.liquidity > 0
+    assert pool_initialized_with_liquidity.totalSupply() > 0
+    assert state.totalPositions == 0
+
+    maintenance = pool_initialized_with_liquidity.maintenance()
+    liquidity_delta_open = state.liquidity * 10 // 100  # 10% of available liquidity
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1 if zero_for_one else MAX_SQRT_RATIO - 1
+
+    (amount0_open, amount1_open) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta_open, state.sqrtPriceX96
+    )
+    amount_open = amount1_open if zero_for_one else amount0_open
+
+    size = int(
+        amount_open
+        * maintenance
+        / (maintenance + MAINTENANCE_UNIT - liquidity_delta_open / state.liquidity)
+    )
+    margin = int(2 * size) * maintenance // MAINTENANCE_UNIT  # 2x for breathing room
+    callee.open(
+        pool_initialized_with_liquidity.address,
+        callee.address,
+        zero_for_one,
+        liquidity_delta_open,
+        sqrt_price_limit_x96,
+        margin,
+        sender=sender,
+    )
+
+    # check liquidity locked after open
+    liquidity_locked += liquidity_delta_open
+    result_liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+
+    assert result_liquidity_locked == liquidity_locked
+
+    # mint large number of tokens to sender to avoid balance issues
+    state = pool_initialized_with_liquidity.state()
+    balance0_sender = token0.balanceOf(sender.address)
+    balance1_sender = token1.balanceOf(sender.address)
+    token0.mint(sender.address, 2**255 - 1 - balance0_sender, sender=sender)
+    token1.mint(sender.address, 2**255 - 1 - balance1_sender, sender=sender)
+
+    # set up fuzz test of burn after second mint
+    shares_alice = pool_initialized_with_liquidity.balanceOf(alice.address)
+    total_supply = pool_initialized_with_liquidity.totalSupply()
+
+    # adjust liquidity delta is will make totalLiquidityAfter > uint128
+    if liquidity_delta + liquidity_locked + state.liquidity > 2**128 - 1:
+        liquidity_delta = 2**128 - 1 - liquidity_locked - state.liquidity
+    elif liquidity_delta <= (state.liquidity + liquidity_locked) // total_supply:
+        liquidity_delta = (state.liquidity + liquidity_locked) // total_supply + 1
+
+    shares = (total_supply * liquidity_delta) // (state.liquidity + liquidity_locked)
+    params = (
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        liquidity_delta,
+    )
+
+    # prep for burn
+    shares_burned = (shares * shares_pc) // 1000000000
+    if shares_burned == 0:
+        shares_burned += 1
+
+    callee.mint(*params, sender=sender)
+
+    # check mint produced expected results
+    shares_alice += shares
+    total_supply += shares
+
+    assert shares_alice == pool_initialized_with_liquidity.balanceOf(alice.address)
+    assert total_supply == pool_initialized_with_liquidity.totalSupply()
+
+    # balances prior
+    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balance0_bob = token0.balanceOf(bob.address)
+    balance1_bob = token1.balanceOf(bob.address)
+
+    # state prior
+    state = pool_initialized_with_liquidity.state()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
+    total_liquidity = state.liquidity + liquidity_locked
+    liquidity_delta_burned = (total_liquidity * shares_burned) // total_supply
+    (amount0_received, amount1_received) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta_burned, state.sqrtPriceX96
+    )
+
+    params = (bob.address, shares_burned)
+    tx = pool_initialized_with_liquidity.burn(*params, sender=alice)
+
+    assert tx.return_value[0] == liquidity_delta_burned
+    assert tx.return_value[1] == amount0_received
+    assert tx.return_value[2] == amount1_received
+
+    # check pool state transition (including liquidity locked)
+    state.liquidity -= liquidity_delta_burned
+    state.tickCumulative = tick_cumulative_next
+    state.blockTimestamp = block_timestamp_next
+    result_state = pool_initialized_with_liquidity.state()
+
+    assert result_state == state
+
+    liquidity_locked += 0
+    result_liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+
+    assert result_liquidity_locked == liquidity_locked
+
+    # check balances (including lp shares)
+    shares_alice -= shares_burned
+    total_supply -= shares_burned
+    result_shares_alice = pool_initialized_with_liquidity.balanceOf(alice.address)
+    result_total_supply = pool_initialized_with_liquidity.totalSupply()
+
+    assert result_shares_alice == shares_alice
+    assert result_total_supply == total_supply
+
+    balance0_pool -= amount0_received
+    balance1_pool -= amount1_received
+    balance0_bob += amount0_received
+    balance1_bob += amount1_received
+
+    result_balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
+    result_balance0_bob = token0.balanceOf(bob.address)
+    result_balance1_bob = token1.balanceOf(bob.address)
+
+    assert result_balance0_pool == balance0_pool
+    assert result_balance1_pool == balance1_pool
+    assert result_balance0_bob == balance0_bob
+    assert result_balance1_bob == balance1_bob
+
+    # check events
+    events = tx.decode_logs(pool_initialized_with_liquidity.Burn)
+    assert len(events) == 1
+    event = events[0]
+
+    assert event.owner == alice.address
+    assert event.recipient == bob.address
+    assert event.liquidityDelta == liquidity_delta_burned
+    assert event.amount0 == amount0_received
+    assert event.amount1 == amount1_received
+
+    # revert to chain state prior to fuzz run
+    chain.restore(snapshot)
