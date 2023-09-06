@@ -283,8 +283,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             (zeroForOne ? position.debt0 == 0 : position.debt1 == 0)
         ) revert InvalidPosition(); // TODO: test
 
-        uint128 marginMinimum = position.marginMinimum(maintenance); // TODO: check marginMinimum > 0?
-        if (margin < marginMinimum) revert MarginLessThanMin(marginMinimum);
+        uint128 marginMinimum = position.marginMinimum(maintenance);
+        if (marginMinimum == 0 || margin < marginMinimum)
+            revert MarginLessThanMin(marginMinimum); // TODO: test marginMinimum == 0
         position.margin = margin;
 
         _state.liquidity -= liquidityDelta;
@@ -300,7 +301,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 position.size,
                 reward
             );
-            uint256 amount0 = uint256(margin) + fees0 + rewards0;
+            uint256 amount0 = uint256(margin) + fees0 + rewards0; // TODO: check fees, rewards > 0?
 
             uint256 balance0Before = balance0();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -336,7 +337,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 position.size,
                 reward
             );
-            uint256 amount1 = uint256(margin) + fees1 + rewards1;
+            uint256 amount1 = uint256(margin) + fees1 + rewards1; // TODO: check fees, rewards > 0?
 
             uint256 balance1Before = balance1();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
