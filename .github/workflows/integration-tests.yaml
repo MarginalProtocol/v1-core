@@ -29,5 +29,7 @@ jobs:
           version: nightly
 
       - name: Run tests
-        run: ape test -s -m "not fuzzing and not integration" --cache-clear
+        env:
+          WEB3_ALCHEMY_PROJECT_ID: ${{ secrets.WEB3_ALCHEMY_PROJECT_ID }}
+        run: ape test -s -m "integration" --network ethereum:mainnet-fork:foundry --cache-clear
         timeout-minutes: 15

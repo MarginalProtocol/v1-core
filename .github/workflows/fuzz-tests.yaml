@@ -29,5 +29,5 @@ jobs:
           version: nightly
 
       - name: Run tests
-        run: ape test -s -m "not fuzzing and not integration" --cache-clear
+        run: ape test -s -m "fuzzing and not integration" --cache-clear
         timeout-minutes: 15
