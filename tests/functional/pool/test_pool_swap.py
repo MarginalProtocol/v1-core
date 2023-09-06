@@ -215,6 +215,9 @@ def test_pool_swap__updates_state_with_exact_output_zero_for_one(
     fees0 = swap_math_lib.swapFees(amount0, fee)
     amount0 += fees0
 
+    # set amount out to amount specified as exact output
+    amount1 = amount_specified
+
     (
         liquidity_after,
         sqrt_price_x96_after,
@@ -293,6 +296,9 @@ def test_pool_swap__updates_state_with_exact_output_one_for_zero(
     # include swap fees ignoring protocol fee (== 0)
     fees1 = swap_math_lib.swapFees(amount1, fee)
     amount1 += fees1
+
+    # set amount out to amount specified as exact output
+    amount0 = amount_specified
 
     (
         liquidity_after,
@@ -507,6 +513,9 @@ def test_pool_swap__transfers_funds_with_exact_output_zero_for_one(
     fees0 = swap_math_lib.swapFees(amount0, fee)
     amount0 += fees0
 
+    # set amount out to amount specified as exact output
+    amount1 = amount_specified
+
     balance0_sender = token0.balanceOf(sender.address)
     balance1_alice = token1.balanceOf(alice.address)
 
@@ -572,6 +581,9 @@ def test_pool_swap__transfers_funds_with_exact_output_one_for_zero(
     # include swap fees ignoring protocol fee (== 0)
     fees1 = swap_math_lib.swapFees(amount1, fee)
     amount1 += fees1
+
+    # set amount out to amount specified as exact output
+    amount0 = amount_specified
 
     balance1_sender = token1.balanceOf(sender.address)
     balance0_alice = token0.balanceOf(alice.address)
@@ -1003,6 +1015,9 @@ def test_pool_swap__calls_swap_callback_with_exact_output_zero_for_one(
     fees0 = swap_math_lib.swapFees(amount0, fee)
     amount0 += fees0
 
+    # set amount out to amount specified as exact output
+    amount1 = amount_specified
+
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
         alice.address,
@@ -1058,6 +1073,9 @@ def test_pool_swap__calls_swap_callback_with_exact_output_one_for_zero(
     # include swap fees ignoring protocol fee (== 0)
     fees1 = swap_math_lib.swapFees(amount1, fee)
     amount1 += fees1
+
+    # set amount out to amount specified as exact output
+    amount0 = amount_specified
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -1249,6 +1267,9 @@ def test_pool_swap__emits_swap_with_exact_output_zero_for_one(
     fees0 = swap_math_lib.swapFees(amount0, fee)
     amount0 += fees0
 
+    # set amount out to amount specified as exact output
+    amount1 = amount_specified
+
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
         alice.address,
@@ -1312,6 +1333,9 @@ def test_pool_swap__emits_swap_with_exact_output_one_for_zero(
     # include swap fees ignoring protocol fee (== 0)
     fees1 = swap_math_lib.swapFees(amount1, fee)
     amount1 += fees1
+
+    # set amount out to amount specified as exact output
+    amount0 = amount_specified
 
     tx = callee.swap(
         pool_initialized_with_liquidity.address,
@@ -1706,6 +1730,11 @@ def test_pool_swap__with_fuzz(
     fees1 = 0 if zero_for_one else fees
     amount0 += fees0
     amount1 += fees1
+
+    # set amount out to amount specified as exact output
+    if not exact_input:
+        amount0 = amount0 if zero_for_one else amount_specified
+        amount1 = amount_specified if zero_for_one else amount1
 
     params = (
         pool_initialized_with_liquidity.address,

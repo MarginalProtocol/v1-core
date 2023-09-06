@@ -242,7 +242,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         bytes calldata data
     ) external lock returns (uint256 id, uint256 size, uint256 debt) {
         State memory _state = stateSynced();
-        if (liquidityDelta >= _state.liquidity) revert InvalidLiquidityDelta(); // TODO: min liquidity, min liquidity delta (size)
+        if (liquidityDelta == 0 || liquidityDelta >= _state.liquidity)
+            revert InvalidLiquidityDelta(); // TODO: test liquidityDelta == 0
         if (
             zeroForOne
                 ? !(sqrtPriceLimitX96 < _state.sqrtPriceX96 &&
@@ -696,7 +697,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         ) revert SqrtPriceX96ExceedsLimit();
 
         // amounts without fees
-        // TODO: fix rounding issues so exact output == amount specified
         (amount0, amount1) = SwapMath.swapAmounts(
             _state.liquidity,
             _state.sqrtPriceX96,
@@ -705,6 +705,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // optimistic amount out with callback for amount in
         if (!zeroForOne) {
+            amount0 = !exactInput ? amountSpecified : amount0; // in case of rounding issues TODO: test
             if (amount0 < 0)
                 TransferHelper.safeTransfer(
                     token0,
@@ -723,8 +724,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 amount1,
                 data
             );
-            if (balance1Before + uint256(amount1) > balance1())
-                revert Amount1LessThanMin();
+            if (amount1 == 0 || balance1Before + uint256(amount1) > balance1())
+                revert Amount1LessThanMin(); // TODO: test amount1 == 0
 
             // account for protocol fees if fee on
             uint256 delta = _state.feeProtocol > 0
@@ -744,6 +745,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.sqrtPriceX96 = sqrtPriceX96After;
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         } else {
+            amount1 = !exactInput ? amountSpecified : amount1; // in case of rounding issues TODO: test
             if (amount1 < 0)
                 TransferHelper.safeTransfer(
                     token1,
@@ -762,8 +764,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 amount1,
                 data
             );
-            if (balance0Before + uint256(amount0) > balance0())
-                revert Amount0LessThanMin();
+            if (amount0 == 0 || balance0Before + uint256(amount0) > balance0())
+                revert Amount0LessThanMin(); // TODO: test amount0 == 0
 
             // account for protocol fees if fee on
             uint256 delta = _state.feeProtocol > 0
