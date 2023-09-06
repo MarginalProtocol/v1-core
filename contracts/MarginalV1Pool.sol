@@ -151,8 +151,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error Initialized();
     error InvalidLiquidityDelta();
     error InvalidSqrtPriceLimitX96();
-    error SqrtPriceX96ExceedsLimit(uint160 sqrtPriceX96Next);
-    error MarginLessThanMin(uint128 marginMinimum);
+    error SqrtPriceX96ExceedsLimit();
+    error MarginLessThanMin();
     error Amount0LessThanMin();
     error Amount1LessThanMin();
     error InvalidPosition();
@@ -262,7 +262,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             zeroForOne
                 ? sqrtPriceX96Next < sqrtPriceLimitX96
                 : sqrtPriceX96Next > sqrtPriceLimitX96
-        ) revert SqrtPriceX96ExceedsLimit(sqrtPriceX96Next);
+        ) revert SqrtPriceX96ExceedsLimit();
 
         // zero seconds ago for oracle tickCumulative
         int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
@@ -285,7 +285,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (marginMinimum == 0 || margin < marginMinimum)
-            revert MarginLessThanMin(marginMinimum); // TODO: test marginMinimum == 0
+            revert MarginLessThanMin(); // TODO: test marginMinimum == 0
         position.margin = margin;
 
         _state.liquidity -= liquidityDelta;
@@ -414,7 +414,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             !(marginDelta > 0 ||
                 uint256(position.margin) >=
                 uint256(uint128(-marginDelta)) + uint256(marginMinimum))
-        ) revert MarginLessThanMin(marginMinimum);
+        ) revert MarginLessThanMin();
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
@@ -693,7 +693,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             zeroForOne
                 ? sqrtPriceX96Next < sqrtPriceLimitX96
                 : sqrtPriceX96Next > sqrtPriceLimitX96
-        ) revert SqrtPriceX96ExceedsLimit(sqrtPriceX96Next);
+        ) revert SqrtPriceX96ExceedsLimit();
 
         // amounts without fees
         // TODO: fix rounding issues so exact output == amount specified

@@ -547,7 +547,6 @@ def test_pool_adjust__reverts_when_not_position_id(
         )
 
 
-# TODO: test with position lib margin min
 def test_pool_adjust__reverts_when_margin_out_greater_than_position_margin(
     pool_initialized_with_liquidity,
     callee,

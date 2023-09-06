@@ -1374,10 +1374,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next + 1
 
-    with reverts(
-        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
-        sqrtPriceX96Next=sqrt_price_x96_next,
-    ):
+    with reverts(pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1426,10 +1423,7 @@ def test_pool_open__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next - 1
 
-    with reverts(
-        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
-        sqrtPriceX96Next=sqrt_price_x96_next,
-    ):
+    with reverts(pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1559,9 +1553,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_zero_for_one(
     margin_min = position_lib.marginMinimum(position, maintenance)
     margin = margin_min - 1
 
-    with reverts(
-        pool_initialized_with_liquidity.MarginLessThanMin, marginMinimum=margin_min
-    ):
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1608,9 +1600,7 @@ def test_pool_open__reverts_when_margin_less_than_min_with_one_for_zero(
     margin_min = position_lib.marginMinimum(position, maintenance)
     margin = margin_min - 1
 
-    with reverts(
-        pool_initialized_with_liquidity.MarginLessThanMin, marginMinimum=margin_min
-    ):
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
         callee.open(
             pool_initialized_with_liquidity.address,
             alice.address,

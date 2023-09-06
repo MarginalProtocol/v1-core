@@ -1495,10 +1495,7 @@ def test_pool_swap__reverts_when_sqrt_price_x96_next_less_than_sqrt_price_limit_
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next + 1
 
-    with reverts(
-        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
-        sqrtPriceX96Next=sqrt_price_x96_next,
-    ):
+    with reverts(pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
@@ -1536,10 +1533,7 @@ def test_pool_swap__reverts_when_sqrt_price_x96_next_greater_than_sqrt_price_lim
     )
     sqrt_price_limit_x96 = sqrt_price_x96_next - 1
 
-    with reverts(
-        pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit,
-        sqrtPriceX96Next=sqrt_price_x96_next,
-    ):
+    with reverts(pool_initialized_with_liquidity.SqrtPriceX96ExceedsLimit):
         callee.swap(
             pool_initialized_with_liquidity.address,
             alice.address,
