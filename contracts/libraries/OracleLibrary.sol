@@ -5,7 +5,6 @@ import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
 library OracleLibrary {
     /// @dev Rounds toward zero for both positive and negative tick delta
-    // TODO: retest
     function oracleSqrtPriceX96(
         int56 tickCumulativeDelta,
         uint32 timeDelta
@@ -19,12 +18,10 @@ library OracleLibrary {
         return TickMath.getSqrtRatioAtTick(arithmeticMeanTick);
     }
 
-    // TODO: test
     function oracleTickCumulativeDelta(
         int56 tickCumulativeStart,
         int56 tickCumulativeEnd
     ) internal pure returns (int56) {
-        // TODO: unchecked ok? should be
         unchecked {
             return tickCumulativeEnd - tickCumulativeStart;
         }
