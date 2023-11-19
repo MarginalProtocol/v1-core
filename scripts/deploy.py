@@ -21,16 +21,23 @@ def main():
     publish = click.prompt("Publish to Etherscan?", default=False)
 
     # deploy marginal v1 deployer if not provided
-    click.echo("Deploying Marginal v1 pool deployer ...")
-    pool_deployer = project.MarginalV1PoolDeployer.deploy(
-        sender=deployer, publish=publish
-    )
-    click.echo(f"Deployed Marginal v1 pool deployer to {pool_deployer.address}")
+    pool_deployer_address = None
+    if click.confirm("Deploy Marginal v1 pool deployer?"):
+        click.echo("Deploying Marginal v1 pool deployer ...")
+        pool_deployer = project.MarginalV1PoolDeployer.deploy(
+            sender=deployer, publish=publish
+        )
+        pool_deployer_address = pool_deployer.address
+        click.echo(f"Deployed Marginal v1 pool deployer to {pool_deployer_address}")
+    else:
+        pool_deployer_address = click.prompt(
+            "Marginal v1 pool deployer address", type=str
+        )
 
     # deploy marginal v1 factory
     click.echo("Deploying Marginal v1 factory ...")
     factory = project.MarginalV1Factory.deploy(
-        pool_deployer.address,
+        pool_deployer_address,
         univ3_factory_addr,
         univ3_obs_cardinality_min,
         sender=deployer,
