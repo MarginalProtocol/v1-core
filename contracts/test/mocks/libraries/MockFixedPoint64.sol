@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.17;
 
 import {FixedPoint64} from "../../../libraries/FixedPoint64.sol";
