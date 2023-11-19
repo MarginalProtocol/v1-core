@@ -2,9 +2,15 @@ name: v1-core
 
 plugins:
   - name: alchemy
+    version: 0.6.2
   - name: etherscan
+    version: 0.6.10
   - name: solidity
+    version: 0.6.9
   - name: foundry
+    version: 0.6.12
+  - name: arbitrum
+    version: 0.6.1
 
 default_ecosystem: ethereum
 
@@ -28,7 +34,6 @@ dependencies:
     ref: 0.8
 
 solidity:
-  runs: 200
   via_ir: true
   import_remapping:
     - "@openzeppelin/contracts=openzeppelin/v4.8.3"
