@@ -4,7 +4,7 @@ plugins:
   - name: alchemy
     version: 0.6.2
   - name: etherscan
-    version: 0.6.10
+    version: 0.6.7
   - name: solidity
     version: 0.6.9
   - name: foundry
