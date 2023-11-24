@@ -169,7 +169,7 @@ def create_pool(project, accounts, factory):
         tx = factory.createPool(
             token_a, token_b, maintenance, univ3_fee, sender=accounts[0]
         )
-        pool_address = tx.return_value
+        pool_address = tx.decode_logs(factory.PoolCreated)[0].pool
         return project.MarginalV1Pool.at(pool_address)
 
     yield create_pool

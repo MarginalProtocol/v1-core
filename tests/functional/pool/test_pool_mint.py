@@ -237,7 +237,13 @@ def test_pool_mint__transfers_funds(
 
     assert token0.balanceOf(pool_initialized.address) == amount0
     assert token1.balanceOf(pool_initialized.address) == amount1
-    assert tx.return_value == (shares, amount0, amount1)
+
+    return_log = tx.decode_logs(callee.MintReturn)[0]
+    assert (return_log.shares, return_log.amount0, return_log.amount1) == (
+        shares,
+        amount0,
+        amount1,
+    )
 
     assert token0.balanceOf(sender.address) == sender_balance0 - amount0
     assert token1.balanceOf(sender.address) == sender_balance1 - amount1
@@ -410,10 +416,11 @@ def test_pool_mint__initial_mint_with_fuzz(
         liquidity_delta,
     )
     tx = callee.mint(*params, sender=sender)
+    return_log = tx.decode_logs(callee.MintReturn)[0]
 
-    assert tx.return_value[0] == shares
-    assert tx.return_value[1] == amount0
-    assert tx.return_value[2] == amount1
+    assert return_log.shares == shares
+    assert return_log.amount0 == amount0
+    assert return_log.amount1 == amount1
 
     # check pool state transition (including liquidity locked)
     state.liquidity += liquidity_delta
@@ -564,10 +571,11 @@ def test_pool_mint__multiple_mint_with_fuzz(
         liquidity_delta,
     )
     tx = callee.mint(*params, sender=sender)
+    return_log = tx.decode_logs(callee.MintReturn)[0]
 
-    assert tx.return_value[0] == shares
-    assert tx.return_value[1] == amount0
-    assert tx.return_value[2] == amount1
+    assert return_log.shares == shares
+    assert return_log.amount0 == amount0
+    assert return_log.amount1 == amount1
 
     # check pool state transition (including liquidity locked)
     state.liquidity += liquidity_delta

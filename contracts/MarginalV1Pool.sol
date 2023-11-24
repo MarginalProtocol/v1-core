@@ -240,7 +240,17 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint160 sqrtPriceLimitX96,
         uint128 margin,
         bytes calldata data
-    ) external lock returns (uint256 id, uint256 size, uint256 debt) {
+    )
+        external
+        lock
+        returns (
+            uint256 id,
+            uint256 size,
+            uint256 debt,
+            uint256 amount0,
+            uint256 amount1
+        )
+    {
         State memory _state = stateSynced();
         if (liquidityDelta == 0 || liquidityDelta >= _state.liquidity)
             revert InvalidLiquidityDelta(); // TODO: test liquidityDelta == 0
@@ -302,7 +312,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 position.size,
                 reward
             );
-            uint256 amount0 = uint256(margin) + fees0 + rewards0; // TODO: check fees, rewards > 0?
+            amount0 = uint256(margin) + fees0 + rewards0; // TODO: check fees, rewards > 0?
 
             uint256 balance0Before = balance0();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -338,7 +348,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 position.size,
                 reward
             );
-            uint256 amount1 = uint256(margin) + fees1 + rewards1; // TODO: check fees, rewards > 0?
+            amount1 = uint256(margin) + fees1 + rewards1; // TODO: check fees, rewards > 0?
 
             uint256 balance1Before = balance1();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(

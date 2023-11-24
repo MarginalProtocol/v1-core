@@ -51,7 +51,8 @@ def open_position(
             margin,
             sender=sender,
         )
-        return int(tx.return_value[0])
+        id = tx.decode_logs(mrglv1_pool_initialized_with_liquidity.Open)[0].id
+        return int(id)
 
     yield open
 

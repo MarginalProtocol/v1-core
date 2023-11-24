@@ -74,7 +74,15 @@ interface IMarginalV1Pool is IERC20 {
         uint160 sqrtPriceLimitX96,
         uint128 margin,
         bytes calldata data
-    ) external returns (uint256 id, uint256 size, uint256 debt);
+    )
+        external
+        returns (
+            uint256 id,
+            uint256 size,
+            uint256 debt,
+            uint256 amount0,
+            uint256 amount1
+        );
 
     function adjust(
         address recipient,

@@ -337,7 +337,6 @@ def test_pool_open__sets_position_with_zero_for_one(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    reward = pool_initialized_with_liquidity.reward()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -377,9 +376,6 @@ def test_pool_open__sets_position_with_zero_for_one(
         tick_cumulative,
         oracle_tick_cumulative,
     )
-    rewards = position_lib.liquidationRewards(position.size, reward)
-
-    position.rewards = rewards
     position.margin = margin
 
     id = state.totalPositions
@@ -393,11 +389,12 @@ def test_pool_open__sets_position_with_zero_for_one(
         margin,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.OpenReturn)[0]
 
     result = pool_initialized_with_liquidity.positions(key)
-    assert tx.return_value[0] == id
-    assert tx.return_value[1] == position.size
-    assert tx.return_value[2] == position.debt0
+    assert return_log.id == id
+    assert return_log.size == position.size
+    assert return_log.debt == position.debt0
     assert result == position
 
 
@@ -415,7 +412,6 @@ def test_pool_open__sets_position_with_one_for_zero(
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    reward = pool_initialized_with_liquidity.reward()
 
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
@@ -455,9 +451,6 @@ def test_pool_open__sets_position_with_one_for_zero(
         tick_cumulative,
         oracle_tick_cumulative,
     )
-    rewards = position_lib.liquidationRewards(position.size, reward)
-
-    position.rewards = rewards
     position.margin = margin
 
     id = state.totalPositions
@@ -471,11 +464,12 @@ def test_pool_open__sets_position_with_one_for_zero(
         margin,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.OpenReturn)[0]
 
     result = pool_initialized_with_liquidity.positions(key)
-    assert tx.return_value[0] == id
-    assert tx.return_value[1] == position.size
-    assert tx.return_value[2] == position.debt1
+    assert return_log.id == id
+    assert return_log.size == position.size
+    assert return_log.debt == position.debt1
     assert result == position
 
 
@@ -534,7 +528,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    callee.open(
+    tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one,
@@ -543,6 +537,7 @@ def test_pool_open__transfers_funds_with_zero_for_one(
         margin,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.OpenReturn)[0]
 
     amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0_pool
     amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1_pool
@@ -550,6 +545,8 @@ def test_pool_open__transfers_funds_with_zero_for_one(
     # callee sends margin + fees + rewards in margin token
     assert amount0 == 0
     assert amount1 == margin + fees + rewards
+    assert return_log.amount0 == 0
+    assert return_log.amount1 == margin + fees + rewards
 
     balance0_sender -= amount0
     balance1_sender -= amount1
@@ -612,7 +609,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    callee.open(
+    tx = callee.open(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one,
@@ -621,6 +618,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
         margin,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.OpenReturn)[0]
 
     amount0 = token0.balanceOf(pool_initialized_with_liquidity.address) - balance0_pool
     amount1 = token1.balanceOf(pool_initialized_with_liquidity.address) - balance1_pool
@@ -628,6 +626,8 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     # callee sends margin + fees + rewards in margin token
     assert amount0 == margin + fees + rewards
     assert amount1 == 0
+    assert return_log.amount0 == margin + fees + rewards
+    assert return_log.amount1 == 0
 
     balance0_sender -= amount0
     balance1_sender -= amount1
@@ -1022,7 +1022,7 @@ def test_pool_open__emits_open_with_zero_for_one(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id, _, _ = tx.return_value
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1
@@ -1077,7 +1077,7 @@ def test_pool_open__emits_open_with_one_for_zero(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id, _, _ = tx.return_value
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1
@@ -1713,8 +1713,13 @@ def test_pool_open__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
+    return_log = tx.decode_logs(callee.OpenReturn)[0]
 
-    id, size, debt = tx.return_value
+    id = return_log.id
+    size = return_log.size
+    debt = return_log.debt
+    amount0_returned = return_log.amount0
+    amount1_returned = return_log.amount1
     assert id == state.totalPositions
 
     key = get_position_key(alice.address, id)
@@ -1723,6 +1728,15 @@ def test_pool_open__with_fuzz(
     assert size == result_position.size
     assert margin == result_position.margin
     assert debt == (result_position.debt0 if zero_for_one else result_position.debt1)
+
+    result_rewards = position_lib.liquidationRewards(result_position.size, reward)
+    result_fees = position_lib.fees(result_position.size, fee)
+    assert amount0_returned == (
+        0 if zero_for_one else result_position.margin + result_rewards + result_fees
+    )
+    assert amount1_returned == (
+        result_position.margin + result_rewards + result_fees if zero_for_one else 0
+    )
 
     # check pool state transition
     state.liquidity -= liquidity_delta

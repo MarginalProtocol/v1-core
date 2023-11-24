@@ -30,7 +30,8 @@ def test_create_pool__deploys_pool_contract(
         rando_univ3_fee,
         sender=alice,
     )
-    pool = project.MarginalV1Pool.at(tx.return_value)
+    pool_address = tx.decode_logs(factory.PoolCreated)[0].pool
+    pool = project.MarginalV1Pool.at(pool_address)
 
     assert pool.factory() == factory.address
     assert pool.token0() == rando_token_a_address
@@ -63,7 +64,7 @@ def test_create_pool__stores_pool_address(
         rando_univ3_fee,
         sender=alice,
     )
-    pool_address = tx.return_value
+    pool_address = tx.decode_logs(factory.PoolCreated)[0].pool
 
     oracle = univ3_oracle(
         factory.uniswapV3Factory(),
@@ -101,7 +102,8 @@ def test_create_pool__orders_tokens(
         rando_univ3_fee,
         sender=alice,
     )
-    pool = project.MarginalV1Pool.at(tx.return_value)
+    pool_address = tx.decode_logs(factory.PoolCreated)[0].pool
+    pool = project.MarginalV1Pool.at(pool_address)
 
     assert pool.token0() == rando_token_a_address
     assert pool.token1() == rando_token_b_address
@@ -139,7 +141,9 @@ def test_create_pool__emits_pool_created(
     assert event.token1 == rando_token_b_address
     assert event.maintenance == maintenance
     assert event.oracle == oracle
-    assert event.pool == tx.return_value
+    assert event.pool == factory.getPool(
+        rando_token_a_address, rando_token_b_address, maintenance, oracle
+    )
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])

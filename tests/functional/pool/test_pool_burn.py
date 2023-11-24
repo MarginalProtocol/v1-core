@@ -43,7 +43,8 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 @pytest.fixture
@@ -78,7 +79,8 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 def test_pool_burn__updates_state(

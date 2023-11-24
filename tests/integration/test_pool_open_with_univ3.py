@@ -50,7 +50,7 @@ def test_pool_open_with_univ3__sets_position(
     )
     tick_cumulative_delta = oracle_tick_cumulative - state_tick_cumulative
 
-    id = tx.return_value[0]
+    id = int(tx.decode_logs(mrglv1_pool_initialized_with_liquidity.Open)[0].id)
     key = get_position_key(alice.address, id)
     position = mrglv1_pool_initialized_with_liquidity.positions(key)
 

@@ -16,7 +16,8 @@ def test_factory_create_pool_with_univ3__deploys_pool_contract(
     token1 = univ3_pool.token1()
     univ3_fee = univ3_pool.fee()
     tx = mrglv1_factory.createPool(token0, token1, maintenance, univ3_fee, sender=alice)
-    pool = project.MarginalV1Pool.at(tx.return_value)
+    pool_address = tx.decode_logs(mrglv1_factory.PoolCreated)[0].pool
+    pool = project.MarginalV1Pool.at(pool_address)
 
     assert pool.factory() == mrglv1_factory.address
     assert pool.oracle() == univ3_pool.address

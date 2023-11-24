@@ -49,7 +49,8 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 @pytest.fixture
@@ -84,7 +85,8 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 def test_pool_adjust__updates_state_with_zero_for_one(
@@ -167,13 +169,16 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
-    callee.adjust(
+    tx = callee.adjust(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one_position_id,
         margin_delta,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.AdjustReturn)[0]
+    margin0 = return_log.margin0
+    margin1 = return_log.margin1
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
@@ -190,6 +195,8 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     # added margin
     position.margin += margin_delta
     assert pool_initialized_with_liquidity.positions(key) == position
+    assert margin0 == 0
+    assert margin1 == position.margin
 
 
 def test_pool_adjust__sets_position_with_one_for_zero(
@@ -210,13 +217,16 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
-    callee.adjust(
+    tx = callee.adjust(
         pool_initialized_with_liquidity.address,
         alice.address,
         one_for_zero_position_id,
         margin_delta,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.AdjustReturn)[0]
+    margin0 = return_log.margin0
+    margin1 = return_log.margin1
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
@@ -233,6 +243,8 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     # added margin
     position.margin += margin_delta
     assert pool_initialized_with_liquidity.positions(key) == position
+    assert margin0 == position.margin
+    assert margin1 == 0
 
 
 def test_pool_adjust__transfers_funds_when_add_margin_with_zero_for_one(
@@ -607,7 +619,7 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value[0])
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     key = get_position_key(callee_below_min1.address, id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -661,7 +673,7 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value[0])
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     key = get_position_key(callee_below_min0.address, id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -766,7 +778,7 @@ def test_pool_adjust__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
-    id, _, _ = tx.return_value
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     # state prior
     state = pool_initialized_with_liquidity.state()
@@ -820,7 +832,9 @@ def test_pool_adjust__with_fuzz(
     params = (pool_initialized_with_liquidity.address, alice.address, id, margin_delta)
     tx = callee.adjust(*params, sender=sender)
 
-    margin0, margin1 = tx.return_value
+    return_log = tx.decode_logs(callee.AdjustReturn)[0]
+    margin0 = return_log.margin0
+    margin1 = return_log.margin1
     assert margin0 == (0 if zero_for_one else margin)
     assert margin1 == (margin if zero_for_one else 0)
 

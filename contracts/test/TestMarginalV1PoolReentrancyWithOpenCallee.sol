@@ -56,7 +56,16 @@ contract TestMarginalV1PoolReentrancyWithOpenCallee is
         uint128 liquidityDelta,
         uint160 sqrtPriceLimitX96,
         uint128 margin
-    ) external returns (uint256 id, uint256 size, uint256 debt) {
+    )
+        external
+        returns (
+            uint256 id,
+            uint256 size,
+            uint256 debt,
+            uint256 amount0,
+            uint256 amount1
+        )
+    {
         _pool = pool;
         return
             IMarginalV1Pool(pool).open(

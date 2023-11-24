@@ -52,7 +52,8 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 @pytest.fixture
@@ -87,7 +88,8 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    return int(tx.return_value[0])
+    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    return int(id)
 
 
 def test_pool_settle__updates_state_with_zero_for_one(
@@ -397,12 +399,13 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
     balance0_sender = token0.balanceOf(sender.address)
     balance1_alice = token1.balanceOf(alice.address)
 
-    callee.settle(
+    tx = callee.settle(
         pool_initialized_with_liquidity.address,
         alice.address,
         zero_for_one_position_id,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.SettleReturn)[0]
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
@@ -420,6 +423,9 @@ def test_pool_settle__transfers_funds_with_zero_for_one(
     # zero (debt) for one (size)
     amount0 = position.debt0
     amount1 = position.size + position.margin + rewards
+
+    assert return_log.amount0 == amount0
+    assert return_log.amount1 == -amount1
 
     assert (
         token0.balanceOf(pool_initialized_with_liquidity.address)
@@ -456,12 +462,13 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
     balance1_sender = token1.balanceOf(sender.address)
     balance0_alice = token0.balanceOf(alice.address)
 
-    callee.settle(
+    tx = callee.settle(
         pool_initialized_with_liquidity.address,
         alice.address,
         one_for_zero_position_id,
         sender=sender,
     )
+    return_log = tx.decode_logs(callee.SettleReturn)[0]
 
     # sync position for funding
     state = pool_initialized_with_liquidity.state()
@@ -479,6 +486,9 @@ def test_pool_settle__transfers_funds_with_one_for_zero(
     # one (debt) for zero (size)
     amount0 = position.size + position.margin + rewards
     amount1 = position.debt1
+
+    assert return_log.amount0 == -amount0
+    assert return_log.amount1 == amount1
 
     assert (
         token0.balanceOf(pool_initialized_with_liquidity.address)
@@ -756,7 +766,7 @@ def test_pool_settle__reverts_when_amount0_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value[0])
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.settle(
@@ -805,7 +815,7 @@ def test_pool_settle__reverts_when_amount1_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.return_value[0])
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.settle(
@@ -899,7 +909,7 @@ def test_pool_settle__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
-    id, _, _ = tx.return_value
+    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
 
     # state prior
     state = pool_initialized_with_liquidity.state()
@@ -937,7 +947,9 @@ def test_pool_settle__with_fuzz(
     params = (pool_initialized_with_liquidity.address, alice.address, id)
     tx = callee.settle(*params, sender=sender)
 
-    amount0, amount1 = tx.return_value
+    return_log = tx.decode_logs(callee.SettleReturn)[0]
+    amount0 = return_log.amount0
+    amount1 = return_log.amount1
     assert amount0 == (
         -(position.size + position.margin + rewards)
         if not zero_for_one
