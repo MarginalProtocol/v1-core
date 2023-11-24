@@ -57,6 +57,8 @@ contract TestMarginalV1PoolCallee is
     );
     event SettleReturn(int256 amount0, int256 amount1);
     event SwapReturn(int256 amount0, int256 amount1);
+    event BurnReturn(uint128 liquidityDelta, uint256 amount0, uint256 amount1);
+    event LiquidateReturn(uint256 rewards0, uint256 rewards1);
 
     function mint(
         address pool,
@@ -263,5 +265,35 @@ contract TestMarginalV1PoolCallee is
         } else {
             assert(amount0Delta == 0 && amount1Delta == 0);
         }
+    }
+
+    function burn(
+        address pool,
+        address recipient,
+        uint256 shares
+    )
+        external
+        returns (uint128 liquidityDelta, uint256 amount0, uint256 amount1)
+    {
+        IERC20(pool).safeTransferFrom(msg.sender, address(this), shares); // transfer in LP tokens to callee
+        (liquidityDelta, amount0, amount1) = IMarginalV1Pool(pool).burn(
+            recipient,
+            shares
+        );
+        emit BurnReturn(liquidityDelta, amount0, amount1);
+    }
+
+    function liquidate(
+        address pool,
+        address recipient,
+        address owner,
+        uint96 id
+    ) external returns (uint256 rewards0, uint256 rewards1) {
+        (rewards0, rewards1) = IMarginalV1Pool(pool).liquidate(
+            recipient,
+            owner,
+            id
+        );
+        emit LiquidateReturn(rewards0, rewards1);
     }
 }

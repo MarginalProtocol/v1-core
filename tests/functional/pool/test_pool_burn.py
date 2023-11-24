@@ -149,6 +149,35 @@ def test_pool_burn__burns_multiple_lp_shares(
     assert pool_initialized_with_liquidity.totalSupply() == total_shares
 
 
+def test_pool_burn__returns_amounts(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+):
+    shares = pool_initialized_with_liquidity.balanceOf(sender.address)
+    total_shares = pool_initialized_with_liquidity.totalSupply()
+
+    state = pool_initialized_with_liquidity.state()
+    total_liquidity = state.liquidity
+
+    shares_burned = shares // 3
+    liquidity_delta = (total_liquidity * shares_burned) // total_shares
+    (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, state.sqrtPriceX96
+    )
+    tx = callee.burn(
+        pool_initialized_with_liquidity.address,
+        alice.address,
+        shares_burned,
+        sender=sender,
+    )
+    return_log = tx.decode_logs(callee.BurnReturn)[0]
+    assert return_log.liquidityDelta == liquidity_delta
+    assert return_log.amount0 == amount0
+    assert return_log.amount1 == amount1
+
+
 def test_pool_burn__transfers_funds(
     pool_initialized_with_liquidity,
     sender,
@@ -170,9 +199,7 @@ def test_pool_burn__transfers_funds(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, state.sqrtPriceX96
     )
-    tx = pool_initialized_with_liquidity.burn(
-        alice.address, shares_burned, sender=sender
-    )
+    pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
 
     balance0 -= amount0
     balance1 -= amount1
@@ -189,13 +216,6 @@ def test_pool_burn__transfers_funds(
         )
         == balance1
     )
-
-    result_amount0 = token0.balanceOf(alice.address)
-    result_amount1 = token1.balanceOf(alice.address)
-
-    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
-    assert pytest.approx(result_amount0, rel=1e-11) == amount0
-    assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
 
 def test_pool_burn__transfers_multiple_funds(
@@ -373,9 +393,7 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_zero_for_one(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, state.sqrtPriceX96
     )
-    tx = pool_initialized_with_liquidity.burn(
-        alice.address, shares_burned, sender=sender
-    )
+    pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
 
     balance0 -= amount0
     balance1 -= amount1
@@ -392,13 +410,6 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_zero_for_one(
         )
         == balance1
     )
-
-    result_amount0 = token0.balanceOf(alice.address)
-    result_amount1 = token1.balanceOf(alice.address)
-
-    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
-    assert pytest.approx(result_amount0, rel=1e-11) == amount0
-    assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
 
 def test_pool_burn__transfers_funds_with_locked_liquidity_one_for_zero(
@@ -424,9 +435,7 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_one_for_zero(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, state.sqrtPriceX96
     )
-    tx = pool_initialized_with_liquidity.burn(
-        alice.address, shares_burned, sender=sender
-    )
+    pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
 
     balance0 -= amount0
     balance1 -= amount1
@@ -443,13 +452,6 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_one_for_zero(
         )
         == balance1
     )
-
-    result_amount0 = token0.balanceOf(alice.address)
-    result_amount1 = token1.balanceOf(alice.address)
-
-    assert tx.return_value == (liquidity_delta, result_amount0, result_amount1)
-    assert pytest.approx(result_amount0, rel=1e-11) == amount0
-    assert pytest.approx(result_amount1, rel=1e-11) == amount1
 
 
 def test_pool_burn__reverts_when_shares_zero(
@@ -566,10 +568,6 @@ def test_pool_burn__after_initial_mint_with_fuzz(
 
     params = (bob.address, shares_burned)
     tx = pool_initialized.burn(*params, sender=alice)
-
-    assert tx.return_value[0] == liquidity_delta_burned
-    assert tx.return_value[1] == amount0_received
-    assert tx.return_value[2] == amount1_received
 
     # check pool state transition (including liquidity locked)
     state.liquidity -= liquidity_delta_burned
@@ -746,10 +744,6 @@ def test_pool_burn__after_multiple_mint_with_fuzz(
 
     params = (bob.address, shares_burned)
     tx = pool_initialized_with_liquidity.burn(*params, sender=alice)
-
-    assert tx.return_value[0] == liquidity_delta_burned
-    assert tx.return_value[1] == amount0_received
-    assert tx.return_value[2] == amount1_received
 
     # check pool state transition (including liquidity locked)
     state.liquidity -= liquidity_delta_burned

@@ -446,11 +446,10 @@ def test_pool_liquidate__transfers_funds_with_zero_for_one(
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    tx = pool_initialized_with_liquidity.liquidate(
+    pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
     )
 
-    assert tx.return_value == (0, rewards1)
     assert token0.balanceOf(pool_initialized_with_liquidity.address) == balance0_before
     assert token0.balanceOf(bob.address) == 0
 
@@ -480,11 +479,10 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
     balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
     balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
 
-    tx = pool_initialized_with_liquidity.liquidate(
+    pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
     )
 
-    assert tx.return_value == (rewards0, 0)
     assert (
         token0.balanceOf(pool_initialized_with_liquidity.address)
         == balance0_before - rewards0
@@ -493,6 +491,62 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
 
     assert token1.balanceOf(pool_initialized_with_liquidity.address) == balance1_before
     assert token1.balanceOf(bob.address) == 0
+
+
+def test_pool_liquidate__returns_rewards_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    zero_for_one_position_id,
+):
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
+
+    tx = callee.liquidate(
+        pool_initialized_with_liquidity.address,
+        bob.address,
+        callee.address,
+        zero_for_one_position_id,
+        sender=alice,
+    )
+    return_log = tx.decode_logs(callee.LiquidateReturn)[0]
+    assert return_log.rewards0 == 0
+    assert return_log.rewards1 == rewards1
+
+
+def test_pool_liquidate__returns_rewards_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    position_lib,
+    liquidity_math_lib,
+    sender,
+    alice,
+    bob,
+    token0,
+    token1,
+    one_for_zero_position_id,
+):
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
+
+    tx = callee.liquidate(
+        pool_initialized_with_liquidity.address,
+        bob.address,
+        callee.address,
+        one_for_zero_position_id,
+        sender=alice,
+    )
+    return_log = tx.decode_logs(callee.LiquidateReturn)[0]
+    assert return_log.rewards0 == rewards0
+    assert return_log.rewards1 == 0
 
 
 def test_pool_liquidate__emits_liquidate_with_zero_for_one(
@@ -780,9 +834,8 @@ def test_pool_liquidate__with_fuzz(
     params = (bob.address, callee.address, id)
     tx = pool_initialized_with_liquidity.liquidate(*params, sender=alice)
 
-    rewards0, rewards1 = tx.return_value
-    assert rewards0 == (rewards if not zero_for_one else 0)
-    assert rewards1 == (0 if not zero_for_one else rewards)
+    rewards0 = rewards if not zero_for_one else 0
+    rewards1 = 0 if not zero_for_one else rewards
 
     # check pool state transition (including liquidity locked update)
     (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(

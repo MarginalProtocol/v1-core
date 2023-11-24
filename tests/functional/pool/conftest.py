@@ -59,6 +59,7 @@ def pool_initialized_with_liquidity(
         pool_initialized.address, sender.address, liquidity_delta, sender=sender
     )
     pool_initialized.approve(pool_initialized.address, 2**256 - 1, sender=sender)
+    pool_initialized.approve(callee.address, 2**256 - 1, sender=sender)
     return pool_initialized
 
 

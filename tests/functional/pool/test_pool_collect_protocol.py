@@ -32,7 +32,8 @@ def pool_after_swaps(pool_initialized_with_liquidity_and_protocol_fee, callee, s
         sender=sender,
     )
 
-    _, amount_in = tx.return_value  # amount out (token 1) from first swap
+    return_log = tx.decode_logs(callee.SwapReturn)[0]
+    amount_in = return_log.amount1  # amount out (token 1) from first swap
     amount_in = -amount_in
     callee.swap(
         pool_initialized_with_liquidity_and_protocol_fee.address,
@@ -85,8 +86,6 @@ def test_pool_collect_protocol__emits_collect_protocol(pool_after_swaps, admin, 
     amount1 = protocol_fees.token1 - 1
 
     tx = pool_after_swaps.collectProtocol(alice.address, sender=admin)
-    assert tx.return_value == (amount0, amount1)
-
     events = tx.decode_logs(pool_after_swaps.CollectProtocol)
     assert len(events) == 1
     event = events[0]
