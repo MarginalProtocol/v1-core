@@ -1022,7 +1022,7 @@ def test_pool_open__emits_open_with_zero_for_one(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1
@@ -1077,7 +1077,7 @@ def test_pool_open__emits_open_with_one_for_zero(
         sender=sender,
     )
     state = pool_initialized_with_liquidity.state()
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     events = tx.decode_logs(pool_initialized_with_liquidity.Open)
     assert len(events) == 1

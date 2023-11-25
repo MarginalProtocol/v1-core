@@ -14,7 +14,7 @@ jobs:
       - uses: ApeWorX/github-action@v2.0
         with:
           python-version: '3.10'
-          ape-version-pin: "==0.6.12"
+          ape-version-pin: "==0.6.26"
           ape-plugins-list: 'solidity==0.6.9 foundry==0.6.12'
 
       - name: Compile contracts

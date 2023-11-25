@@ -52,7 +52,7 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -88,7 +88,7 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -766,7 +766,7 @@ def test_pool_settle__reverts_when_amount0_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     with reverts(pool_initialized_with_liquidity.Amount0LessThanMin):
         callee_below_min0.settle(
@@ -815,7 +815,7 @@ def test_pool_settle__reverts_when_amount1_less_than_min(
         margin,
         sender=sender,
     )
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     with reverts(pool_initialized_with_liquidity.Amount1LessThanMin):
         callee_below_min1.settle(
@@ -909,7 +909,7 @@ def test_pool_settle__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     # state prior
     state = pool_initialized_with_liquidity.state()

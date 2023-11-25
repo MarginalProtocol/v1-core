@@ -89,7 +89,7 @@ def zero_for_one_position_id(
     # change the oracle price up 20% to make the position unsafe
     mock_univ3_pool.pushObservation(*oracle_next_obs_zero_for_one, sender=sender)
 
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -135,7 +135,7 @@ def one_for_zero_position_id(
     # change the oracle price down 20% to make the position unsafe
     mock_univ3_pool.pushObservation(*oracle_next_obs_one_for_zero, sender=sender)
 
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -175,7 +175,7 @@ def zero_for_one_position_safe_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -215,7 +215,7 @@ def one_for_zero_position_safe_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -784,7 +784,7 @@ def test_pool_liquidate__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     # state prior
     state = pool_initialized_with_liquidity.state()

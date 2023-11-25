@@ -35,7 +35,7 @@ def zero_for_one_position_id(
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
 
-    tx = callee_for_reentrancy_with_open.open(
+    callee_for_reentrancy_with_open.open(
         pool_initialized_with_liquidity.address,
         callee_for_reentrancy_with_open.address,
         zero_for_one,
@@ -44,8 +44,8 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
-    return int(id)
+    id = state.totalPositions
+    return id
 
 
 @pytest.fixture

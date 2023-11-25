@@ -49,7 +49,7 @@ def zero_for_one_position_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -85,7 +85,7 @@ def one_for_zero_position_id(
         margin,
         sender=sender,
     )
-    id = tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id
+    id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
 
 
@@ -619,7 +619,7 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
         margin,
         sender=sender,
     )
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     key = get_position_key(callee_below_min1.address, id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -673,7 +673,7 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
         margin,
         sender=sender,
     )
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     key = get_position_key(callee_below_min0.address, id)
     position = pool_initialized_with_liquidity.positions(key)
@@ -778,7 +778,7 @@ def test_pool_adjust__with_fuzz(
         margin,
     )
     tx = callee.open(*params, sender=sender)
-    id = int(tx.decode_logs(pool_initialized_with_liquidity.Open)[0].id)
+    id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     # state prior
     state = pool_initialized_with_liquidity.state()
