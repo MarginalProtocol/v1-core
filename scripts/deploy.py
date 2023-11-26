@@ -12,9 +12,10 @@ def main():
         if deployer_name != ""
         else accounts.test_accounts[0]
     )
-    click.echo(f"Init balance of deployer: {deployer.balance / 1e18} ETH")
+    click.echo(f"Deployer address: {deployer.address}")
+    click.echo(f"Deployer balance: {deployer.balance / 1e18} ETH")
 
-    univ3_factory_addr = click.prompt("Uniswap v3 factory address", type=str)
+    univ3_factory_address = click.prompt("Uniswap v3 factory address", type=str)
     univ3_obs_cardinality_min = click.prompt(
         "Observation cardinality minimum", type=int
     )
@@ -38,9 +39,14 @@ def main():
     click.echo("Deploying Marginal v1 factory ...")
     factory = project.MarginalV1Factory.deploy(
         pool_deployer_address,
-        univ3_factory_addr,
+        univ3_factory_address,
         univ3_obs_cardinality_min,
         sender=deployer,
         publish=publish,
     )
     click.echo(f"Deployed Marginal v1 factory to {factory.address}")
+
+    # change owner if user wants
+    if click.confirm("Change Marginal v1 factory owner?"):
+        owner_address = click.prompt("Marginal v1 factory owner address", type=str)
+        factory.setOwner(owner_address, sender=deployer)
