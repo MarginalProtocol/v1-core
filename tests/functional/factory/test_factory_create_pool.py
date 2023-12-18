@@ -139,10 +139,15 @@ def test_create_pool__emits_pool_created(
 
     assert event.token0 == rando_token_a_address
     assert event.token1 == rando_token_b_address
-    assert event.maintenance == maintenance
-    assert event.oracle == oracle
-    assert event.pool == factory.getPool(
-        rando_token_a_address, rando_token_b_address, maintenance, oracle
+    assert (
+        int(event.maintenance, 0) == maintenance
+    )  # @dev returned as hex string in ape for some reason
+    assert event.oracle.lower() == oracle.lower()
+    assert (
+        event.pool.lower()
+        == factory.getPool(
+            rando_token_a_address, rando_token_b_address, maintenance, oracle
+        ).lower()
     )
 
 

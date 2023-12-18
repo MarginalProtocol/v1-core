@@ -19,10 +19,10 @@ contract MarginalV1Factory is IMarginalV1Factory {
     mapping(uint24 => uint256) public getLeverage;
 
     event PoolCreated(
-        address token0,
-        address token1,
+        address indexed token0,
+        address indexed token1,
         uint24 maintenance,
-        address oracle,
+        address indexed oracle,
         address pool
     );
     event LeverageEnabled(uint24 maintenance, uint256 leverage);

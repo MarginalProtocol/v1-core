@@ -1028,9 +1028,9 @@ def test_pool_open__emits_open_with_zero_for_one(
     assert len(events) == 1
     event = events[0]
 
-    assert event.sender == callee.address
-    assert event.owner == alice.address
-    assert event.id == id
+    assert event.sender.lower() == callee.address.lower()
+    assert event.owner.lower() == alice.address.lower()
+    assert int(event.id, 0) == id  # @dev ape returns as bytes for some reason
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
     assert event.margin == margin
@@ -1083,9 +1083,9 @@ def test_pool_open__emits_open_with_one_for_zero(
     assert len(events) == 1
     event = events[0]
 
-    assert event.sender == callee.address
-    assert event.owner == alice.address
-    assert event.id == id
+    assert event.sender.lower() == callee.address.lower()
+    assert event.owner.lower() == alice.address.lower()
+    assert int(event.id, 0) == id  # @dev ape returns as bytes for some reason
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
     assert event.margin == margin
