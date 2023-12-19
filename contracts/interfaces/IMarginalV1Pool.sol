@@ -30,10 +30,10 @@ interface IMarginalV1Pool is IERC20 {
         returns (
             uint128 liquidity,
             uint160 sqrtPriceX96,
+            uint96 totalPositions,
             int24 tick,
             uint32 blockTimestamp,
             int56 tickCumulative,
-            uint96 totalPositions,
             uint8 feeProtocol,
             bool initialized
         );

@@ -49,10 +49,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     struct State {
         uint128 liquidity;
         uint160 sqrtPriceX96;
+        uint96 totalPositions; // > ~ 2e20 years at max per block to fill on mainnet
         int24 tick;
         uint32 blockTimestamp;
         int56 tickCumulative;
-        uint96 totalPositions; // > ~ 2e20 years at max per block to fill on mainnet
         uint8 feeProtocol;
         bool initialized;
     }
@@ -187,10 +187,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         state = State({
             liquidity: 0,
             sqrtPriceX96: _sqrtPriceX96,
+            totalPositions: 0,
             tick: tick,
             blockTimestamp: _blockTimestamp(),
             tickCumulative: 0,
-            totalPositions: 0,
             feeProtocol: 0,
             initialized: true
         });

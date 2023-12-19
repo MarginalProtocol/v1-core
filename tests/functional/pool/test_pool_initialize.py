@@ -11,7 +11,7 @@ def test_pool_initialize__updates_state(pool, alice, chain):
     tick = int(log(price) / log(1.0001))
 
     pool.initialize(sqrt_price_x96, sender=alice)
-    state = (0, sqrt_price_x96, tick, chain.blocks.head.timestamp, 0, 0, 0, True)
+    state = (0, sqrt_price_x96, 0, tick, chain.blocks.head.timestamp, 0, 0, True)
     result = pool.state()
     assert result == state
 
