@@ -1,6 +1,7 @@
 import pytest
 
 from ape import reverts
+from ape.exceptions import VirtualMachineError
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
@@ -104,7 +105,7 @@ def test_pool_collect_protocol__reverts_when_not_factory_owner(pool_after_swaps,
 def test_pool_collect_protocol__reverts_when_protocol_fees_less_than_min(
     pool_initialized_with_liquidity_and_protocol_fee, admin, alice
 ):
-    with reverts(pool_initialized_with_liquidity_and_protocol_fee.InvalidFeeProtocol):
+    with pytest.raises(VirtualMachineError):
         pool_initialized_with_liquidity_and_protocol_fee.collectProtocol(
             alice.address, sender=admin
         )

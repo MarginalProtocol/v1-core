@@ -913,8 +913,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         onlyFactoryOwner
         returns (uint128 amount0, uint128 amount1)
     {
-        if (protocolFees.token0 == 0 || protocolFees.token1 == 0)
-            revert InvalidFeeProtocol();
+        // no zero check on protocolFees as will revert in amounts calculation
         amount0 = protocolFees.token0 - 1; // ensure slot not cleared for gas savings
         amount1 = protocolFees.token1 - 1;
 
