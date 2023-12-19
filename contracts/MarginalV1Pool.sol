@@ -918,10 +918,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         amount0 = protocolFees.token0 - 1; // ensure slot not cleared for gas savings
         amount1 = protocolFees.token1 - 1;
 
-        protocolFees.token0 -= amount0;
+        protocolFees.token0 = 1;
         TransferHelper.safeTransfer(token0, recipient, amount0);
 
-        protocolFees.token1 -= amount1;
+        protocolFees.token1 = 1;
         TransferHelper.safeTransfer(token1, recipient, amount1);
 
         emit CollectProtocol(msg.sender, recipient, amount0, amount1);
