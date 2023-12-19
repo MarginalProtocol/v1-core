@@ -61,10 +61,17 @@ library SqrtPriceMath {
             if (!zeroForOne) {
                 // 1 is known
                 // sqrt(P') = sqrt(P) + del y / L
-                nextX96 =
-                    sqrtPriceX96 +
-                    (uint256(amountSpecified) << FixedPoint96.RESOLUTION) /
-                    liquidity;
+                uint256 prod = (
+                    uint256(amountSpecified) <= type(uint160).max
+                        ? (uint256(amountSpecified) <<
+                            FixedPoint96.RESOLUTION) / liquidity
+                        : Math.mulDiv(
+                            uint256(amountSpecified),
+                            FixedPoint96.Q96,
+                            liquidity
+                        )
+                );
+                nextX96 = sqrtPriceX96 + prod;
             } else {
                 // 0 is known
                 // sqrt(P') = L / (L / sqrt(P) + del x)
@@ -99,10 +106,17 @@ library SqrtPriceMath {
                 );
                 if (reserve1 <= uint256(-amountSpecified))
                     revert Amount1ExceedsReserve1();
-                nextX96 =
-                    sqrtPriceX96 -
-                    (uint256(-amountSpecified) << FixedPoint96.RESOLUTION) /
-                    liquidity;
+                uint256 prod = (
+                    uint256(-amountSpecified) <= type(uint160).max
+                        ? (uint256(-amountSpecified) <<
+                            FixedPoint96.RESOLUTION) / liquidity
+                        : Math.mulDiv(
+                            uint256(-amountSpecified),
+                            FixedPoint96.Q96,
+                            liquidity
+                        )
+                );
+                nextX96 = sqrtPriceX96 - prod;
             }
         }
         if (!(nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO))

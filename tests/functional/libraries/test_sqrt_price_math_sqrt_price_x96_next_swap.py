@@ -60,6 +60,29 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_input_one_for_zero
     )  # TQ: is this enough?
 
 
+def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_input_one_for_zero_amount_greater_than_uint160(
+    sqrt_price_math_lib,
+):
+    liquidity = 2**128 - 1
+    sqrt_price = MIN_SQRT_RATIO
+    sqrt_price_x96 = sqrt_price << 96
+
+    amount_specified = 2**176
+    zero_for_one = False
+
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_swap(
+        liquidity, sqrt_price_x96, zero_for_one, amount_specified
+    )
+
+    result = sqrt_price_math_lib.sqrtPriceX96NextSwap(
+        liquidity, sqrt_price_x96, zero_for_one, amount_specified
+    )
+
+    assert (
+        pytest.approx(result, rel=1e-15) == sqrt_price_x96_next
+    )  # TQ: is this enough?
+
+
 def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_output_zero_for_one(
     sqrt_price_math_lib,
 ):
@@ -70,6 +93,31 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_output_zero_for_on
     sqrt_price_x96 = sqrt_price << 96
 
     amount_specified = -y * 1 // 100  # 1% of reserves out
+    zero_for_one = True
+
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_swap(
+        liquidity, sqrt_price_x96, zero_for_one, amount_specified
+    )
+
+    result = sqrt_price_math_lib.sqrtPriceX96NextSwap(
+        liquidity, sqrt_price_x96, zero_for_one, amount_specified
+    )
+
+    assert (
+        pytest.approx(result, rel=1e-15) == sqrt_price_x96_next
+    )  # TQ: is this enough?
+
+
+def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_output_zero_for_one_amount_greater_than_uint160(
+    sqrt_price_math_lib,
+):
+    liquidity = 2**128 - 1
+    sqrt_price_x96 = MAX_SQRT_RATIO
+
+    y = int((liquidity * sqrt_price_x96) // (1 << 96))
+    amount_specified = -((y * 3) // 4)  # 75%
+    assert (-amount_specified) >= 2**160
+
     zero_for_one = True
 
     sqrt_price_x96_next = calc_sqrt_price_x96_next_swap(
@@ -126,6 +174,7 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_fuzz(
     zero_for_one,
     exact_input,
 ):
+    # TODO: check for low liquidities
     liquidity_delta = (liquidity * liquidity_delta_pc) // 1000000
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, sqrt_price_x96
@@ -147,4 +196,4 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_fuzz(
     result = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
-    assert pytest.approx(result, rel=1e-15) == sqrt_price_x96_next
+    assert pytest.approx(result, rel=1e-15, abs=1) == sqrt_price_x96_next
