@@ -29,7 +29,6 @@ contract MarginalV1Factory is IMarginalV1Factory {
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
     error Unauthorized();
-    error InvalidTokens();
     error InvalidMaintenance();
     error InvalidOracle();
     error InvalidObservationCardinality(uint16 observationCardinality);
@@ -65,14 +64,13 @@ contract MarginalV1Factory is IMarginalV1Factory {
         (address token0, address token1) = tokenA < tokenB
             ? (tokenA, tokenB)
             : (tokenB, tokenA);
-        if (tokenA == tokenB || token0 == address(0)) revert InvalidTokens();
         if (getLeverage[maintenance] == 0) revert InvalidMaintenance();
 
         address oracle = IUniswapV3Factory(uniswapV3Factory).getPool(
             token0,
             token1,
             uniswapV3Fee
-        );
+        ); // no need to check tokenA != tokenB or zero address given Uniswap checks if valid
         if (oracle == address(0)) revert InvalidOracle();
         if (getPool[token0][token1][maintenance][oracle] != address(0))
             revert PoolActive();

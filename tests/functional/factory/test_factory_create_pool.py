@@ -1,7 +1,6 @@
 import pytest
 
 from ape import project, reverts
-from ape.utils import ZERO_ADDRESS
 
 
 def univ3_oracle(univ3_factory_address, token_a, token_b, fee):
@@ -149,43 +148,6 @@ def test_create_pool__emits_pool_created(
             rando_token_a_address, rando_token_b_address, maintenance, oracle
         ).lower()
     )
-
-
-@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_create_pool__reverts_when_same_token(
-    factory, alice, rando_token_a_address, maintenance, rando_univ3_fee
-):
-    with reverts(factory.InvalidTokens):
-        factory.createPool(
-            rando_token_a_address,
-            rando_token_a_address,
-            maintenance,
-            rando_univ3_fee,
-            sender=alice,
-        )
-
-
-@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-def test_create_pool__reverts_when_token_is_zero_address(
-    factory, alice, rando_token_a_address, maintenance, rando_univ3_fee
-):
-    with reverts(factory.InvalidTokens):
-        factory.createPool(
-            ZERO_ADDRESS,
-            rando_token_a_address,
-            maintenance,
-            rando_univ3_fee,
-            sender=alice,
-        )
-
-    with reverts(factory.InvalidTokens):
-        factory.createPool(
-            rando_token_a_address,
-            ZERO_ADDRESS,
-            maintenance,
-            rando_univ3_fee,
-            sender=alice,
-        )
 
 
 def test_create_pool__reverts_when_invalid_maintenance(

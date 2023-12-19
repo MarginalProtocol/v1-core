@@ -1,6 +1,7 @@
 import pytest
 
 from ape import project, reverts
+from ape.utils import ZERO_ADDRESS
 from utils.constants import SECONDS_AGO
 
 
@@ -41,6 +42,57 @@ def test_factory_create_pool_with_univ3__reverts_when_invalid_oracle(
 
     with reverts(mrglv1_factory.InvalidOracle):
         mrglv1_factory.createPool(token0, token1, maintenance, univ3_fee, sender=alice)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_create_pool__reverts_when_same_token(
+    mrglv1_factory,
+    maintenance,
+    alice,
+    univ3_pool,
+):
+    token0 = univ3_pool.token0()
+    univ3_fee = univ3_pool.fee()
+    with reverts(mrglv1_factory.InvalidOracle):
+        mrglv1_factory.createPool(
+            token0,
+            token0,
+            maintenance,
+            univ3_fee,
+            sender=alice,
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+def test_create_pool__reverts_when_token_is_zero_address(
+    mrglv1_factory,
+    maintenance,
+    alice,
+    univ3_pool,
+):
+    token0 = univ3_pool.token0()
+    token1 = univ3_pool.token1()
+    univ3_fee = univ3_pool.fee()
+
+    with reverts(mrglv1_factory.InvalidOracle):
+        mrglv1_factory.createPool(
+            ZERO_ADDRESS,
+            token1,
+            maintenance,
+            univ3_fee,
+            sender=alice,
+        )
+
+    with reverts(mrglv1_factory.InvalidOracle):
+        mrglv1_factory.createPool(
+            token0,
+            ZERO_ADDRESS,
+            maintenance,
+            univ3_fee,
+            sender=alice,
+        )
 
 
 @pytest.mark.integration
