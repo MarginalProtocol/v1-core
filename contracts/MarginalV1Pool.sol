@@ -23,7 +23,6 @@ import {IMarginalV1SettleCallback} from "./interfaces/callback/IMarginalV1Settle
 import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
-import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
 contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
@@ -222,7 +221,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function stateSynced() private view returns (State memory) {
         State memory _state = state;
         // oracle update
-        // TODO: test overflow
+        // TODO: test overflow and same block early exit
         unchecked {
             uint32 delta = _blockTimestamp() - _state.blockTimestamp;
             if (delta == 0) return _state; // early exit if nothing to update
