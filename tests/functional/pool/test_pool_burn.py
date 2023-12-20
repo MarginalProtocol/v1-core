@@ -454,16 +454,45 @@ def test_pool_burn__transfers_funds_with_locked_liquidity_one_for_zero(
     )
 
 
-def test_pool_burn__reverts_when_shares_zero(
+def test_pool_burn__passes_when_shares_zero(
     pool_initialized_with_liquidity,
     sender,
     alice,
+    token0,
+    token1,
+    chain,
 ):
+    state = pool_initialized_with_liquidity.state()
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+    total_shares = pool_initialized_with_liquidity.totalSupply()
+
+    balance0 = token0.balanceOf(pool_initialized_with_liquidity.address)
+    balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
+
+    state = pool_initialized_with_liquidity.state()
+
+    block_timestamp_next = chain.pending_timestamp
+    tick_cumulative_next = state.tickCumulative + state.tick * (
+        block_timestamp_next - state.blockTimestamp
+    )
+
+    shares = pool_initialized_with_liquidity.balanceOf(sender.address)
     shares_burned = 0
-    with reverts(pool_initialized_with_liquidity.InvalidShares):
-        pool_initialized_with_liquidity.burn(
-            alice.address, shares_burned, sender=sender
-        )
+    pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
+
+    # update tick cumulative, block timestamp values
+    state.tickCumulative = tick_cumulative_next
+    state.blockTimestamp = block_timestamp_next
+
+    # check state and balances remain same
+    assert pool_initialized_with_liquidity.totalSupply() == total_shares
+    assert pool_initialized_with_liquidity.balanceOf(sender.address) == shares
+
+    assert pool_initialized_with_liquidity.state() == state
+    assert pool_initialized_with_liquidity.liquidityLocked() == liquidity_locked
+
+    assert token0.balanceOf(pool_initialized_with_liquidity.address) == balance0
+    assert token1.balanceOf(pool_initialized_with_liquidity.address) == balance1
 
 
 def test_pool_burn__reverts_when_shares_greater_than_total_supply(
@@ -472,7 +501,7 @@ def test_pool_burn__reverts_when_shares_greater_than_total_supply(
     alice,
 ):
     shares_burned = pool_initialized_with_liquidity.totalSupply() + 1
-    with reverts(pool_initialized_with_liquidity.InvalidShares):
+    with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
         pool_initialized_with_liquidity.burn(
             alice.address, shares_burned, sender=sender
         )

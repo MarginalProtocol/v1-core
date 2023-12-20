@@ -158,7 +158,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error InvalidPosition();
     error PositionSafe();
     error InvalidAmountSpecified();
-    error InvalidShares();
     error InvalidFeeProtocol();
 
     constructor(
@@ -870,7 +869,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     {
         State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
-        if (shares == 0 || shares > _totalSupply) revert InvalidShares();
 
         // total liquidity is available liquidity if all locked liquidity were returned to pool
         uint128 totalLiquidityBefore = _state.liquidity + liquidityLocked;
