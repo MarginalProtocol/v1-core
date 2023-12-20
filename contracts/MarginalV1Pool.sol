@@ -224,9 +224,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // oracle update
         // TODO: test overflow
         unchecked {
-            _state.tickCumulative +=
-                int56(_state.tick) *
-                int56(uint56(_blockTimestamp() - _state.blockTimestamp)); // overflow desired
+            uint32 delta = _blockTimestamp() - _state.blockTimestamp;
+            if (delta == 0) return _state; // early exit if nothing to update
+            _state.tickCumulative += int56(_state.tick) * int56(uint56(delta)); // overflow desired
             _state.blockTimestamp = _blockTimestamp();
         }
         return _state;
