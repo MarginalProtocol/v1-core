@@ -28,9 +28,9 @@ interface IMarginalV1Pool is IERC20 {
         external
         view
         returns (
-            uint128 liquidity,
             uint160 sqrtPriceX96,
             uint96 totalPositions,
+            uint128 liquidity,
             int24 tick,
             uint32 blockTimestamp,
             int56 tickCumulative,

@@ -46,9 +46,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     // @dev Pool state represented in (L, sqrtP) space
     struct State {
-        uint128 liquidity;
         uint160 sqrtPriceX96;
         uint96 totalPositions; // > ~ 2e20 years at max per block to fill on mainnet
+        uint128 liquidity;
         int24 tick;
         uint32 blockTimestamp;
         int56 tickCumulative;
@@ -183,9 +183,9 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         if (state.sqrtPriceX96 > 0) revert Initialized();
         int24 tick = TickMath.getTickAtSqrtRatio(_sqrtPriceX96);
         state = State({
-            liquidity: 0,
             sqrtPriceX96: _sqrtPriceX96,
             totalPositions: 0,
+            liquidity: 0,
             tick: tick,
             blockTimestamp: _blockTimestamp(),
             tickCumulative: 0,
