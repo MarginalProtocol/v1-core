@@ -13,9 +13,10 @@ contract MockSwapMath {
     }
 
     function swapFees(
-        uint256 amountIn,
-        uint24 fee
+        uint256 amount,
+        uint24 fee,
+        bool lessFee
     ) external pure returns (uint256) {
-        return SwapMath.swapFees(amountIn, fee);
+        return SwapMath.swapFees(amount, fee, lessFee);
     }
 }

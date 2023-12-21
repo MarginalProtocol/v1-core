@@ -37,7 +37,7 @@ def test_pool_swap__updates_state_with_exact_input_zero_for_one(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -118,7 +118,7 @@ def test_pool_swap__updates_state_with_exact_input_one_for_zero(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -212,7 +212,7 @@ def test_pool_swap__updates_state_with_exact_output_zero_for_one(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees0 = swap_math_lib.swapFees(amount0, fee)
+    fees0 = swap_math_lib.swapFees(amount0, fee, True)
     amount0 += fees0
 
     # set amount out to amount specified as exact output
@@ -294,7 +294,7 @@ def test_pool_swap__updates_state_with_exact_output_one_for_zero(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees1 = swap_math_lib.swapFees(amount1, fee)
+    fees1 = swap_math_lib.swapFees(amount1, fee, True)
     amount1 += fees1
 
     # set amount out to amount specified as exact output
@@ -359,7 +359,7 @@ def test_pool_swap__transfers_funds_with_exact_input_zero_for_one(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -428,7 +428,7 @@ def test_pool_swap__transfers_funds_with_exact_input_one_for_zero(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -510,7 +510,7 @@ def test_pool_swap__transfers_funds_with_exact_output_zero_for_one(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees0 = swap_math_lib.swapFees(amount0, fee)
+    fees0 = swap_math_lib.swapFees(amount0, fee, True)
     amount0 += fees0
 
     # set amount out to amount specified as exact output
@@ -579,7 +579,7 @@ def test_pool_swap__transfers_funds_with_exact_output_one_for_zero(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees1 = swap_math_lib.swapFees(amount1, fee)
+    fees1 = swap_math_lib.swapFees(amount1, fee, True)
     amount1 += fees1
 
     # set amount out to amount specified as exact output
@@ -642,7 +642,7 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -766,7 +766,7 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -883,7 +883,7 @@ def test_pool_swap__calls_swap_callback_with_exact_input_zero_for_one(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -942,7 +942,7 @@ def test_pool_swap__calls_swap_callback_with_exact_input_one_for_zero(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -1014,7 +1014,7 @@ def test_pool_swap__calls_swap_callback_with_exact_output_zero_for_one(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees0 = swap_math_lib.swapFees(amount0, fee)
+    fees0 = swap_math_lib.swapFees(amount0, fee, True)
     amount0 += fees0
 
     # set amount out to amount specified as exact output
@@ -1073,7 +1073,7 @@ def test_pool_swap__calls_swap_callback_with_exact_output_one_for_zero(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees1 = swap_math_lib.swapFees(amount1, fee)
+    fees1 = swap_math_lib.swapFees(amount1, fee, True)
     amount1 += fees1
 
     # set amount out to amount specified as exact output
@@ -1119,7 +1119,7 @@ def test_pool_swap__emits_swap_with_exact_input_zero_for_one(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -1186,7 +1186,7 @@ def test_pool_swap__emits_swap_with_exact_input_one_for_zero(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = amount_specified - swap_math_lib.swapFees(
-        amount_specified, fee
+        amount_specified, fee, False
     )
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextSwap(
         state.liquidity,
@@ -1266,7 +1266,7 @@ def test_pool_swap__emits_swap_with_exact_output_zero_for_one(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees0 = swap_math_lib.swapFees(amount0, fee)
+    fees0 = swap_math_lib.swapFees(amount0, fee, True)
     amount0 += fees0
 
     # set amount out to amount specified as exact output
@@ -1333,7 +1333,7 @@ def test_pool_swap__emits_swap_with_exact_output_one_for_zero(
     )
 
     # include swap fees ignoring protocol fee (== 0)
-    fees1 = swap_math_lib.swapFees(amount1, fee)
+    fees1 = swap_math_lib.swapFees(amount1, fee, True)
     amount1 += fees1
 
     # set amount out to amount specified as exact output
@@ -1701,7 +1701,7 @@ def test_pool_swap__with_fuzz(
 
     # calc amounts in/out for the swap with first pass on price thru sqrt price math lib
     amount_specified_less_fee = (
-        amount_specified - swap_math_lib.swapFees(amount_specified, fee)
+        amount_specified - swap_math_lib.swapFees(amount_specified, fee, False)
         if exact_input
         else amount_specified
     )
@@ -1719,9 +1719,9 @@ def test_pool_swap__with_fuzz(
 
     # include swap fees on input amount ignoring protocol fee (== 0)
     fees = (
-        swap_math_lib.swapFees(amount0, fee)
+        swap_math_lib.swapFees(amount0, fee, True)
         if zero_for_one
-        else swap_math_lib.swapFees(amount1, fee)
+        else swap_math_lib.swapFees(amount1, fee, True)
     )
     if exact_input:
         fees = (

@@ -687,7 +687,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         bool exactInput = amountSpecified > 0;
         int256 amountSpecifiedLessFee = exactInput
             ? amountSpecified -
-                int256(SwapMath.swapFees(uint256(amountSpecified), fee))
+                int256(SwapMath.swapFees(uint256(amountSpecified), fee, false))
             : amountSpecified;
 
         uint160 sqrtPriceX96Next = SqrtPriceMath.sqrtPriceX96NextSwap(
@@ -721,7 +721,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             uint256 fees1 = exactInput
                 ? uint256(amountSpecified) - uint256(amount1) // TODO: check never negative
-                : SwapMath.swapFees(uint256(amount1), fee);
+                : SwapMath.swapFees(uint256(amount1), fee, true);
             amount1 += int256(fees1);
 
             uint256 balance1Before = balance1();
@@ -761,7 +761,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
             uint256 fees0 = exactInput
                 ? uint256(amountSpecified) - uint256(amount0) // TODO: check never negative
-                : SwapMath.swapFees(uint256(amount0), fee);
+                : SwapMath.swapFees(uint256(amount0), fee, true);
             amount0 += int256(fees0);
 
             uint256 balance0Before = balance0();

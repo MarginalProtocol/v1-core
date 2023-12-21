@@ -41,10 +41,16 @@ library SwapMath {
     }
 
     /// @notice Computes swap fee on amount in
+    /// @dev Can revert when amount > type(uint232).max, but irrelevant for SwapMath.sol::swapAmounts output and pool fee rate constant
+    /// @param amount Amount in to calculate swap fees off of
+    /// @param fee Fee rate applied on amount in to pool
+    /// @param lessFee Whether `amount` excludes swap fee amount
+    /// @return Total swap fees taken from amount in to pool
     function swapFees(
-        uint256 amountIn,
-        uint24 fee
+        uint256 amount,
+        uint24 fee,
+        bool lessFee
     ) internal pure returns (uint256) {
-        return (amountIn * fee) / 1e6;
+        return (!lessFee ? (amount * fee) / 1e6 : (amount * fee) / (1e6 - fee));
     }
 }
