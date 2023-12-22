@@ -10,8 +10,6 @@ library OracleLibrary {
         uint32 timeDelta
     ) internal pure returns (uint160) {
         // @uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol#L35
-        // TODO: need round to negative infinity? was causing rounding issues
-        // TODO: issues casting?
         int24 arithmeticMeanTick = int24(
             tickCumulativeDelta / int56(uint56(timeDelta))
         );

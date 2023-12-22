@@ -173,7 +173,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         oracle = _oracle;
 
         // reverts if not enough historical observations
-        // TODO: enough of a check on hist obs?
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = secondsAgo;
         oracleTickCumulatives(secondsAgos);
@@ -211,7 +210,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function oracleTickCumulatives(
         uint32[] memory secondsAgos
     ) private view returns (int56[] memory) {
-        // TODO: oracle buffers?
         (int56[] memory tickCumulatives, ) = IUniswapV3Pool(oracle).observe(
             secondsAgos
         );
@@ -634,7 +632,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             rewards1 = Position.liquidationRewards(position.size, reward);
         }
 
-        // TODO: fix for edge of margin => infty as overflows?
         (_state.liquidity, _state.sqrtPriceX96) = LiquidityMath
             .liquiditySqrtPriceX96Next(
                 _state.liquidity,
@@ -820,7 +817,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
 
         // total liquidity is available liquidity if all locked liquidity was returned to pool
-        // TODO: verify no edge cases where _totalSupply == 0 but totalLiquidityAfter == liquidityDelta?
         uint128 totalLiquidityAfter = _state.liquidity +
             liquidityLocked +
             liquidityDelta;
@@ -848,7 +844,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         // update pool state to latest
         state = _state;
 
-        // TODO: min liquidity lock?
         _mint(recipient, shares);
 
         emit Mint(msg.sender, recipient, liquidityDelta, amount0, amount1);

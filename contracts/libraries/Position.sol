@@ -68,7 +68,7 @@ library Position {
         int56 tickCumulativeDeltaLast = OracleLibrary.oracleTickCumulativeDelta(
             tickCumulativeLast,
             oracleTickCumulativeLast
-        ); // TODO: unchecked ok?
+        );
         (uint128 debt0, uint128 debt1) = debtsAfterFunding(
             position,
             blockTimestampLast,
@@ -324,14 +324,14 @@ library Position {
             deltaMax =
                 int56(uint56(tickCumulativeRateMax)) *
                 int56(uint56(blockTimestampLast - position.blockTimestamp));
-        } // TODO: unchecked ok?
+        }
         if (!position.zeroForOne) {
             // debt1Now = debt1Start * (P / bar{P}) ** (now - start) / fundingPeriod
             // delta = (a_t - bar{a}_t) - (a_0 - bar{a}_0), clamped by funding rate bounds
             int56 delta = OracleLibrary.oracleTickCumulativeDelta(
                 tickCumulativeDeltaLast,
                 position.tickCumulativeDelta
-            ); // TODO: unchecked ok?
+            );
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
@@ -350,7 +350,7 @@ library Position {
             int56 delta = OracleLibrary.oracleTickCumulativeDelta(
                 position.tickCumulativeDelta,
                 tickCumulativeDeltaLast
-            ); // TODO: unchecked ok?
+            );
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
