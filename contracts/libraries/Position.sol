@@ -335,6 +335,7 @@ library Position {
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
+            // @dev ok as position is unsafe well before arithmeticMeanTick reaches min/max tick given fundingPeriod, tickCumulativeRateMax values
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
                 delta,
                 fundingPeriod / 2 // div by 2 given sqrt price result
@@ -353,6 +354,7 @@ library Position {
             if (delta > deltaMax) delta = deltaMax;
             else if (delta < -deltaMax) delta = -deltaMax;
 
+            // @dev ok as position is unsafe well before arithmeticMeanTick reaches min/max tick given fundingPeriod, tickCumulativeRateMax values
             uint160 numeratorX96 = OracleLibrary.oracleSqrtPriceX96(
                 delta,
                 fundingPeriod / 2 // div by 2 given sqrt price result
