@@ -418,16 +418,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (
-            !(marginDelta > 0 ||
-                uint256(position.margin) >=
-                uint256(uint128(-marginDelta)) + uint256(marginMinimum))
+            int256(uint256(position.margin)) + int256(marginDelta) <
+            int256(uint256(marginMinimum))
         ) revert MarginLessThanMin();
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
             margin0 = uint256(
                 int256(uint256(position.margin)) + int256(marginDelta)
-            );
+            ); // position margin after
             TransferHelper.safeTransfer(token0, recipient, position.margin);
 
             uint256 balance0Before = balance0();
@@ -443,7 +442,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         } else {
             margin1 = uint256(
                 int256(uint256(position.margin)) + int256(marginDelta)
-            );
+            ); // position margin after
             TransferHelper.safeTransfer(token1, recipient, position.margin);
 
             uint256 balance1Before = balance1();
