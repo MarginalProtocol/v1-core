@@ -216,12 +216,12 @@ library Position {
         // ix + dx = del L / sqrt(P'); iy + dy = del L * sqrt(P')
         debt0 = ((uint256(liquidityDelta) << FixedPoint96.RESOLUTION) /
             sqrtPriceX96Next -
-            insurance0).toUint128();
+            uint256(insurance0)).toUint128();
         debt1 = (Math.mulDiv(
             liquidityDelta,
             sqrtPriceX96Next,
             FixedPoint96.Q96
-        ) - insurance1).toUint128();
+        ) - uint256(insurance1)).toUint128();
     }
 
     /// @notice Fees owed by position in (x, y) amounts
@@ -248,7 +248,7 @@ library Position {
         if (!position.zeroForOne) {
             // cx >= (1+M) * dy / P - sx
             uint256 debt1Adjusted = (uint256(position.debt1) *
-                (1e6 + maintenance)) / 1e6;
+                (1e6 + uint256(maintenance))) / 1e6;
 
             uint256 prod = sqrtPriceX96 <= type(uint128).max
                 ? Math.mulDiv(
@@ -268,7 +268,7 @@ library Position {
         } else {
             // cy >= (1+M) * dx * P - sy
             uint256 debt0Adjusted = (uint256(position.debt0) *
-                (1e6 + maintenance)) / 1e6;
+                (1e6 + uint256(maintenance))) / 1e6;
 
             uint256 prod = sqrtPriceX96 <= type(uint128).max
                 ? Math.mulDiv(
@@ -374,9 +374,9 @@ library Position {
     ) internal pure returns (bool) {
         if (!position.zeroForOne) {
             uint256 debt1Adjusted = (uint256(position.debt1) *
-                (1e6 + maintenance)) / 1e6;
+                (1e6 + uint256(maintenance))) / 1e6;
             uint256 liquidityCollateral = Math.mulDiv(
-                position.margin + position.size,
+                uint256(position.margin) + uint256(position.size),
                 sqrtPriceX96,
                 FixedPoint96.Q96
             );
@@ -385,10 +385,10 @@ library Position {
             return liquidityCollateral >= liquidityDebt;
         } else {
             uint256 debt0Adjusted = (uint256(position.debt0) *
-                (1e6 + maintenance)) / 1e6;
-            uint256 liquidityCollateral = (uint256(
-                position.margin + position.size
-            ) << FixedPoint96.RESOLUTION) / sqrtPriceX96;
+                (1e6 + uint256(maintenance))) / 1e6;
+            uint256 liquidityCollateral = ((uint256(position.margin) +
+                uint256(position.size)) << FixedPoint96.RESOLUTION) /
+                sqrtPriceX96;
             uint256 liquidityDebt = Math.mulDiv(
                 debt0Adjusted,
                 sqrtPriceX96,

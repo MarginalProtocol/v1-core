@@ -26,10 +26,10 @@ library SqrtPriceMath {
     ) internal pure returns (uint160) {
         uint256 prod = uint256(liquidityDelta) *
             uint256(liquidity - liquidityDelta);
-        prod = Math.mulDiv(prod, 1e6, 1e6 + maintenance);
+        prod = Math.mulDiv(prod, 1e6, 1e6 + uint256(maintenance));
 
-        // @dev root round down ensures no free size but can have nextX96 go opposite of intended direction
-        // @dev as liquidityDelta -> 0. position.assemble will revert tho if so
+        // root round down ensures no free size but can have nextX96 go opposite of intended direction
+        // as liquidityDelta -> 0. position.assemble will revert tho if so
         uint256 under = uint256(liquidity) ** 2 - 4 * prod;
         uint256 root = Math.sqrt(under);
 
@@ -70,7 +70,7 @@ library SqrtPriceMath {
                     FixedPoint96.Q96,
                     liquidity
                 ); // TODO: uint256(amountSpecified) <= type(uint160).max if have contract size left
-                nextX96 = sqrtPriceX96 + prod;
+                nextX96 = uint256(sqrtPriceX96) + prod;
             } else {
                 // 0 is known
                 // sqrt(P') = sqrt(P) - (del x * sqrt(P)) / (L / sqrt(P) + del x)
@@ -81,7 +81,7 @@ library SqrtPriceMath {
                     sqrtPriceX96,
                     reserve0 + uint256(amountSpecified)
                 ); // TODO: uint256(amountSpecified) <= type(uint96).max if have contract size left
-                nextX96 = sqrtPriceX96 - prod;
+                nextX96 = uint256(sqrtPriceX96) - prod;
             }
         } else {
             if (!zeroForOne) {
@@ -97,7 +97,7 @@ library SqrtPriceMath {
                     sqrtPriceX96,
                     reserve0 - uint256(-amountSpecified)
                 ); // TODO: uint256(-amountSpecified) <= type(uint96).max if have contract size left
-                nextX96 = sqrtPriceX96 + prod;
+                nextX96 = uint256(sqrtPriceX96) + prod;
             } else {
                 // 1 is known
                 // sqrt(P') = sqrt(P) + del y / L
@@ -114,7 +114,7 @@ library SqrtPriceMath {
                     FixedPoint96.Q96,
                     liquidity
                 ); // TODO: uint256(-amountSpecified) <= type(uint160).max if have contract size left
-                nextX96 = sqrtPriceX96 - prod;
+                nextX96 = uint256(sqrtPriceX96) - prod;
             }
         }
         if (!(nextX96 >= MIN_SQRT_RATIO && nextX96 < MAX_SQRT_RATIO))
