@@ -809,6 +809,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             liquidityDelta,
             _state.sqrtPriceX96
         );
+        amount0 += 1; // rough round up on amounts in when add liquidity
+        amount1 += 1;
 
         // total liquidity is available liquidity if all locked liquidity was returned to pool
         uint128 totalLiquidityAfter = _state.liquidity +

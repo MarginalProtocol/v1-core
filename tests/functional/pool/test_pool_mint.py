@@ -257,6 +257,9 @@ def test_pool_mint__transfers_funds(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, sqrt_price_x96_initial
     )
+    amount0 += 1
+    amount1 += 1  # mint does a rough round up when adding liquidity
+
     shares_before = pool_initialized.balanceOf(alice.address)
 
     sender_balance0 = token0.balanceOf(sender.address)
@@ -297,6 +300,8 @@ def test_pool_mint__calls_mint_callback(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, sqrt_price_x96_initial
     )
+    amount0 += 1
+    amount1 += 1  # mint does a rough round up when adding liquidity
 
     tx = callee.mint(
         pool_initialized.address, alice.address, liquidity_delta, sender=sender
@@ -326,6 +331,8 @@ def test_pool_mint__emits_mint(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, sqrt_price_x96_initial
     )
+    amount0 += 1
+    amount1 += 1  # mint does a rough round up when adding liquidity
 
     tx = callee.mint(
         pool_initialized.address, alice.address, liquidity_delta, sender=sender
@@ -440,6 +447,9 @@ def test_pool_mint__initial_mint_with_fuzz(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, state.sqrtPriceX96
     )
+    amount0 += 1
+    amount1 += 1  # mint does a rough round up when adding liquidity
+
     shares = liquidity_delta
 
     params = (
@@ -606,6 +616,8 @@ def test_pool_mint__multiple_mint_with_fuzz(
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity_delta, state.sqrtPriceX96
     )
+    amount0 += 1
+    amount1 += 1  # mint does a rough round up when adding liquidity
 
     shares = (liquidity_delta * total_supply) // (state.liquidity + liquidity_locked)
     params = (
