@@ -92,6 +92,7 @@ contract TestMarginalV1PoolBelowMin0Callee is
         uint128 margin
     )
         external
+        payable
         returns (
             uint256 id,
             uint256 size,
@@ -101,7 +102,7 @@ contract TestMarginalV1PoolBelowMin0Callee is
         )
     {
         return
-            IMarginalV1Pool(pool).open(
+            IMarginalV1Pool(pool).open{value: msg.value}(
                 recipient,
                 zeroForOne,
                 liquidityDelta,
@@ -176,7 +177,7 @@ contract TestMarginalV1PoolBelowMin0Callee is
         address pool,
         address recipient,
         uint96 id
-    ) external returns (int256 amount0, int256 amount1) {
+    ) external returns (int256 amount0, int256 amount1, uint256 rewards) {
         return
             IMarginalV1Pool(pool).settle(recipient, id, abi.encode(msg.sender));
     }

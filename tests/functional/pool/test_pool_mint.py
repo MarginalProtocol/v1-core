@@ -5,7 +5,13 @@ from ape import reverts
 from datetime import timedelta
 from hypothesis import given, settings, strategies as st
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.constants import (
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+)
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
 
@@ -99,6 +105,8 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_zero_for_one(
     token1,
     spot_reserve0,
     spot_reserve1,
+    chain,
+    position_lib,
 ):
     liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
@@ -108,6 +116,10 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_zero_for_one(
     # open a short position
     state = pool_initialized.state()
     maintenance = pool_initialized.maintenance()
+
+    premium = pool_initialized.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     zero_for_one = True
     liquidity_delta_open = liquidity_delta * 10 // 100  # 10% of available liquidity
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
@@ -123,6 +135,12 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_zero_for_one(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     callee.open(
         pool_initialized.address,
@@ -132,6 +150,7 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_zero_for_one(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     total_supply = pool_initialized.totalSupply()
@@ -159,6 +178,8 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_one_for_zero(
     token1,
     spot_reserve0,
     spot_reserve1,
+    chain,
+    position_lib,
 ):
     liquidity_spot = int(sqrt(spot_reserve0 * spot_reserve1))
     liquidity_delta = liquidity_spot * 10 // 10000  # 0.1% of spot reserves
@@ -168,6 +189,10 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_one_for_zero(
     # open a long position
     state = pool_initialized.state()
     maintenance = pool_initialized.maintenance()
+
+    premium = pool_initialized.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     zero_for_one = False
     liquidity_delta_open = liquidity_delta * 10 // 100  # 10% of available liquidity
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
@@ -183,6 +208,12 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_one_for_zero(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     callee.open(
         pool_initialized.address,
@@ -192,6 +223,7 @@ def test_pool_mint__mints_multiple_lp_shares_with_locked_liquidity_one_for_zero(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     total_supply = pool_initialized.totalSupply()
@@ -491,6 +523,7 @@ def test_pool_mint__multiple_mint_with_fuzz(
     liquidity_delta,
     zero_for_one,
     chain,
+    position_lib,
 ):
     # @dev needed to reset chain state at end of function for each fuzz run
     snapshot = chain.snapshot()
@@ -503,6 +536,9 @@ def test_pool_mint__multiple_mint_with_fuzz(
     assert state.totalPositions == 0
 
     maintenance = pool_initialized_with_liquidity.maintenance()
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     liquidity_delta_open = state.liquidity * 10 // 100  # 10% of available liquidity
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1 if zero_for_one else MAX_SQRT_RATIO - 1
 
@@ -517,6 +553,12 @@ def test_pool_mint__multiple_mint_with_fuzz(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta_open / state.liquidity)
     )
     margin = int(2 * size) * maintenance // MAINTENANCE_UNIT  # 2x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
     callee.open(
         pool_initialized_with_liquidity.address,
         callee.address,
@@ -525,6 +567,7 @@ def test_pool_mint__multiple_mint_with_fuzz(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     # check liquidity locked after open

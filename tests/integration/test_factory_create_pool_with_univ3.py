@@ -26,6 +26,7 @@ def test_factory_create_pool_with_univ3__deploys_pool_contract(
         mrglv1_factory.getPool(token0, token1, maintenance, univ3_pool.address)
         == pool.address
     )
+    assert mrglv1_factory.isPool(pool_address) is True
 
 
 @pytest.mark.integration

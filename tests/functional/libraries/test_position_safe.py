@@ -4,9 +4,11 @@ from math import sqrt
 
 from utils.constants import (
     MAINTENANCE_UNIT,
-    REWARD,
     FUNDING_PERIOD,
     TICK_CUMULATIVE_RATE_MAX,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+    REWARD_PREMIUM,
 )
 from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
@@ -46,7 +48,11 @@ def test_position_safe__when_unsafe_without_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M - err term) so slightly less than safe limit
     debt_adjusted = (
@@ -98,7 +104,11 @@ def test_position_safe__when_unsafe_without_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M - err term) so slightly less than safe limit
     debt_adjusted = (
@@ -150,7 +160,11 @@ def test_position_safe__when_safe_without_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly more than safe limit
     debt_adjusted = (
@@ -202,7 +216,11 @@ def test_position_safe__when_safe_without_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly more than safe limit
     debt_adjusted = (
@@ -254,7 +272,11 @@ def test_position_safe__when_unsafe_with_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly more than safe limit to start
     debt_adjusted = (
@@ -326,7 +348,11 @@ def test_position_safe__when_unsafe_with_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly more than safe limit
     debt_adjusted = (
@@ -398,7 +424,11 @@ def test_position_safe__when_safe_with_funding_with_zero_for_one(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly less than safe limit to start
     debt_adjusted = (
@@ -470,7 +500,11 @@ def test_position_safe__when_safe_with_funding_with_one_for_zero(
         tick_cumulative_start,
         oracle_tick_cumulative_start,
     )
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     # adjust for (1 + M + err term) so slightly less than safe limit
     debt_adjusted = (

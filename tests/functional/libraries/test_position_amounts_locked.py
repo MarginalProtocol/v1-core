@@ -12,6 +12,7 @@ def test_position_amounts_locked__with_zero_for_one(position_lib):
         -100,
         200000,
         50000,
+        15000000000000000,
     )
     result = position_lib.amountsLocked(position)
     assert result[0] == position[3]
@@ -32,6 +33,7 @@ def test_position_amounts_locked__with_one_for_zero(position_lib):
         -100,
         200000,
         50000,
+        15000000000000000,
     )
     result = position_lib.amountsLocked(position)
     assert result[0] == position[0] + position[10] + position[1] + position[3]

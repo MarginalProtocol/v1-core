@@ -38,11 +38,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     uint24 public immutable maintenance;
 
     uint24 public constant fee = 1000; // 10 bps across all pools
-    uint24 public constant reward = 50000; // 5% of size added to min margin reqs
+    uint24 public constant rewardPremium = 2000000; // 2x base fee as liquidation rewards
     uint24 public constant tickCumulativeRateMax = 920; // bound on funding rate of ~10% per funding period
 
     uint32 public constant secondsAgo = 43200; // 12 hr TWAP for oracle price
     uint32 public constant fundingPeriod = 604800; // 7 day funding period
+
+    // @dev varies for different chains
+    uint256 internal constant blockBaseFeeMin = 40e9; // min base fee for liquidation rewards
+    uint256 internal constant gasLiquidate = 150000; // gas required to call liquidate
 
     // @dev Pool state represented in (L, sqrtP) space
     struct State {
@@ -103,7 +107,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint128 liquidityAfter,
         uint160 sqrtPriceX96After,
         int256 amount0,
-        int256 amount1
+        int256 amount1,
+        uint256 rewards
     );
     event Liquidate(
         address indexed owner,
@@ -111,8 +116,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint128 liquidityAfter,
         uint160 sqrtPriceX96After,
-        uint256 rewards0,
-        uint256 rewards1
+        uint256 rewards
     );
     event Swap(
         address indexed sender,
@@ -152,6 +156,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error InvalidSqrtPriceLimitX96();
     error SqrtPriceX96ExceedsLimit();
     error MarginLessThanMin();
+    error RewardsLessThanMin();
     error Amount0LessThanMin();
     error Amount1LessThanMin();
     error InvalidPosition();
@@ -229,6 +234,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         return _state;
     }
 
+    /// @dev Callee should check block.basefee <= input param for max liquidation rewards set aside
     function open(
         address recipient,
         bool zeroForOne,
@@ -238,6 +244,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         bytes calldata data
     )
         external
+        payable
         lock
         returns (
             uint256 id,
@@ -293,6 +300,15 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             revert MarginLessThanMin(); // TODO: test marginMinimum == 0
         position.margin = margin;
 
+        uint256 rewardsMinimum = Position.liquidationRewards(
+            block.basefee,
+            blockBaseFeeMin,
+            gasLiquidate,
+            rewardPremium
+        );
+        if (msg.value < rewardsMinimum) revert RewardsLessThanMin();
+        position.rewards = msg.value;
+
         _state.liquidity -= liquidityDelta;
         _state.sqrtPriceX96 = sqrtPriceX96Next;
 
@@ -302,11 +318,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         if (!zeroForOne) {
             // long token0 (out) relative to token1 (in); margin in token0
             uint256 fees0 = Position.fees(position.size, fee);
-            uint256 rewards0 = Position.liquidationRewards(
-                position.size,
-                reward
-            );
-            amount0 = uint256(margin) + fees0 + rewards0; // TODO: check fees, rewards > 0?
+            amount0 = uint256(margin) + fees0;
 
             uint256 balance0Before = balance0();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -338,11 +350,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         } else {
             // long token1 (out) relative to token0 (in); margin in token1
             uint256 fees1 = Position.fees(position.size, fee);
-            uint256 rewards1 = Position.liquidationRewards(
-                position.size,
-                reward
-            );
-            amount1 = uint256(margin) + fees1 + rewards1; // TODO: check fees, rewards > 0?
+            amount1 = uint256(margin) + fees1;
 
             uint256 balance1Before = balance1();
             IMarginalV1OpenCallback(msg.sender).marginalV1OpenCallback(
@@ -467,7 +475,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         uint96 id,
         bytes calldata data
-    ) external lock returns (int256 amount0, int256 amount1) {
+    ) external lock returns (int256 amount0, int256 amount1, uint256 rewards) {
         State memory _state = stateSynced();
         Position.Info memory position = positions.get(msg.sender, id);
         if (position.size == 0) revert InvalidPosition();
@@ -489,14 +497,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             .amountsLocked();
 
         // flash size + margin + rewards out then callback for debt owed in
+        rewards = position.rewards;
+        TransferHelper.safeTransferETH(recipient, rewards); // ok given lock
+
         if (!position.zeroForOne) {
-            uint256 rewards0 = Position.liquidationRewards(
-                position.size,
-                reward
-            );
             amount0 = -int256(
-                uint256(position.size) + uint256(position.margin) + rewards0
-            ); // size + margin + rewards out
+                uint256(position.size) + uint256(position.margin)
+            ); // size + margin out
             amount1 = int256(uint256(position.debt1)); // debt in
 
             if (amount0 < 0)
@@ -530,15 +537,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             if (balance1Before + uint256(amount1) > balance1())
                 revert Amount1LessThanMin();
         } else {
-            uint256 rewards1 = Position.liquidationRewards(
-                position.size,
-                reward
-            );
-
             amount0 = int256(uint256(position.debt0)); // debt in
             amount1 = -int256(
-                uint256(position.size) + uint256(position.margin) + rewards1
-            ); // size + margin + rewards out
+                uint256(position.size) + uint256(position.margin)
+            ); // size + margin out
 
             if (amount1 < 0)
                 TransferHelper.safeTransfer(
@@ -584,7 +586,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.liquidity,
             _state.sqrtPriceX96,
             amount0,
-            amount1
+            amount1,
+            rewards
         );
     }
 
@@ -592,7 +595,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address recipient,
         address owner,
         uint96 id
-    ) external lock returns (uint256 rewards0, uint256 rewards1) {
+    ) external lock returns (uint256 rewards) {
         State memory _state = stateSynced();
         Position.Info memory position = positions.get(owner, id);
         if (position.size == 0) revert InvalidPosition();
@@ -626,12 +629,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         liquidityLocked -= position.liquidityLocked;
         (uint256 amount0, uint256 amount1) = position.amountsLocked();
 
-        if (!position.zeroForOne) {
-            rewards0 = Position.liquidationRewards(position.size, reward);
-        } else {
-            rewards1 = Position.liquidationRewards(position.size, reward);
-        }
-
         (_state.liquidity, _state.sqrtPriceX96) = LiquidityMath
             .liquiditySqrtPriceX96Next(
                 _state.liquidity,
@@ -641,10 +638,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             );
         _state.tick = TickMath.getTickAtSqrtRatio(_state.sqrtPriceX96);
 
-        if (rewards0 > 0)
-            TransferHelper.safeTransfer(token0, recipient, rewards0);
-        if (rewards1 > 0)
-            TransferHelper.safeTransfer(token1, recipient, rewards1);
+        rewards = position.rewards;
+        TransferHelper.safeTransferETH(recipient, rewards); // ok given lock
 
         positions.set(owner, id, position.liquidate());
 
@@ -657,8 +652,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             recipient,
             _state.liquidity,
             _state.sqrtPriceX96,
-            rewards0,
-            rewards1
+            rewards
         );
     }
 

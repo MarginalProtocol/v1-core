@@ -37,7 +37,7 @@ def test_create_pool__deploys_pool_contract(
     assert pool.token1() == rando_token_b_address
     assert pool.maintenance() == maintenance
     assert pool.fee() == 1000
-    assert pool.reward() == 50000
+    assert pool.rewardPremium() == 2000000
     assert pool.secondsAgo() == 43200  # 12 hr TWAP for oracle price
     assert pool.fundingPeriod() == 604800  # 7 day funding period
 
@@ -83,6 +83,7 @@ def test_create_pool__stores_pool_address(
         )
         == pool_address
     )
+    assert factory.isPool(pool_address) is True
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])

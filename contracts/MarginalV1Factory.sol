@@ -16,6 +16,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
 
     mapping(address => mapping(address => mapping(uint24 => mapping(address => address))))
         public getPool;
+    mapping(address => bool) public isPool;
     mapping(uint24 => uint256) public getLeverage;
 
     event PoolCreated(
@@ -47,12 +48,12 @@ contract MarginalV1Factory is IMarginalV1Factory {
         uniswapV3Factory = _uniswapV3Factory;
         observationCardinalityMinimum = _observationCardinalityMinimum;
 
-        getLeverage[250000] = 4333333; // includes liq reward req
-        emit LeverageEnabled(250000, 4333333);
-        getLeverage[500000] = 2818181;
-        emit LeverageEnabled(500000, 2818181);
-        getLeverage[1000000] = 1952380;
-        emit LeverageEnabled(1000000, 1952380);
+        getLeverage[250000] = 5000000;
+        emit LeverageEnabled(250000, 5000000);
+        getLeverage[500000] = 3000000;
+        emit LeverageEnabled(500000, 3000000);
+        getLeverage[1000000] = 2000000;
+        emit LeverageEnabled(1000000, 2000000);
     }
 
     function createPool(
@@ -90,6 +91,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
         // populate in reverse for key (token0, token1, maintenance, oracle)
         getPool[token0][token1][maintenance][oracle] = pool;
         getPool[token1][token0][maintenance][oracle] = pool;
+        isPool[pool] = true;
 
         emit PoolCreated(token0, token1, maintenance, oracle, pool);
     }
@@ -103,11 +105,12 @@ contract MarginalV1Factory is IMarginalV1Factory {
     function enableLeverage(uint24 maintenance) external {
         if (msg.sender != owner) revert Unauthorized();
         if (!(maintenance >= 100000 && maintenance < 1000000))
+            // 2x to 11x
             revert InvalidMaintenance();
         if (getLeverage[maintenance] > 0) revert LeverageActive();
 
-        // l = 1 + 1 / (M + reward)
-        uint256 leverage = 1e6 + 1e12 / (uint256(maintenance) + 5e4);
+        // l = 1 + 1/M
+        uint256 leverage = 1e6 + 1e12 / uint256(maintenance);
         getLeverage[maintenance] = leverage;
 
         emit LeverageEnabled(maintenance, leverage);

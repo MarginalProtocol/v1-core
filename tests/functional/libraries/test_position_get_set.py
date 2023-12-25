@@ -16,6 +16,7 @@ def test_position_set(position_lib, alice):
         -100,
         200000,
         50000,
+        15000000000000000,
     )
     position_lib.set(alice, id, position, sender=alice)
 
@@ -38,6 +39,7 @@ def test_position_get(position_lib, alice):
         -100,
         200000,
         50000,
+        15000000000000000,
     )
     position_lib.set(alice, id, position, sender=alice)
     assert position_lib.get(alice, id) == position

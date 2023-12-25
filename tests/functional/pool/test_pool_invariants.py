@@ -1,6 +1,12 @@
 import pytest
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.constants import (
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+)
 from utils.utils import (
     get_position_key,
     calc_amounts_from_liquidity_sqrt_price_x96,
@@ -23,6 +29,9 @@ def test_pool_open_then_settle_replicates_swap_with_zero_for_one(
     maintenance = pool_initialized_with_liquidity.maintenance()
     fee = pool_initialized_with_liquidity.fee()
 
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -39,6 +48,12 @@ def test_pool_open_then_settle_replicates_swap_with_zero_for_one(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -62,6 +77,7 @@ def test_pool_open_then_settle_replicates_swap_with_zero_for_one(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     result = pool_initialized_with_liquidity.positions(key)
@@ -130,6 +146,9 @@ def test_pool_open_then_settle_replicates_swap_with_one_for_zero(
     maintenance = pool_initialized_with_liquidity.maintenance()
     fee = pool_initialized_with_liquidity.fee()
 
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     liquidity = state.liquidity
     liquidity_delta = liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -146,6 +165,12 @@ def test_pool_open_then_settle_replicates_swap_with_one_for_zero(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
@@ -169,6 +194,7 @@ def test_pool_open_then_settle_replicates_swap_with_one_for_zero(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     result = pool_initialized_with_liquidity.positions(key)

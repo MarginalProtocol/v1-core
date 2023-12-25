@@ -16,6 +16,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
     oracle_tick_cumulative = -100
     block_timestamp = 1684675403
     margin = 0
+    rewards = 0
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -46,6 +47,7 @@ def test_position_assemble__with_zero_for_one(position_lib):
         oracle_tick_cumulative - tick_cumulative,
         margin,
         liquidity_delta,
+        rewards,
     )
     result = position_lib.assemble(
         liquidity,
@@ -74,6 +76,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
     oracle_tick_cumulative = -100
     block_timestamp = 1684675403
     margin = 0
+    rewards = 0
 
     liquidity_delta = liquidity * 5 // 100
     maintenance = 250000
@@ -104,6 +107,7 @@ def test_position_assemble__with_one_for_zero(position_lib):
         oracle_tick_cumulative - tick_cumulative,
         margin,
         liquidity_delta,
+        rewards,
     )
     result = position_lib.assemble(
         liquidity,

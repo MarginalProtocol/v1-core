@@ -20,6 +20,8 @@ ethereum:
     default_provider: foundry
 
 foundry:
+  base_fee: 10000000000000  # 10000 gwei
+  priority_fee: 1000000000  # 1 gwei
   fork:
     ethereum:
       mainnet:

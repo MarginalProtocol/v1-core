@@ -55,10 +55,10 @@ contract TestMarginalV1PoolCallee is
         uint256 amount0,
         uint256 amount1
     );
-    event SettleReturn(int256 amount0, int256 amount1);
+    event SettleReturn(int256 amount0, int256 amount1, uint256 rewards);
     event SwapReturn(int256 amount0, int256 amount1);
     event BurnReturn(uint128 liquidityDelta, uint256 amount0, uint256 amount1);
-    event LiquidateReturn(uint256 rewards0, uint256 rewards1);
+    event LiquidateReturn(uint256 rewards);
 
     function mint(
         address pool,
@@ -105,6 +105,7 @@ contract TestMarginalV1PoolCallee is
         uint128 margin
     )
         external
+        payable
         returns (
             uint256 id,
             uint256 size,
@@ -113,7 +114,9 @@ contract TestMarginalV1PoolCallee is
             uint256 amount1
         )
     {
-        (id, size, debt, amount0, amount1) = IMarginalV1Pool(pool).open(
+        (id, size, debt, amount0, amount1) = IMarginalV1Pool(pool).open{
+            value: msg.value
+        }(
             recipient,
             zeroForOne,
             liquidityDelta,
@@ -189,13 +192,13 @@ contract TestMarginalV1PoolCallee is
         address pool,
         address recipient,
         uint96 id
-    ) external returns (int256 amount0, int256 amount1) {
-        (amount0, amount1) = IMarginalV1Pool(pool).settle(
+    ) external returns (int256 amount0, int256 amount1, uint256 rewards) {
+        (amount0, amount1, rewards) = IMarginalV1Pool(pool).settle(
             recipient,
             id,
             abi.encode(msg.sender)
         );
-        emit SettleReturn(amount0, amount1);
+        emit SettleReturn(amount0, amount1, rewards);
     }
 
     function marginalV1SettleCallback(
@@ -288,12 +291,8 @@ contract TestMarginalV1PoolCallee is
         address recipient,
         address owner,
         uint96 id
-    ) external returns (uint256 rewards0, uint256 rewards1) {
-        (rewards0, rewards1) = IMarginalV1Pool(pool).liquidate(
-            recipient,
-            owner,
-            id
-        );
-        emit LiquidateReturn(rewards0, rewards1);
+    ) external returns (uint256 rewards) {
+        rewards = IMarginalV1Pool(pool).liquidate(recipient, owner, id);
+        emit LiquidateReturn(rewards);
     }
 }

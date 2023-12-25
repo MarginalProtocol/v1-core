@@ -31,6 +31,7 @@ library Position {
         int56 tickCumulativeDelta; // bar{a}_t - a_t; tick cumulative delta at last sync
         uint128 margin;
         uint128 liquidityLocked;
+        uint256 rewards;
     }
 
     /// @notice Gets a position from positions mapping
@@ -230,13 +231,24 @@ library Position {
         return (uint256(size) * fee) / 1e6;
     }
 
-    /// @notice Liquidation rewards to liquidator in (x, y) amounts
-    /// @dev Rewards given proportional to size
+    /// @notice Liquidation rewards required to set aside for liquidator in native (gas) token amount
+    /// @dev Returned on settle to position owner or used as incentive for liquidator to liquidate position when unsafe
+    /// @param blockBaseFee Current block base fee
+    /// @param blockBaseFeeMin Minimum block base fee to use in calculating cost to execute call to liquidate
+    /// @param gas Estimated gas required to execute call to liquidate
+    /// @param premium Liquidation premium to incentivize potential liquidators with
+    /// @return The liquidation rewards to set aside for liquidator if position unsafe
     function liquidationRewards(
-        uint128 size,
-        uint24 reward
+        uint256 blockBaseFee,
+        uint256 blockBaseFeeMin,
+        uint256 gas,
+        uint24 premium
     ) internal pure returns (uint256) {
-        return (uint256(size) * reward) / 1e6;
+        uint256 baseFee = (
+            blockBaseFee > blockBaseFeeMin ? blockBaseFee : blockBaseFeeMin
+        );
+        // need base fee of ~4e62 for possible overflow with gas limit of 30e6
+        return (baseFee * gas * uint256(premium)) / 1e6;
     }
 
     /// @notice Absolute minimum margin requirement

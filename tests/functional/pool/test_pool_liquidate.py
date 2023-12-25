@@ -5,11 +5,12 @@ from datetime import timedelta
 from hypothesis import given, settings, strategies as st
 
 from utils.constants import (
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
     FUNDING_PERIOD,
     MIN_SQRT_RATIO,
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
-    REWARD,
     SECONDS_AGO,
     TICK_CUMULATIVE_RATE_MAX,
 )
@@ -56,9 +57,14 @@ def zero_for_one_position_id(
     token1,
     mock_univ3_pool,
     oracle_next_obs_zero_for_one,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -75,6 +81,12 @@ def zero_for_one_position_id(
     margin = (
         int(1.15 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.15x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -84,6 +96,7 @@ def zero_for_one_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     # change the oracle price up 20% to make the position unsafe
@@ -102,9 +115,14 @@ def one_for_zero_position_id(
     token1,
     mock_univ3_pool,
     oracle_next_obs_one_for_zero,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -121,6 +139,12 @@ def one_for_zero_position_id(
     margin = (
         int(1.15 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.15x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -130,6 +154,7 @@ def one_for_zero_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     # change the oracle price down 20% to make the position unsafe
@@ -146,9 +171,14 @@ def zero_for_one_position_safe_id(
     sender,
     token0,
     token1,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -165,6 +195,12 @@ def zero_for_one_position_safe_id(
     margin = (
         int(1.15 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.15x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -174,6 +210,7 @@ def zero_for_one_position_safe_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -186,9 +223,14 @@ def one_for_zero_position_safe_id(
     sender,
     token0,
     token1,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -205,6 +247,12 @@ def one_for_zero_position_safe_id(
     margin = (
         int(1.15 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.15x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -214,6 +262,7 @@ def one_for_zero_position_safe_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -438,26 +487,21 @@ def test_pool_liquidate__transfers_funds_with_zero_for_one(
     token0,
     token1,
     zero_for_one_position_id,
+    chain,
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
-    balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
-    balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balancee_pool = pool_initialized_with_liquidity.balance
+    balancee_bob = bob.balance
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
     )
 
-    assert token0.balanceOf(pool_initialized_with_liquidity.address) == balance0_before
-    assert token0.balanceOf(bob.address) == 0
-
-    assert (
-        token1.balanceOf(pool_initialized_with_liquidity.address)
-        == balance1_before - rewards1
-    )
-    assert token1.balanceOf(bob.address) == rewards1
+    assert pool_initialized_with_liquidity.balance == balancee_pool - rewards
+    assert bob.balance == balancee_bob + rewards
 
 
 def test_pool_liquidate__transfers_funds_with_one_for_zero(
@@ -474,23 +518,17 @@ def test_pool_liquidate__transfers_funds_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
-    balance0_before = token0.balanceOf(pool_initialized_with_liquidity.address)
-    balance1_before = token1.balanceOf(pool_initialized_with_liquidity.address)
+    balancee_pool = pool_initialized_with_liquidity.balance
+    balancee_bob = bob.balance
 
     pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
     )
 
-    assert (
-        token0.balanceOf(pool_initialized_with_liquidity.address)
-        == balance0_before - rewards0
-    )
-    assert token0.balanceOf(bob.address) == rewards0
-
-    assert token1.balanceOf(pool_initialized_with_liquidity.address) == balance1_before
-    assert token1.balanceOf(bob.address) == 0
+    assert pool_initialized_with_liquidity.balance == balancee_pool - rewards
+    assert bob.balance == balancee_bob + rewards
 
 
 def test_pool_liquidate__returns_rewards_with_zero_for_one(
@@ -507,7 +545,7 @@ def test_pool_liquidate__returns_rewards_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
     tx = callee.liquidate(
         pool_initialized_with_liquidity.address,
@@ -517,8 +555,7 @@ def test_pool_liquidate__returns_rewards_with_zero_for_one(
         sender=alice,
     )
     return_log = tx.decode_logs(callee.LiquidateReturn)[0]
-    assert return_log.rewards0 == 0
-    assert return_log.rewards1 == rewards1
+    assert return_log.rewards == rewards
 
 
 def test_pool_liquidate__returns_rewards_with_one_for_zero(
@@ -535,7 +572,7 @@ def test_pool_liquidate__returns_rewards_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
     tx = callee.liquidate(
         pool_initialized_with_liquidity.address,
@@ -545,8 +582,7 @@ def test_pool_liquidate__returns_rewards_with_one_for_zero(
         sender=alice,
     )
     return_log = tx.decode_logs(callee.LiquidateReturn)[0]
-    assert return_log.rewards0 == rewards0
-    assert return_log.rewards1 == 0
+    assert return_log.rewards == rewards
 
 
 def test_pool_liquidate__emits_liquidate_with_zero_for_one(
@@ -563,7 +599,7 @@ def test_pool_liquidate__emits_liquidate_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards1 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
     tx = pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, zero_for_one_position_id, sender=alice
@@ -578,8 +614,7 @@ def test_pool_liquidate__emits_liquidate_with_zero_for_one(
     assert event.recipient == bob.address
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
-    assert event.rewards0 == 0
-    assert event.rewards1 == rewards1
+    assert event.rewards == rewards
 
 
 def test_pool_liquidate__emits_liquidate_with_one_for_zero(
@@ -596,7 +631,7 @@ def test_pool_liquidate__emits_liquidate_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    rewards0 = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
     tx = pool_initialized_with_liquidity.liquidate(
         bob.address, callee.address, one_for_zero_position_id, sender=alice
@@ -611,8 +646,7 @@ def test_pool_liquidate__emits_liquidate_with_one_for_zero(
     assert event.recipient == bob.address
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
-    assert event.rewards0 == rewards0
-    assert event.rewards1 == 0
+    assert event.rewards == rewards
 
 
 def test_pool_liquidate__reverts_when_not_position_id(
@@ -695,9 +729,6 @@ def test_pool_liquidate__reverts_when_position_safe_with_one_for_zero(
         )
 
 
-# TODO: test with large margin amounts (-> infty)
-
-
 @pytest.mark.fuzzing
 @settings(deadline=timedelta(milliseconds=1000))
 @given(
@@ -738,7 +769,7 @@ def test_pool_liquidate__with_fuzz(
     # set up fuzz test of settle with position open
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    reward = pool_initialized_with_liquidity.reward()
+    premium = pool_initialized_with_liquidity.rewardPremium()
     fee = pool_initialized_with_liquidity.fee()
 
     liquidity_delta = state.liquidity * liquidity_delta_pc // 1000000000
@@ -748,6 +779,8 @@ def test_pool_liquidate__with_fuzz(
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
         state.liquidity, state.sqrtPriceX96, liquidity_delta, zero_for_one, maintenance
     )
+
+    base_fee = chain.blocks[-1].base_fee
 
     # position assembly
     position = position_lib.assemble(
@@ -761,7 +794,12 @@ def test_pool_liquidate__with_fuzz(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    rewards = position_lib.liquidationRewards(position.size, reward)
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
     fees = position_lib.fees(position.size, fee)
 
     margin_min = position_lib.marginMinimum(position, maintenance)
@@ -770,7 +808,7 @@ def test_pool_liquidate__with_fuzz(
     # adjust in case outside of range where test would pass
     # TODO: address edge when margin -> infty
     margin = (position.size * margin_pc) // 1000000000
-    if margin_min > 2**128 - 1 or margin + rewards + fees > balance:
+    if margin_min > 2**128 - 1 or margin_min == 0 or margin + fees > balance:
         return
     elif margin < margin_min:
         margin = margin_min
@@ -783,7 +821,7 @@ def test_pool_liquidate__with_fuzz(
         sqrt_price_limit_x96,
         margin,
     )
-    tx = callee.open(*params, sender=sender)
+    tx = callee.open(*params, sender=sender, value=rewards)
     id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     # state prior
@@ -791,12 +829,8 @@ def test_pool_liquidate__with_fuzz(
     liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
 
     # balances prior
-    balance0_sender = token0.balanceOf(sender.address)
-    balance1_sender = token1.balanceOf(sender.address)
-    balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
-    balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
-    balance0_bob = token0.balanceOf(bob.address)
-    balance1_bob = token1.balanceOf(bob.address)
+    balancee_pool = pool_initialized_with_liquidity.balance
+    balancee_bob = bob.balance
 
     # position prior
     key = get_position_key(callee.address, id)
@@ -833,9 +867,7 @@ def test_pool_liquidate__with_fuzz(
     # prep for call to liquidate
     params = (bob.address, callee.address, id)
     tx = pool_initialized_with_liquidity.liquidate(*params, sender=alice)
-
-    rewards0 = rewards if not zero_for_one else 0
-    rewards1 = 0 if not zero_for_one else rewards
+    rewards = position.rewards
 
     # check pool state transition (including liquidity locked update)
     (reserve0, reserve1) = calc_amounts_from_liquidity_sqrt_price_x96(
@@ -871,20 +903,14 @@ def test_pool_liquidate__with_fuzz(
     assert result_position == position
 
     # check balances
-    balance0_pool -= rewards0
-    balance1_pool -= rewards1
-    balance0_bob += rewards0
-    balance1_bob += rewards1
+    balancee_pool -= rewards
+    balancee_bob += rewards
 
-    result_balance0_pool = token0.balanceOf(pool_initialized_with_liquidity.address)
-    result_balance1_pool = token1.balanceOf(pool_initialized_with_liquidity.address)
-    result_balance0_bob = token0.balanceOf(bob.address)
-    result_balance1_bob = token1.balanceOf(bob.address)
+    result_balancee_pool = pool_initialized_with_liquidity.balance
+    result_balancee_bob = bob.balance
 
-    assert result_balance0_pool == balance0_pool
-    assert result_balance1_pool == balance1_pool
-    assert result_balance0_bob == balance0_bob
-    assert result_balance1_bob == balance1_bob
+    assert result_balancee_pool == balancee_pool
+    assert result_balancee_bob == balancee_bob
 
     # check events
     events = tx.decode_logs(pool_initialized_with_liquidity.Liquidate)
@@ -896,8 +922,7 @@ def test_pool_liquidate__with_fuzz(
     assert event.recipient == bob.address
     assert event.liquidityAfter == state.liquidity
     assert event.sqrtPriceX96After == state.sqrtPriceX96
-    assert event.rewards0 == rewards0
-    assert event.rewards1 == rewards1
+    assert event.rewards == rewards
 
     # revert to chain state prior to fuzz run
     chain.restore(snapshot)

@@ -4,7 +4,13 @@ from ape import reverts
 from datetime import timedelta
 from hypothesis import given, settings, strategies as st
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.constants import (
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+)
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
 # TODO: test multiple mints, burns & swaps
@@ -13,10 +19,13 @@ from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
 @pytest.fixture
 def zero_for_one_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity, callee, sender, token0, token1, chain, position_lib
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -33,6 +42,12 @@ def zero_for_one_position_id(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -42,6 +57,7 @@ def zero_for_one_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -49,10 +65,19 @@ def zero_for_one_position_id(
 
 @pytest.fixture
 def one_for_zero_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -69,6 +94,12 @@ def one_for_zero_position_id(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -78,6 +109,7 @@ def one_for_zero_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -669,6 +701,7 @@ def test_pool_burn__after_multiple_mint_with_fuzz(
     zero_for_one,
     shares_pc,
     chain,
+    position_lib,
 ):
     # @dev needed to reset chain state at end of function for each fuzz run
     snapshot = chain.snapshot()
@@ -682,6 +715,9 @@ def test_pool_burn__after_multiple_mint_with_fuzz(
     assert state.totalPositions == 0
 
     maintenance = pool_initialized_with_liquidity.maintenance()
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
+
     liquidity_delta_open = state.liquidity * 10 // 100  # 10% of available liquidity
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1 if zero_for_one else MAX_SQRT_RATIO - 1
 
@@ -696,6 +732,12 @@ def test_pool_burn__after_multiple_mint_with_fuzz(
         / (maintenance + MAINTENANCE_UNIT - liquidity_delta_open / state.liquidity)
     )
     margin = int(2 * size) * maintenance // MAINTENANCE_UNIT  # 2x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
     callee.open(
         pool_initialized_with_liquidity.address,
         callee.address,
@@ -704,6 +746,7 @@ def test_pool_burn__after_multiple_mint_with_fuzz(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     # check liquidity locked after open

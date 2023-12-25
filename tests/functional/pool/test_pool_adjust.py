@@ -10,6 +10,8 @@ from utils.constants import (
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
     TICK_CUMULATIVE_RATE_MAX,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
 )
 from utils.utils import (
     get_position_key,
@@ -19,10 +21,19 @@ from utils.utils import (
 
 @pytest.fixture
 def zero_for_one_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -39,6 +50,12 @@ def zero_for_one_position_id(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -48,6 +65,7 @@ def zero_for_one_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -55,10 +73,19 @@ def zero_for_one_position_id(
 
 @pytest.fixture
 def one_for_zero_position_id(
-    pool_initialized_with_liquidity, callee, sender, token0, token1
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    token0,
+    token1,
+    chain,
+    position_lib,
 ):
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -75,6 +102,12 @@ def one_for_zero_position_id(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -84,6 +117,7 @@ def one_for_zero_position_id(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = tx.decode_logs(callee.OpenReturn)[0].id
     return int(id)
@@ -589,10 +623,15 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
     alice,
     token0,
     token1,
+    chain,
+    position_lib,
 ):
     # create new zero for one position owned by callee below min1
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = True
@@ -609,6 +648,12 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -618,6 +663,7 @@ def test_pool_adjust_reverts_when_amount1_less_than_margin_adjust_min(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
@@ -643,10 +689,15 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
     alice,
     token0,
     token1,
+    chain,
+    position_lib,
 ):
     # create new one for zero position owned by callee below min1
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     zero_for_one = False
@@ -663,6 +714,12 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
     margin = (
         int(1.25 * size) * maintenance // MAINTENANCE_UNIT
     )  # 1.25x for breathing room
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
 
     tx = callee.open(
         pool_initialized_with_liquidity.address,
@@ -672,6 +729,7 @@ def test_pool_adjust_reverts_when_amount0_less_than_margin_adjust_min(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
     id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
@@ -732,8 +790,10 @@ def test_pool_adjust__with_fuzz(
     # set up fuzz test of adjust with position open
     state = pool_initialized_with_liquidity.state()
     maintenance = pool_initialized_with_liquidity.maintenance()
-    reward = pool_initialized_with_liquidity.reward()
     fee = pool_initialized_with_liquidity.fee()
+
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * liquidity_delta_pc // 1000000000
     sqrt_price_limit_x96 = (
@@ -755,19 +815,24 @@ def test_pool_adjust__with_fuzz(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
-    rewards = position_lib.liquidationRewards(position.size, reward)
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
     fees = position_lib.fees(position.size, fee)
 
     margin_min = position_lib.marginMinimum(position, maintenance)
     balance = balance0_sender if not zero_for_one else balance1_sender
 
     # adjust in case outside of range where test would pass
-    if margin_min > 2**128 - 1:
+    if margin_min > 2**128 - 1 or margin_min == 0:
         return
     elif margin < margin_min:
         margin = margin_min
-    elif margin + rewards + fees > balance:
-        margin = balance - rewards - fees
+    elif margin + fees > balance:
+        margin = balance - fees
 
     params = (
         pool_initialized_with_liquidity.address,
@@ -777,7 +842,7 @@ def test_pool_adjust__with_fuzz(
         sqrt_price_limit_x96,
         margin,
     )
-    tx = callee.open(*params, sender=sender)
+    tx = callee.open(*params, sender=sender, value=rewards)
     id = int(tx.decode_logs(callee.OpenReturn)[0].id)
 
     # state prior

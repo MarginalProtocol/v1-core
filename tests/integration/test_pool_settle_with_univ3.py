@@ -5,8 +5,9 @@ from utils.constants import (
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
     FUNDING_PERIOD,
-    REWARD,
     TICK_CUMULATIVE_RATE_MAX,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
 )
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
@@ -19,10 +20,14 @@ def open_position(
     callee,
     sender,
     chain,
+    position_lib,
 ):
     def open(zero_for_one):
         state = mrglv1_pool_initialized_with_liquidity.state()
         maintenance = mrglv1_pool_initialized_with_liquidity.maintenance()
+
+        premium = mrglv1_pool_initialized_with_liquidity.rewardPremium()
+        base_fee = chain.blocks[-1].base_fee
 
         liquidity_delta = (
             state.liquidity * 500 // 10000
@@ -42,6 +47,12 @@ def open_position(
             / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
         )  # @dev: this is an approximation
         margin = int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+        rewards = position_lib.liquidationRewards(
+            base_fee,
+            BASE_FEE_MIN,
+            GAS_LIQUIDATE,
+            premium,
+        )
 
         tx = callee.open(
             mrglv1_pool_initialized_with_liquidity.address,
@@ -51,6 +62,7 @@ def open_position(
             sqrt_price_limit_x96,
             margin,
             sender=sender,
+            value=rewards,
         )
         id = tx.decode_logs(callee.OpenReturn)[0].id
         return int(id)
@@ -135,13 +147,15 @@ def test_pool_settle_with_univ3__transfers_funds(
     balance1_pool = mrglv1_token1.balanceOf(
         mrglv1_pool_initialized_with_liquidity.address
     )
+    balancee_pool = mrglv1_pool_initialized_with_liquidity.balance
 
     balance0_sender = mrglv1_token0.balanceOf(sender.address)
     balance1_sender = mrglv1_token1.balanceOf(sender.address)
+    balancee_sender = sender.balance
 
     block_timestamp_next = chain.pending_timestamp
 
-    callee.settle(
+    tx = callee.settle(
         mrglv1_pool_initialized_with_liquidity.address,
         sender.address,
         position_id,
@@ -159,14 +173,10 @@ def test_pool_settle_with_univ3__transfers_funds(
         TICK_CUMULATIVE_RATE_MAX,
         FUNDING_PERIOD,
     )
-    rewards = position_lib.liquidationRewards(position.size, REWARD)
+    rewards = position.rewards
 
-    amount0 = (
-        position.debt0 if zero_for_one else -(position.size + position.margin + rewards)
-    )
-    amount1 = (
-        -(position.size + position.margin + rewards) if zero_for_one else position.debt1
-    )
+    amount0 = position.debt0 if zero_for_one else -(position.size + position.margin)
+    amount1 = -(position.size + position.margin) if zero_for_one else position.debt1
 
     assert (
         mrglv1_token0.balanceOf(mrglv1_pool_initialized_with_liquidity.address)
@@ -176,6 +186,8 @@ def test_pool_settle_with_univ3__transfers_funds(
         mrglv1_token1.balanceOf(mrglv1_pool_initialized_with_liquidity.address)
         == balance1_pool + amount1
     )
+    assert mrglv1_pool_initialized_with_liquidity.balance == balancee_pool - rewards
 
     assert mrglv1_token0.balanceOf(sender.address) == balance0_sender - amount0
     assert mrglv1_token1.balanceOf(sender.address) == balance1_sender - amount1
+    assert sender.balance == balancee_sender + rewards - tx.gas_used * tx.gas_price

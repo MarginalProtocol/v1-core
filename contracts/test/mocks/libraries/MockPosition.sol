@@ -132,13 +132,20 @@ contract MockPosition {
     }
 
     function liquidationRewards(
-        uint128 size,
-        uint24 reward
+        uint256 blockBaseFee,
+        uint256 blockBaseFeeMin,
+        uint256 gas,
+        uint24 premium
     ) external pure returns (uint256) {
-        return Position.liquidationRewards(size, reward);
+        return
+            Position.liquidationRewards(
+                blockBaseFee,
+                blockBaseFeeMin,
+                gas,
+                premium
+            );
     }
 
-    // TODO: test
     function marginMinimum(
         Position.Info memory position,
         uint24 maintenance

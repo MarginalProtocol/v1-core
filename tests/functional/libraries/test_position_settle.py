@@ -12,6 +12,7 @@ def test_position_settle(position_lib):
         -100,
         200000,
         50000,
+        15000000000000000,
     )
     result = position_lib.settle(position)
 
@@ -26,6 +27,7 @@ def test_position_settle(position_lib):
         position[7],
         position[8],
         position[9],
+        0,
         0,
         0,
     )

@@ -1,6 +1,12 @@
 import pytest
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MAINTENANCE_UNIT
+from utils.constants import (
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MAINTENANCE_UNIT,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+)
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
 
@@ -10,6 +16,7 @@ def test_pool_open_with_univ3__sets_position(
     mrglv1_pool_initialized_with_liquidity,
     univ3_pool,
     zero_for_one,
+    position_lib,
     callee,
     alice,
     sender,
@@ -17,6 +24,13 @@ def test_pool_open_with_univ3__sets_position(
 ):
     state = mrglv1_pool_initialized_with_liquidity.state()
     maintenance = mrglv1_pool_initialized_with_liquidity.maintenance()
+
+    premium = mrglv1_pool_initialized_with_liquidity.rewardPremium()
+
+    # mine a few empty blocks to get base fee down a bit
+    # base_fee set in ape-config.yaml set for local functional tests
+    chain.mine(num_blocks=20)
+    base_fee = chain.blocks[-1].base_fee
 
     liquidity_delta = state.liquidity * 500 // 10000  # 5% of pool reserves leveraged
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1 if zero_for_one else MAX_SQRT_RATIO - 1
@@ -33,6 +47,13 @@ def test_pool_open_with_univ3__sets_position(
     )  # @dev: this is an approximation
     margin = int(1.25 * size) * maintenance // MAINTENANCE_UNIT
 
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
+
     tx = callee.open(
         mrglv1_pool_initialized_with_liquidity.address,
         alice.address,
@@ -41,6 +62,7 @@ def test_pool_open_with_univ3__sets_position(
         sqrt_price_limit_x96,
         margin,
         sender=sender,
+        value=rewards,
     )
 
     oracle_tick_cumulatives, _ = univ3_pool.observe([0])

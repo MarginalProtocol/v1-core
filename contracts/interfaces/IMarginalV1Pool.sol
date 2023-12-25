@@ -16,7 +16,7 @@ interface IMarginalV1Pool is IERC20 {
 
     function fee() external view returns (uint24);
 
-    function reward() external view returns (uint24);
+    function rewardPremium() external view returns (uint24);
 
     function tickCumulativeRateMax() external view returns (uint24);
 
@@ -62,7 +62,8 @@ interface IMarginalV1Pool is IERC20 {
             uint32 blockTimestamp,
             int56 tickCumulativeDelta,
             uint128 margin,
-            uint128 liquidityLocked
+            uint128 liquidityLocked,
+            uint256 rewards
         );
 
     function initialize(uint160 _sqrtPriceX96) external;
@@ -76,6 +77,7 @@ interface IMarginalV1Pool is IERC20 {
         bytes calldata data
     )
         external
+        payable
         returns (
             uint256 id,
             uint256 size,
@@ -95,13 +97,13 @@ interface IMarginalV1Pool is IERC20 {
         address recipient,
         uint96 id,
         bytes calldata data
-    ) external returns (int256 amount0, int256 amount1);
+    ) external returns (int256 amount0, int256 amount1, uint256 rewards);
 
     function liquidate(
         address recipient,
         address owner,
         uint96 id
-    ) external returns (uint256 reward0, uint256 reward1);
+    ) external returns (uint256 rewards);
 
     function swap(
         address recipient,

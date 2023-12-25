@@ -15,14 +15,14 @@ import {IMarginalV1SwapCallback} from "../interfaces/callback/IMarginalV1SwapCal
 import {IMarginalV1Pool} from "../interfaces/IMarginalV1Pool.sol";
 
 /// @dev bytes data param for each call should contain a call to pool function to attempt re-entrance
-contract TestMarginalV1PoolReentrancyWithOpenCallee is
-    IMarginalV1AdjustCallback,
+contract TestMarginalV1PoolReentrancyWithOpenAndReceiveCallee is
     IMarginalV1OpenCallback,
     IMarginalV1SettleCallback
 {
     using SafeERC20 for IERC20;
 
     address private _pool;
+    bytes private _data;
 
     event OpenCallback(
         uint256 amount0Owed,
@@ -30,20 +30,18 @@ contract TestMarginalV1PoolReentrancyWithOpenCallee is
         address sender
     );
 
-    function reenter(bytes calldata data) private {
-        (bool success, bytes memory reason) = _pool.call(data);
+    function reenter() private {
+        (bool success, bytes memory reason) = _pool.call(_data);
         delete _pool;
+        delete _data;
 
-        if (success) {
-            revert("Failed to lock");
-        } else {
+        if (!success) {
             // given custom errors
             // @dev Ref https://ethereum.stackexchange.com/questions/125238/catching-custom-error/125296
             bytes4 desired = bytes4(keccak256(bytes("Locked()")));
             bytes4 received = bytes4(reason);
-            if (desired != received) {
-                revert("Locked() not returned");
-            } else {
+            if (desired == received) {
+                // will ultimately revert with STE
                 revert("Locked() returned");
             }
         }
@@ -102,25 +100,6 @@ contract TestMarginalV1PoolReentrancyWithOpenCallee is
             );
     }
 
-    function adjust(
-        address pool,
-        address recipient,
-        uint96 id,
-        int128 marginDelta,
-        bytes calldata data
-    ) external returns (uint256 margin0, uint256 margin1) {
-        _pool = pool;
-        return IMarginalV1Pool(pool).adjust(recipient, id, marginDelta, data);
-    }
-
-    function marginalV1AdjustCallback(
-        uint256 amount0Owed,
-        uint256 amount1Owed,
-        bytes calldata data
-    ) external {
-        reenter(data);
-    }
-
     function settle(
         address pool,
         address recipient,
@@ -128,6 +107,7 @@ contract TestMarginalV1PoolReentrancyWithOpenCallee is
         bytes calldata data
     ) external returns (int256 amount0, int256 amount1, uint256 rewards) {
         _pool = pool;
+        _data = data;
         return IMarginalV1Pool(pool).settle(recipient, id, data);
     }
 
@@ -136,6 +116,22 @@ contract TestMarginalV1PoolReentrancyWithOpenCallee is
         int256 amount1Delta,
         bytes calldata data
     ) external {
-        reenter(data);
+        revert("Failed to lock on receive()");
+    }
+
+    function liquidate(
+        address pool,
+        address recipient,
+        address owner,
+        uint96 id,
+        bytes calldata data
+    ) external returns (uint256 rewards) {
+        _pool = pool;
+        _data = data;
+        return IMarginalV1Pool(pool).liquidate(recipient, owner, id);
+    }
+
+    receive() external payable {
+        reenter();
     }
 }

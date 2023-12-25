@@ -1,6 +1,12 @@
 from math import sqrt
 
-from utils.constants import REWARD, FUNDING_PERIOD, TICK_CUMULATIVE_RATE_MAX
+from utils.constants import (
+    REWARD_PREMIUM,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
+    FUNDING_PERIOD,
+    TICK_CUMULATIVE_RATE_MAX,
+)
 from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
 
 
@@ -41,7 +47,11 @@ def test_position_sync__with_zero_for_one(position_lib, rando_univ3_observations
         oracle_tick_cumulative_start,
     )
     position.margin = position_lib.marginMinimum(position, maintenance)
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     tick_next = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
@@ -115,7 +125,11 @@ def test_position_sync__with_one_for_zero(position_lib, rando_univ3_observations
         oracle_tick_cumulative_start,
     )
     position.margin = position_lib.marginMinimum(position, maintenance)
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     tick_next = calc_tick_from_sqrt_price_x96(sqrt_price_x96_next)
     oracle_tick = calc_tick_from_sqrt_price_x96(oracle_sqrt_price_x96)
@@ -188,7 +202,11 @@ def test_position_sync__when_block_timestamps_same_with_zero_for_one(
         oracle_tick_cumulative_start,
     )
     position.margin = position_lib.marginMinimum(position, maintenance)
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     assert (
         position_lib.sync(
@@ -239,7 +257,11 @@ def test_position_sync__when_block_timestamps_same_with_one_for_zero(
         oracle_tick_cumulative_start,
     )
     position.margin = position_lib.marginMinimum(position, maintenance)
-    position.rewards = position_lib.liquidationRewards(position.size, REWARD)
+
+    base_fee = BASE_FEE_MIN * 2
+    position.rewards = position_lib.liquidationRewards(
+        base_fee, BASE_FEE_MIN, GAS_LIQUIDATE, REWARD_PREMIUM
+    )
 
     assert (
         position_lib.sync(

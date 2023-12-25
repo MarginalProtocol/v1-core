@@ -13,4 +13,10 @@ library TransferHelper {
         uint256 amount = value <= balance ? value : balance;
         IERC20(token).safeTransfer(to, amount);
     }
+
+    /// @dev Ref @uniswap/v3-periphery/contracts/libraries/TransferHelper.sol#L56
+    function safeTransferETH(address to, uint256 value) internal {
+        (bool success, ) = to.call{value: value}(new bytes(0));
+        require(success, "STE");
+    }
 }

@@ -17,6 +17,8 @@ interface IMarginalV1Factory {
         address oracle
     ) external view returns (address);
 
+    function isPool(address pool) external view returns (bool);
+
     function getLeverage(uint24 maintenance) external view returns (uint256);
 
     function createPool(

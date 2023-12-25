@@ -66,6 +66,7 @@ contract TestMarginalV1PoolReentrancyCallee is
         bytes calldata data
     )
         external
+        payable
         returns (
             uint256 id,
             uint256 size,
@@ -76,7 +77,7 @@ contract TestMarginalV1PoolReentrancyCallee is
     {
         _pool = pool;
         return
-            IMarginalV1Pool(pool).open(
+            IMarginalV1Pool(pool).open{value: msg.value}(
                 recipient,
                 zeroForOne,
                 liquidityDelta,

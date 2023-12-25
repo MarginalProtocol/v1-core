@@ -6,6 +6,8 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     FUNDING_PERIOD,
     TICK_CUMULATIVE_RATE_MAX,
+    BASE_FEE_MIN,
+    GAS_LIQUIDATE,
 )
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96, get_position_key
 
@@ -18,10 +20,14 @@ def open_position(
     callee,
     sender,
     chain,
+    position_lib,
 ):
     def open(zero_for_one):
         state = mrglv1_pool_initialized_with_liquidity.state()
         maintenance = mrglv1_pool_initialized_with_liquidity.maintenance()
+
+        premium = mrglv1_pool_initialized_with_liquidity.rewardPremium()
+        base_fee = chain.blocks[-1].base_fee
 
         liquidity_delta = (
             state.liquidity * 500 // 10000
@@ -41,6 +47,12 @@ def open_position(
             / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
         )  # @dev: this is an approximation
         margin = int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+        rewards = position_lib.liquidationRewards(
+            base_fee,
+            BASE_FEE_MIN,
+            GAS_LIQUIDATE,
+            premium,
+        )
 
         tx = callee.open(
             mrglv1_pool_initialized_with_liquidity.address,
@@ -50,6 +62,7 @@ def open_position(
             sqrt_price_limit_x96,
             margin,
             sender=sender,
+            value=rewards,
         )
         id = tx.decode_logs(callee.OpenReturn)[0].id
         return int(id)
