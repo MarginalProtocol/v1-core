@@ -29,22 +29,16 @@ def sqrt_price_x96_initial(spot_reserve0, spot_reserve1):
 
 
 @pytest.fixture(scope="module")
-def pool_initialized(pool, sender, sqrt_price_x96_initial):
-    pool.initialize(sqrt_price_x96_initial, sender=sender)
-    return pool
-
-
-@pytest.fixture(scope="module")
-def token0(pool_initialized, token_a, token_b, sender, callee, spot_reserve0):
-    token0 = token_a if pool_initialized.token0() == token_a.address else token_b
+def token0(pool, token_a, token_b, sender, callee, spot_reserve0):
+    token0 = token_a if pool.token0() == token_a.address else token_b
     token0.approve(callee.address, 2**256 - 1, sender=sender)
     token0.mint(sender.address, spot_reserve0, sender=sender)
     return token0
 
 
 @pytest.fixture(scope="module")
-def token1(pool_initialized, token_a, token_b, sender, callee, spot_reserve1):
-    token1 = token_b if pool_initialized.token1() == token_b.address else token_a
+def token1(pool, token_a, token_b, sender, callee, spot_reserve1):
+    token1 = token_b if pool.token1() == token_b.address else token_a
     token1.approve(callee.address, 2**256 - 1, sender=sender)
     token1.mint(sender.address, spot_reserve1, sender=sender)
     return token1
@@ -52,15 +46,13 @@ def token1(pool_initialized, token_a, token_b, sender, callee, spot_reserve1):
 
 @pytest.fixture(scope="module")
 def pool_initialized_with_liquidity(
-    pool_initialized, callee, token0, token1, sender, spot_liquidity
+    pool, callee, token0, token1, sender, spot_liquidity
 ):
     liquidity_delta = spot_liquidity * 100 // 10000  # 1% of spot reserves
-    callee.mint(
-        pool_initialized.address, sender.address, liquidity_delta, sender=sender
-    )
-    pool_initialized.approve(pool_initialized.address, 2**256 - 1, sender=sender)
-    pool_initialized.approve(callee.address, 2**256 - 1, sender=sender)
-    return pool_initialized
+    callee.mint(pool.address, sender.address, liquidity_delta, sender=sender)
+    pool.approve(pool.address, 2**256 - 1, sender=sender)
+    pool.approve(callee.address, 2**256 - 1, sender=sender)
+    return pool
 
 
 @pytest.fixture(scope="module")

@@ -66,8 +66,6 @@ interface IMarginalV1Pool is IERC20 {
             uint256 rewards
         );
 
-    function initialize(uint160 _sqrtPriceX96) external;
-
     function open(
         address recipient,
         bool zeroForOne,

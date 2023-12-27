@@ -10,6 +10,7 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
+    MINIMUM_LIQUIDITY,
 )
 from utils.utils import calc_amounts_from_liquidity_sqrt_price_x96
 
@@ -123,6 +124,10 @@ def test_pool_burn__updates_state(
 ):
     state = pool_initialized_with_liquidity.state()
     shares = pool_initialized_with_liquidity.balanceOf(sender.address)
+    total_supply = pool_initialized_with_liquidity.totalSupply()
+
+    liquidity_locked = pool_initialized_with_liquidity.liquidityLocked()
+    total_liquidity = state.liquidity + liquidity_locked
 
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative_next = state.tickCumulative + state.tick * (
@@ -130,7 +135,7 @@ def test_pool_burn__updates_state(
     )
 
     shares_burned = shares // 3
-    liquidity_burned = state.liquidity // 3
+    liquidity_burned = (total_liquidity * shares_burned) // total_supply
 
     pool_initialized_with_liquidity.burn(alice.address, shares_burned, sender=sender)
     state.liquidity -= liquidity_burned
@@ -191,7 +196,7 @@ def test_pool_burn__returns_amounts(
     total_shares = pool_initialized_with_liquidity.totalSupply()
 
     state = pool_initialized_with_liquidity.state()
-    total_liquidity = state.liquidity
+    total_liquidity = state.liquidity  # no liquidity locked
 
     shares_burned = shares // 3
     liquidity_delta = (total_liquidity * shares_burned) // total_shares
@@ -224,7 +229,7 @@ def test_pool_burn__transfers_funds(
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
 
     state = pool_initialized_with_liquidity.state()
-    total_liquidity = state.liquidity
+    total_liquidity = state.liquidity  # no liquidity locked
 
     shares_burned = shares // 3
     liquidity_delta = (total_liquidity * shares_burned) // total_shares
@@ -264,7 +269,7 @@ def test_pool_burn__transfers_multiple_funds(
     balance1 = token1.balanceOf(pool_initialized_with_liquidity.address)
 
     state = pool_initialized_with_liquidity.state()
-    total_liquidity = state.liquidity
+    total_liquidity = state.liquidity  # no liquidity locked
 
     shares_burned = shares // 3
     liquidity_delta = (total_liquidity * shares_burned) // total_shares
@@ -556,12 +561,14 @@ def test_pool_burn__reverts_when_liquidity_delta_greater_than_liquidity(
 @pytest.mark.fuzzing
 @settings(deadline=timedelta(milliseconds=1000))
 @given(
-    liquidity_delta=st.integers(min_value=1, max_value=2**128 - 1),
+    liquidity_delta=st.integers(
+        min_value=MINIMUM_LIQUIDITY + 1, max_value=2**128 - 1
+    ),
     zero_for_one=st.booleans(),
     shares_pc=st.integers(min_value=1, max_value=1000000000),
 )
 def test_pool_burn__after_initial_mint_with_fuzz(
-    pool_initialized,
+    another_pool,
     callee,
     sender,
     alice,
@@ -583,39 +590,43 @@ def test_pool_burn__after_initial_mint_with_fuzz(
     token1.mint(sender.address, 2**255 - 1 - balance1_sender, sender=sender)
 
     # set up fuzz test of burn after initial mint
-    shares_alice = pool_initialized.balanceOf(alice.address)
-    total_supply = pool_initialized.totalSupply()
+    shares_alice = another_pool.balanceOf(alice.address)
+    total_supply = another_pool.totalSupply()
+    assert total_supply == 0
 
     shares = liquidity_delta
     params = (
-        pool_initialized.address,
+        another_pool.address,
         alice.address,
         liquidity_delta,
     )
+
+    callee.mint(*params, sender=sender)
+
+    # check mint produced expected results
+    shares -= MINIMUM_LIQUIDITY
+    shares_alice += shares
+    shares_pool = MINIMUM_LIQUIDITY
+    total_supply += shares + MINIMUM_LIQUIDITY
+
+    assert shares_alice == another_pool.balanceOf(alice.address)
+    assert total_supply == another_pool.totalSupply()
+    assert shares_pool == another_pool.balanceOf(another_pool.address)
 
     # prep for burn
     shares_burned = (shares * shares_pc) // 1000000000
     if shares_burned == 0:
         shares_burned += 1
 
-    callee.mint(*params, sender=sender)
-
-    # check mint produced expected results
-    shares_alice += shares
-    total_supply += shares
-
-    assert shares_alice == pool_initialized.balanceOf(alice.address)
-    assert total_supply == pool_initialized.totalSupply()
-
     # balances prior
-    balance0_pool = token0.balanceOf(pool_initialized.address)
-    balance1_pool = token1.balanceOf(pool_initialized.address)
+    balance0_pool = token0.balanceOf(another_pool.address)
+    balance1_pool = token1.balanceOf(another_pool.address)
     balance0_bob = token0.balanceOf(bob.address)
     balance1_bob = token1.balanceOf(bob.address)
 
     # state prior
-    state = pool_initialized.state()
-    liquidity_locked = pool_initialized.liquidityLocked()
+    state = another_pool.state()
+    liquidity_locked = another_pool.liquidityLocked()
 
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative_next = state.tickCumulative + state.tick * (
@@ -628,26 +639,26 @@ def test_pool_burn__after_initial_mint_with_fuzz(
     )
 
     params = (bob.address, shares_burned)
-    tx = pool_initialized.burn(*params, sender=alice)
+    tx = another_pool.burn(*params, sender=alice)
 
     # check pool state transition (including liquidity locked)
     state.liquidity -= liquidity_delta_burned
     state.tickCumulative = tick_cumulative_next
     state.blockTimestamp = block_timestamp_next
-    result_state = pool_initialized.state()
+    result_state = another_pool.state()
 
     assert result_state == state
 
     liquidity_locked += 0
-    result_liquidity_locked = pool_initialized.liquidityLocked()
+    result_liquidity_locked = another_pool.liquidityLocked()
 
     assert result_liquidity_locked == liquidity_locked
 
     # check balances (including lp shares)
     shares_alice -= shares_burned
     total_supply -= shares_burned
-    result_shares_alice = pool_initialized.balanceOf(alice.address)
-    result_total_supply = pool_initialized.totalSupply()
+    result_shares_alice = another_pool.balanceOf(alice.address)
+    result_total_supply = another_pool.totalSupply()
 
     assert result_shares_alice == shares_alice
     assert result_total_supply == total_supply
@@ -657,8 +668,8 @@ def test_pool_burn__after_initial_mint_with_fuzz(
     balance0_bob += amount0_received
     balance1_bob += amount1_received
 
-    result_balance0_pool = token0.balanceOf(pool_initialized.address)
-    result_balance1_pool = token1.balanceOf(pool_initialized.address)
+    result_balance0_pool = token0.balanceOf(another_pool.address)
+    result_balance1_pool = token1.balanceOf(another_pool.address)
     result_balance0_bob = token0.balanceOf(bob.address)
     result_balance1_bob = token1.balanceOf(bob.address)
 
@@ -668,7 +679,7 @@ def test_pool_burn__after_initial_mint_with_fuzz(
     assert result_balance1_bob == balance1_bob
 
     # check events
-    events = tx.decode_logs(pool_initialized.Burn)
+    events = tx.decode_logs(another_pool.Burn)
     assert len(events) == 1
     event = events[0]
 

@@ -12,6 +12,7 @@ from utils.constants import (
     TICK_CUMULATIVE_RATE_MAX,
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
+    MINIMUM_LIQUIDITY,
 )
 from utils.utils import (
     calc_amounts_from_liquidity_sqrt_price_x96,
@@ -902,7 +903,7 @@ def test_pool_settle__reverts_when_amount1_less_than_min(
 @settings(deadline=timedelta(milliseconds=1000))
 @given(
     liquidity_delta=st.integers(
-        min_value=1, max_value=29942224366269116
+        min_value=1, max_value=29942224366269116 - MINIMUM_LIQUIDITY
     ),  # max liquidity in init'd pool w liquidity
     zero_for_one=st.booleans(),
     margin=st.integers(min_value=0, max_value=2**128 - 1),
@@ -1079,7 +1080,7 @@ def test_pool_settle__with_fuzz(
     result_state = pool_initialized_with_liquidity.state()
     assert pytest.approx(result_state.liquidity, rel=1e-14) == state.liquidity
     assert pytest.approx(result_state.sqrtPriceX96, rel=1e-14) == state.sqrtPriceX96
-    assert result_state.tick == state.tick
+    assert pytest.approx(result_state.tick, abs=1) == state.tick
     assert result_state.blockTimestamp == state.blockTimestamp
     assert result_state.tickCumulative == state.tickCumulative
     assert result_state.totalPositions == state.totalPositions

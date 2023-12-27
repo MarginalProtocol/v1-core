@@ -67,14 +67,6 @@ def mrglv1_pool(create_mrglv1_pool, univ3_pool):
 
 
 @pytest.fixture(scope="module")
-def mrglv1_pool_initialized(mrglv1_pool, univ3_pool, sender):
-    slot0 = univ3_pool.slot0()
-    sqrt_price_x96_initial = slot0.sqrtPriceX96
-    mrglv1_pool.initialize(sqrt_price_x96_initial, sender=sender)
-    return mrglv1_pool
-
-
-@pytest.fixture(scope="module")
 def mrglv1_token0(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
     liquidity = univ3_pool.liquidity()
     sqrt_price_x96 = univ3_pool.slot0().sqrtPriceX96
@@ -102,15 +94,11 @@ def mrglv1_token1(mrglv1_pool, univ3_pool, WETH9, USDC, sender, callee, whale):
 
 @pytest.fixture(scope="module")
 def mrglv1_pool_initialized_with_liquidity(
-    mrglv1_pool_initialized, univ3_pool, callee, mrglv1_token0, mrglv1_token1, sender
+    mrglv1_pool, univ3_pool, callee, mrglv1_token0, mrglv1_token1, sender
 ):
     spot_liquidity = univ3_pool.liquidity()
     liquidity_delta = spot_liquidity * 100 // 10000  # 1% of spot reserves
 
-    callee.mint(
-        mrglv1_pool_initialized.address, sender.address, liquidity_delta, sender=sender
-    )
-    mrglv1_pool_initialized.approve(
-        mrglv1_pool_initialized.address, 2**256 - 1, sender=sender
-    )
-    return mrglv1_pool_initialized
+    callee.mint(mrglv1_pool.address, sender.address, liquidity_delta, sender=sender)
+    mrglv1_pool.approve(mrglv1_pool.address, 2**256 - 1, sender=sender)
+    return mrglv1_pool

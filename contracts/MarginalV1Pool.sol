@@ -48,6 +48,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     uint256 internal constant blockBaseFeeMin = 40e9; // min base fee for liquidation rewards
     uint256 internal constant gasLiquidate = 150000; // gas required to call liquidate
 
+    uint128 internal constant MINIMUM_LIQUIDITY = 10000; // liquidity locked on initial mint always available for swaps
+
     // @dev Pool state represented in (L, sqrtP) space
     struct State {
         uint160 sqrtPriceX96;
@@ -71,7 +73,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     mapping(bytes32 => Position.Info) public positions;
 
-    uint256 private unlocked = 1; // uses OZ convention of 1 for false and 2 for true
+    uint256 private unlocked = 2; // uses OZ convention of 1 for false and 2 for true
     modifier lock() {
         if (unlocked == 1) revert Locked();
         unlocked = 1;
@@ -151,7 +153,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     error Locked();
     error Unauthorized();
-    error Initialized();
     error InvalidLiquidityDelta();
     error InvalidSqrtPriceLimitX96();
     error SqrtPriceX96ExceedsLimit();
@@ -176,16 +177,26 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         token1 = _token1;
         maintenance = _maintenance;
         oracle = _oracle;
+    }
 
+    function initialize() private {
         // reverts if not enough historical observations
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = secondsAgo;
-        oracleTickCumulatives(secondsAgos);
-    }
+        int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
+            secondsAgos
+        );
 
-    function initialize(uint160 _sqrtPriceX96) external {
-        if (state.sqrtPriceX96 > 0) revert Initialized();
+        // use oracle price to initialize
+        uint160 _sqrtPriceX96 = OracleLibrary.oracleSqrtPriceX96(
+            OracleLibrary.oracleTickCumulativeDelta(
+                oracleTickCumulativesLast[0],
+                oracleTickCumulativesLast[1]
+            ),
+            secondsAgo
+        );
         int24 tick = TickMath.getTickAtSqrtRatio(_sqrtPriceX96);
+
         state = State({
             sqrtPriceX96: _sqrtPriceX96,
             totalPositions: 0,
@@ -196,7 +207,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             feeProtocol: 0,
             initialized: true
         });
-        unlocked = 2;
         emit Initialize(_sqrtPriceX96, tick);
     }
 
@@ -255,8 +265,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         )
     {
         State memory _state = stateSynced();
-        if (liquidityDelta == 0 || liquidityDelta >= _state.liquidity)
-            revert InvalidLiquidityDelta(); // TODO: test liquidityDelta == 0
+        if (
+            liquidityDelta == 0 ||
+            liquidityDelta + MINIMUM_LIQUIDITY >= _state.liquidity
+        ) revert InvalidLiquidityDelta();
         if (
             zeroForOne
                 ? !(sqrtPriceLimitX96 < _state.sqrtPriceX96 &&
@@ -796,14 +808,21 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
+    /// @dev Pool initialized through first call to mint
     function mint(
         address recipient,
         uint128 liquidityDelta,
         bytes calldata data
     ) external lock returns (uint256 shares, uint256 amount0, uint256 amount1) {
-        State memory _state = stateSynced();
         uint256 _totalSupply = totalSupply();
-        if (liquidityDelta == 0) revert InvalidLiquidityDelta();
+
+        bool initializing = (_totalSupply == 0);
+        if (initializing) initialize();
+
+        State memory _state = stateSynced();
+        uint128 liquidityDeltaMinimum = (initializing ? MINIMUM_LIQUIDITY : 0);
+        if (liquidityDelta <= liquidityDeltaMinimum)
+            revert InvalidLiquidityDelta();
 
         (amount0, amount1) = LiquidityMath.toAmounts(
             liquidityDelta,
@@ -816,7 +835,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint128 totalLiquidityAfter = _state.liquidity +
             liquidityLocked +
             liquidityDelta;
-        shares = _totalSupply == 0
+        shares = initializing
             ? totalLiquidityAfter
             : Math.mulDiv(
                 _totalSupply,
@@ -839,6 +858,12 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // update pool state to latest
         state = _state;
+
+        // lock min liquidity on initial mint to avoid stuck states with price
+        if (initializing) {
+            shares -= uint256(MINIMUM_LIQUIDITY);
+            _mint(address(this), MINIMUM_LIQUIDITY);
+        }
 
         _mint(recipient, shares);
 

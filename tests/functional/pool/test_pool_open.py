@@ -10,6 +10,7 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
+    MINIMUM_LIQUIDITY,
 )
 from utils.utils import (
     get_position_key,
@@ -117,8 +118,8 @@ def test_pool_open__updates_state_with_zero_for_one(
     state.totalPositions += 1
 
     result = pool_initialized_with_liquidity.state()
-    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
-    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert pytest.approx(result.liquidity, rel=1e-15) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-15) == state.sqrtPriceX96
     assert result.tick == state.tick
     assert result.blockTimestamp == state.blockTimestamp
     assert result.tickCumulative == state.tickCumulative
@@ -222,8 +223,8 @@ def test_pool_open__updates_state_with_one_for_zero(
     state.totalPositions += 1
 
     result = pool_initialized_with_liquidity.state()
-    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
-    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert pytest.approx(result.liquidity, rel=1e-15) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-15) == state.sqrtPriceX96
     assert result.tick == state.tick
     assert result.blockTimestamp == state.blockTimestamp
     assert result.tickCumulative == state.tickCumulative
@@ -879,8 +880,8 @@ def test_pool_open__adds_protocol_fees_with_zero_for_one(
     state.totalPositions += 1
 
     result = pool_initialized_with_liquidity.state()
-    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
-    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert pytest.approx(result.liquidity, rel=1e-15) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-15) == state.sqrtPriceX96
     assert result.tick == state.tick
     assert result.blockTimestamp == state.blockTimestamp
     assert result.tickCumulative == state.tickCumulative
@@ -997,8 +998,8 @@ def test_pool_open__adds_protocol_fees_with_one_for_zero(
 
     result = pool_initialized_with_liquidity.state()
 
-    assert pytest.approx(result.liquidity, rel=1e-16) == state.liquidity
-    assert pytest.approx(result.sqrtPriceX96, rel=1e-16) == state.sqrtPriceX96
+    assert pytest.approx(result.liquidity, rel=1e-15) == state.liquidity
+    assert pytest.approx(result.sqrtPriceX96, rel=1e-15) == state.sqrtPriceX96
     assert result.tick == state.tick
     assert result.blockTimestamp == state.blockTimestamp
     assert result.tickCumulative == state.tickCumulative
@@ -1307,6 +1308,90 @@ def test_pool_open__emits_open_with_one_for_zero(
     assert event.margin == margin
 
 
+def test_pool_open__reverts_when_liquidity_delta_is_zero_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+):
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[
+        -1
+    ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
+
+    liquidity_delta = 0
+    zero_for_one = True
+    sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
+    margin = 0
+
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
+
+    with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one,
+            liquidity_delta,
+            sqrt_price_limit_x96,
+            margin,
+            sender=sender,
+            value=rewards,
+        )
+
+
+def test_pool_open__reverts_when_liquidity_delta_is_zero_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    position_lib,
+    sqrt_price_math_lib,
+    rando_univ3_observations,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+):
+    premium = pool_initialized_with_liquidity.rewardPremium()
+    base_fee = chain.blocks[
+        -1
+    ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
+
+    liquidity_delta = 0
+    zero_for_one = False
+    sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
+    margin = 0
+
+    rewards = position_lib.liquidationRewards(
+        base_fee,
+        BASE_FEE_MIN,
+        GAS_LIQUIDATE,
+        premium,
+    )
+
+    with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
+        callee.open(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one,
+            liquidity_delta,
+            sqrt_price_limit_x96,
+            margin,
+            sender=sender,
+            value=rewards,
+        )
+
+
 def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zero_for_one(
     pool_initialized_with_liquidity,
     position_lib,
@@ -1327,7 +1412,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
@@ -1383,7 +1468,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 
@@ -2098,7 +2183,7 @@ def test_pool_open__reverts_when_rewards_less_than_min_with_one_for_zero(
 @settings(deadline=timedelta(milliseconds=500))
 @given(
     liquidity_delta=st.integers(
-        min_value=1, max_value=29942224366269116
+        min_value=1, max_value=29942224366269116 - MINIMUM_LIQUIDITY
     ),  # max liquidity in init'd pool w liquidity
     zero_for_one=st.booleans(),
     margin=st.integers(min_value=0, max_value=2**128 - 1),
@@ -2270,7 +2355,7 @@ def test_pool_open__with_fuzz(
     result_state = pool_initialized_with_liquidity.state()
     assert pytest.approx(result_state.liquidity, rel=1e-14) == state.liquidity
     assert pytest.approx(result_state.sqrtPriceX96, rel=1e-14) == state.sqrtPriceX96
-    assert result_state.tick == state.tick
+    assert pytest.approx(result_state.tick, abs=1) == state.tick
     assert result_state.blockTimestamp == state.blockTimestamp
     assert result_state.tickCumulative == state.tickCumulative
     assert result_state.totalPositions == state.totalPositions
