@@ -65,22 +65,32 @@ library SqrtPriceMath {
             if (!zeroForOne) {
                 // 1 is known
                 // sqrt(P') = sqrt(P) + del y / L
-                uint256 prod = Math.mulDiv(
-                    uint256(amountSpecified),
-                    FixedPoint96.Q96,
-                    liquidity
-                ); // TODO: uint256(amountSpecified) <= type(uint160).max if have contract size left
+                uint256 prod = (
+                    uint256(amountSpecified) <= type(uint160).max
+                        ? (uint256(amountSpecified) <<
+                            FixedPoint96.RESOLUTION) / liquidity
+                        : Math.mulDiv(
+                            uint256(amountSpecified),
+                            FixedPoint96.Q96,
+                            liquidity
+                        )
+                );
                 nextX96 = uint256(sqrtPriceX96) + prod;
             } else {
                 // 0 is known
                 // sqrt(P') = sqrt(P) - (del x * sqrt(P)) / (L / sqrt(P) + del x)
                 uint256 reserve0 = (uint256(liquidity) <<
                     FixedPoint96.RESOLUTION) / sqrtPriceX96;
-                uint256 prod = Math.mulDiv(
-                    uint256(amountSpecified),
-                    sqrtPriceX96,
-                    reserve0 + uint256(amountSpecified)
-                ); // TODO: uint256(amountSpecified) <= type(uint96).max if have contract size left
+                uint256 prod = (
+                    uint256(amountSpecified) <= type(uint96).max
+                        ? (uint256(amountSpecified) * uint256(sqrtPriceX96)) /
+                            (reserve0 + uint256(amountSpecified))
+                        : Math.mulDiv(
+                            uint256(amountSpecified),
+                            sqrtPriceX96,
+                            reserve0 + uint256(amountSpecified)
+                        )
+                );
                 nextX96 = uint256(sqrtPriceX96) - prod;
             }
         } else {
@@ -92,11 +102,16 @@ library SqrtPriceMath {
                 if (reserve0 <= uint256(-amountSpecified))
                     revert Amount0ExceedsReserve0();
 
-                uint256 prod = Math.mulDiv(
-                    uint256(-amountSpecified),
-                    sqrtPriceX96,
-                    reserve0 - uint256(-amountSpecified)
-                ); // TODO: uint256(-amountSpecified) <= type(uint96).max if have contract size left
+                uint256 prod = (
+                    uint256(-amountSpecified) <= type(uint96).max
+                        ? (uint256(-amountSpecified) * uint256(sqrtPriceX96)) /
+                            (reserve0 - uint256(-amountSpecified))
+                        : Math.mulDiv(
+                            uint256(-amountSpecified),
+                            sqrtPriceX96,
+                            reserve0 - uint256(-amountSpecified)
+                        )
+                );
                 nextX96 = uint256(sqrtPriceX96) + prod;
             } else {
                 // 1 is known
@@ -109,11 +124,16 @@ library SqrtPriceMath {
                 if (reserve1 <= uint256(-amountSpecified))
                     revert Amount1ExceedsReserve1();
 
-                uint256 prod = Math.mulDiv(
-                    uint256(-amountSpecified),
-                    FixedPoint96.Q96,
-                    liquidity
-                ); // TODO: uint256(-amountSpecified) <= type(uint160).max if have contract size left
+                uint256 prod = (
+                    uint256(-amountSpecified) <= type(uint160).max
+                        ? (uint256(-amountSpecified) <<
+                            FixedPoint96.RESOLUTION) / liquidity
+                        : Math.mulDiv(
+                            uint256(-amountSpecified),
+                            FixedPoint96.Q96,
+                            liquidity
+                        )
+                );
                 nextX96 = uint256(sqrtPriceX96) - prod;
             }
         }

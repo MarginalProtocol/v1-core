@@ -3,6 +3,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_liquidity_sqrt_price_x96_from_reserves
 
 
@@ -35,6 +36,13 @@ def test_liquidity_math_to_liquidity_sqrt_price_x96__with_fuzz(
     (liquidity, sqrt_price_x96) = calc_liquidity_sqrt_price_x96_from_reserves(
         reserve0, reserve1
     )
+    if (
+        liquidity >= 2**128
+        or sqrt_price_x96 < MIN_SQRT_RATIO
+        or sqrt_price_x96 >= MAX_SQRT_RATIO
+    ):
+        return
+
     result = liquidity_math_lib.toLiquiditySqrtPriceX96(reserve0, reserve1)
     assert (
         pytest.approx(liquidity, rel=1e-15) == result[0]

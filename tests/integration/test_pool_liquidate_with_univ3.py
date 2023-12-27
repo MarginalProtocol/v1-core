@@ -25,14 +25,15 @@ def open_position(
 ):
     def open(zero_for_one):
         state = mrglv1_pool_initialized_with_liquidity.state()
+
         maintenance = mrglv1_pool_initialized_with_liquidity.maintenance()
 
         premium = mrglv1_pool_initialized_with_liquidity.rewardPremium()
         base_fee = chain.blocks[-1].base_fee
 
         liquidity_delta = (
-            state.liquidity * 500 // 10000
-        )  # 5% of pool reserves leveraged
+            state.liquidity * 2 // 10
+        )  # 20% of pool reserves leveraged; larger given initialized at 12h TWAP value so need to move price more
         sqrt_price_limit_x96 = (
             MIN_SQRT_RATIO + 1 if zero_for_one else MAX_SQRT_RATIO - 1
         )
@@ -47,7 +48,7 @@ def open_position(
             * maintenance
             / (maintenance + MAINTENANCE_UNIT - liquidity_delta / state.liquidity)
         )  # @dev: this is an approximation
-        margin = int(1.25 * size) * maintenance // MAINTENANCE_UNIT
+        margin = int(2 * size) * maintenance // MAINTENANCE_UNIT
         rewards = position_lib.liquidationRewards(
             base_fee,
             BASE_FEE_MIN,
@@ -86,7 +87,6 @@ def test_pool_liquidate_with_univ3__sets_position(
     open_position,
 ):
     position_id = open_position(zero_for_one)
-
     key = get_position_key(callee.address, position_id)
     position = mrglv1_pool_initialized_with_liquidity.positions(key)
 
