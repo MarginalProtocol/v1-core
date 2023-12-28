@@ -241,7 +241,7 @@ interface IMarginalV1Pool is IERC20 {
 
     /// @notice Removes liquidity from the pool
     /// @dev Reverts if not enough liquidity available to exit due to outstanding leverage positions
-    /// @param recipient The address to burn LP tokens from after removing liquidity from the pool
+    /// @param recipient The address to send token amounts to after removing liquidity from the pool
     /// @param shares The amount of LP token shares to burn
     /// @return liquidityDelta The liquidity removed from the pool
     /// @return amount0 The amount of token0 removed from pool reserves
