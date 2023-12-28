@@ -30,18 +30,28 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     using Position for Position.Info;
     using SafeCast for uint256;
 
+    /// @inheritdoc IMarginalV1Pool
     address public immutable factory;
+    /// @inheritdoc IMarginalV1Pool
     address public immutable oracle;
 
+    /// @inheritdoc IMarginalV1Pool
     address public immutable token0;
+    /// @inheritdoc IMarginalV1Pool
     address public immutable token1;
+    /// @inheritdoc IMarginalV1Pool
     uint24 public immutable maintenance;
 
+    /// @inheritdoc IMarginalV1Pool
     uint24 public constant fee = 1000; // 10 bps across all pools
+    /// @inheritdoc IMarginalV1Pool
     uint24 public constant rewardPremium = 2000000; // 2x base fee as liquidation rewards
+    /// @inheritdoc IMarginalV1Pool
     uint24 public constant tickCumulativeRateMax = 920; // bound on funding rate of ~10% per funding period
 
+    /// @inheritdoc IMarginalV1Pool
     uint32 public constant secondsAgo = 43200; // 12 hr TWAP for oracle price
+    /// @inheritdoc IMarginalV1Pool
     uint32 public constant fundingPeriod = 604800; // 7 day funding period
 
     // @dev varies for different chains
@@ -50,7 +60,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
     uint128 internal constant MINIMUM_LIQUIDITY = 10000; // liquidity locked on initial mint always available for swaps
 
-    // @dev Pool state represented in (L, sqrtP) space
     struct State {
         uint160 sqrtPriceX96;
         uint96 totalPositions; // > ~ 2e20 years at max per block to fill on mainnet
@@ -61,16 +70,20 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint8 feeProtocol;
         bool initialized;
     }
+    /// @inheritdoc IMarginalV1Pool
     State public state;
 
+    /// @inheritdoc IMarginalV1Pool
     uint128 public liquidityLocked;
 
     struct ProtocolFees {
         uint128 token0;
         uint128 token1;
     }
+    /// @inheritdoc IMarginalV1Pool
     ProtocolFees public protocolFees;
 
+    /// @inheritdoc IMarginalV1Pool
     mapping(bytes32 => Position.Info) public positions;
 
     uint256 private unlocked = 2; // uses OZ convention of 1 for false and 2 for true
@@ -244,7 +257,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         return _state;
     }
 
-    /// @dev Callee should check block.basefee <= input param for max liquidation rewards set aside
+    /// @inheritdoc IMarginalV1Pool
     function open(
         address recipient,
         bool zeroForOne,
@@ -413,6 +426,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function adjust(
         address recipient,
         uint96 id,
@@ -483,6 +497,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Adjust(msg.sender, uint256(id), recipient, position.margin);
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function settle(
         address recipient,
         uint96 id,
@@ -603,6 +618,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function liquidate(
         address recipient,
         address owner,
@@ -668,6 +684,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function swap(
         address recipient,
         bool zeroForOne,
@@ -808,7 +825,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         );
     }
 
-    /// @dev Pool initialized through first call to mint
+    /// @inheritdoc IMarginalV1Pool
     function mint(
         address recipient,
         uint128 liquidityDelta,
@@ -870,7 +887,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Mint(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }
 
-    /// @dev Reverts if not enough liquidity available to exit due to outstanding positions
+    /// @inheritdoc IMarginalV1Pool
     function burn(
         address recipient,
         uint256 shares
@@ -908,6 +925,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
         if (!(feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10)))
             revert InvalidFeeProtocol();
@@ -915,6 +933,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         state.feeProtocol = feeProtocol;
     }
 
+    /// @inheritdoc IMarginalV1Pool
     function collectProtocol(
         address recipient
     )
