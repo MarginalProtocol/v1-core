@@ -5,7 +5,7 @@ pragma solidity >=0.5.0;
 /// @notice The Marginal v1 pool deployer deploys new pools
 interface IMarginalV1PoolDeployer {
     /// @notice Deploys a new Marginal v1 pool for the given unique pool key
-    /// @dev msg.sender treated as factory address for the pool
+    /// @dev `msg.sender` treated as factory address for the pool
     /// @param token0 The address of token0 for the pool
     /// @param token1 The address of token1 for the pool
     /// @param maintenance The minimum maintenance requirement for the pool
