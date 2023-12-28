@@ -8,15 +8,22 @@ import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";
 
 contract MarginalV1Factory is IMarginalV1Factory {
+    /// @inheritdoc IMarginalV1Factory
     address public immutable marginalV1Deployer;
+    /// @inheritdoc IMarginalV1Factory
     address public immutable uniswapV3Factory;
+    /// @inheritdoc IMarginalV1Factory
     uint16 public immutable observationCardinalityMinimum;
 
+    /// @inheritdoc IMarginalV1Factory
     address public owner;
 
+    /// @inheritdoc IMarginalV1Factory
     mapping(address => mapping(address => mapping(uint24 => mapping(address => address))))
         public getPool;
+    /// @inheritdoc IMarginalV1Factory
     mapping(address => bool) public isPool;
+    /// @inheritdoc IMarginalV1Factory
     mapping(uint24 => uint256) public getLeverage;
 
     event PoolCreated(
@@ -56,6 +63,7 @@ contract MarginalV1Factory is IMarginalV1Factory {
         emit LeverageEnabled(1000000, 2000000);
     }
 
+    /// @inheritdoc IMarginalV1Factory
     function createPool(
         address tokenA,
         address tokenB,
@@ -96,12 +104,14 @@ contract MarginalV1Factory is IMarginalV1Factory {
         emit PoolCreated(token0, token1, maintenance, oracle, pool);
     }
 
+    /// @inheritdoc IMarginalV1Factory
     function setOwner(address _owner) external {
         if (msg.sender != owner) revert Unauthorized();
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
 
+    /// @inheritdoc IMarginalV1Factory
     function enableLeverage(uint24 maintenance) external {
         if (msg.sender != owner) revert Unauthorized();
         if (!(maintenance >= 100000 && maintenance < 1000000))
