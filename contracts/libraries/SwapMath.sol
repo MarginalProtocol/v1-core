@@ -8,6 +8,11 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 library SwapMath {
     /// @notice Computes amounts in and out on swap without fees
     /// @dev amount > 0 is amountIn, amount < 0 is amountOut
+    /// @param liquidity Pool liquidity before the swap
+    /// @param sqrtPriceX96 Pool price at the start of the swap
+    /// @param sqrtPriceX96Next Pool price at the end of the swap
+    /// @return amount0Delta The delta in token0 balance for the pool
+    /// @return amount1Delta The delta in token1 balance for the pool
     function swapAmounts(
         uint128 liquidity,
         uint160 sqrtPriceX96,

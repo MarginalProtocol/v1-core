@@ -4,7 +4,11 @@ pragma solidity ^0.8.0;
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
 library OracleLibrary {
+    /// @notice Returns the geometric time weighted average sqrtP
     /// @dev Rounds toward zero for both positive and negative tick delta
+    /// @param tickCumulativeDelta The delta in tick cumulative over the averaging interval
+    /// @param timeDelta The time to average over
+    /// @return The geometric time weighted average price
     function oracleSqrtPriceX96(
         int56 tickCumulativeDelta,
         uint32 timeDelta
@@ -16,6 +20,11 @@ library OracleLibrary {
         return TickMath.getSqrtRatioAtTick(arithmeticMeanTick);
     }
 
+    /// @notice Returns the tick cumulative delta over an interval
+    /// @dev Allows for tick cumulative overflow
+    /// @param tickCumulativeStart The tick cumulative value at the start of the interval
+    /// @param tickCumulativeEnd The tick cumulative value at the end of the interval
+    /// @return The delta in tick cumulative over the averaging interval
     function oracleTickCumulativeDelta(
         int56 tickCumulativeStart,
         int56 tickCumulativeEnd

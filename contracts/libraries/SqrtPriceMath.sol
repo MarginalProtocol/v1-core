@@ -15,8 +15,14 @@ library SqrtPriceMath {
     error Amount0ExceedsReserve0();
     error Amount1ExceedsReserve1();
 
-    /// @notice Calculates sqrtP after opening a position
+    /// @notice Calculates sqrtP after opening a leverage position
     /// @dev Choice of insurance function made in this function
+    /// @param liquidity Pool liquidity before opening the position
+    /// @param sqrtPriceX96 Pool price before opening the position
+    /// @param liquidityDelta Liquidity removed from pool to collateralize position
+    /// @param zeroForOne Whether long token1 and short token0 (true), or long token0 and short token1 (false)
+    /// @param maintenance Minimum maintenance margin for the pool
+    /// @return The price after opening the position
     function sqrtPriceX96NextOpen(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -52,6 +58,11 @@ library SqrtPriceMath {
 
     /// @notice Calculates sqrtP after swapping tokens
     /// @dev Assumes amountSpecified != 0
+    /// @param liquidity Pool liquidity before swapping
+    /// @param sqrtPriceX96 Pool price before swapping
+    /// @param zeroForOne Whether swapping token0 for token1 (true), or token1 for token0 (false)
+    /// @param amountSpecified The amount of the swap, which implicitly configures the swap as exact input (positive), or exact output (negative)
+    /// @return The price after swapping
     function sqrtPriceX96NextSwap(
         uint128 liquidity,
         uint160 sqrtPriceX96,
