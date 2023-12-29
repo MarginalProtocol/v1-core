@@ -247,7 +247,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     function stateSynced() private view returns (State memory) {
         State memory _state = state;
         // oracle update
-        // TODO: test overflow and same block early exit
         unchecked {
             uint32 delta = _blockTimestamp() - _state.blockTimestamp;
             if (delta == 0) return _state; // early exit if nothing to update
@@ -318,11 +317,11 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             oracleTickCumulative
         );
         if (position.size == 0 || position.debt0 == 0 || position.debt1 == 0)
-            revert InvalidPosition(); // TODO: test
+            revert InvalidPosition();
 
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (marginMinimum == 0 || margin < marginMinimum)
-            revert MarginLessThanMin(); // TODO: test marginMinimum == 0
+            revert MarginLessThanMin();
         position.margin = margin;
 
         uint256 rewardsMinimum = Position.liquidationRewards(
@@ -730,7 +729,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
 
         // optimistic amount out with callback for amount in
         if (!zeroForOne) {
-            amount0 = !exactInput ? amountSpecified : amount0; // in case of rounding issues TODO: test
+            amount0 = !exactInput ? amountSpecified : amount0; // in case of rounding issues
             if (amount0 < 0)
                 TransferHelper.safeTransfer(
                     token0,
@@ -739,7 +738,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 );
 
             uint256 fees1 = exactInput
-                ? uint256(amountSpecified) - uint256(amount1) // TODO: check never negative
+                ? uint256(amountSpecified) - uint256(amount1)
                 : SwapMath.swapFees(uint256(amount1), fee, true);
             amount1 += int256(fees1);
 
@@ -750,7 +749,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 data
             );
             if (amount1 == 0 || balance1Before + uint256(amount1) > balance1())
-                revert Amount1LessThanMin(); // TODO: test amount1 == 0
+                revert Amount1LessThanMin();
 
             // account for protocol fees if fee on
             uint256 delta = _state.feeProtocol > 0
@@ -770,7 +769,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.sqrtPriceX96 = sqrtPriceX96After;
             _state.tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96After);
         } else {
-            amount1 = !exactInput ? amountSpecified : amount1; // in case of rounding issues TODO: test
+            amount1 = !exactInput ? amountSpecified : amount1; // in case of rounding issues
             if (amount1 < 0)
                 TransferHelper.safeTransfer(
                     token1,
@@ -779,7 +778,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 );
 
             uint256 fees0 = exactInput
-                ? uint256(amountSpecified) - uint256(amount0) // TODO: check never negative
+                ? uint256(amountSpecified) - uint256(amount0)
                 : SwapMath.swapFees(uint256(amount0), fee, true);
             amount0 += int256(fees0);
 
@@ -790,7 +789,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
                 data
             );
             if (amount0 == 0 || balance0Before + uint256(amount0) > balance0())
-                revert Amount0LessThanMin(); // TODO: test amount0 == 0
+                revert Amount0LessThanMin();
 
             // account for protocol fees if fee on
             uint256 delta = _state.feeProtocol > 0
