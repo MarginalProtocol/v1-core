@@ -24,7 +24,7 @@ library TransferHelper {
     /// @param to The address of the recipient
     /// @param value The amount of ETH to transfer
     function safeTransferETH(address to, uint256 value) internal {
-        (bool success, ) = to.call{value: value}(new bytes(0));
+        (bool success, ) = to.call{value: value}("");
         require(success, "STE");
     }
 }
