@@ -13,28 +13,46 @@ import {FixedPoint192} from "./FixedPoint192.sol";
 
 import {OracleLibrary} from "./OracleLibrary.sol";
 
-/// @dev Positions represented in (x, y) space
-// TODO: fuzz for edge cases and rounding
+/// @title Position library
+/// @notice Facilitates calculations, updates, and retrieval of leverage position info
+/// @dev Positions are represented in (x, y) space
 library Position {
     using SafeCast for uint256;
 
+    // info stored for each trader's leverage position
     struct Info {
+        // size of position in token1 if zeroForOne = true or token0 if zeroForOne = false
         uint128 size;
+        // debt owed by trader at settlement if zeroForOne = true, otherwise used for internal accounting only
         uint128 debt0;
+        // debt owed by trader at settlement if zeroForOne = false, otherwise used for internal accounting only
         uint128 debt1;
+        // insurance balances set aside by LPs to prevent liquidity shortfall in case of late liquidation
         uint128 insurance0;
         uint128 insurance1;
+        // whether the position is long token1 and short token0 (true), or long token0 and short token1 (false)
         bool zeroForOne;
+        // whether the position has been liquidated
         bool liquidated;
-        int24 tick; // tick before open
-        uint32 blockTimestamp; // timestamp at last sync
-        int56 tickCumulativeDelta; // bar{a}_t - a_t; tick cumulative delta at last sync
+        // tick before position was opened, used in maintenance margin requirements
+        int24 tick;
+        // timestamp when position was last synced for funding payments
+        uint32 blockTimestamp;
+        // delta between oracle and pool tick cumulatives at last funding sync (bar{a}_t - a_t)
+        int56 tickCumulativeDelta;
+        // margin backing position in token1 if zeroForOne = true or token0 if zeroForOne = false
         uint128 margin;
+        // liquidity locked by LPs to collateralize the position. liability owed to pool
         uint128 liquidityLocked;
+        // liquidation rewards escrowed with position in the native (gas) token to incentivize liquidations
         uint256 rewards;
     }
 
     /// @notice Gets a position from positions mapping
+    /// @param positions The pool mapping that stores the leverage positions
+    /// @param owner The owner of the position
+    /// @param id The ID of the position
+    /// @return The position info associated with the (owner, ID) key
     function get(
         mapping(bytes32 => Info) storage positions,
         address owner,
@@ -44,6 +62,11 @@ library Position {
     }
 
     /// @notice Stores the given position in positions mapping
+    /// @dev Used to create a new position or to update existing positions
+    /// @param positions The pool mapping that stores the leverage positions
+    /// @param owner The owner of the position
+    /// @param id The ID of the position
+    /// @param position The position information to store
     function set(
         mapping(bytes32 => Info) storage positions,
         address owner,
@@ -54,6 +77,13 @@ library Position {
     }
 
     /// @notice Realizes funding payments via updates to position debt amounts
+    /// @param position The position to sync
+    /// @param blockTimestampLast The latest `block.timestamp` to sync to
+    /// @param tickCumulativeLast The `tickCumulative` from the pool at `blockTimestampLast`
+    /// @param oracleTickCumulativeLast The `tickCumulative` from the oracle at `blockTimestampLast`
+    /// @param tickCumulativeRateMax The maximum rate of change in tick cumulative between the oracle and pool `tickCumulative` values
+    /// @param fundingPeriod The pool funding period to benchmark funding payments to
+    /// @return The synced position
     function sync(
         Info memory position,
         uint32 blockTimestampLast,
@@ -86,6 +116,8 @@ library Position {
     }
 
     /// @notice Liquidates an existing position
+    /// @param position The position to liquidate
+    /// @return positionAfter The liquidated position info
     function liquidate(
         Info memory position
     ) internal pure returns (Info memory positionAfter) {
@@ -97,6 +129,8 @@ library Position {
     }
 
     /// @notice Settles existing position
+    /// @param position The position to settle
+    /// @return positionAfter The settled position info
     function settle(
         Info memory position
     ) internal pure returns (Info memory positionAfter) {
@@ -108,7 +142,17 @@ library Position {
     }
 
     /// @notice Assembles a new position from pool state
-    /// @dev zeroForOne == true means short position
+    /// @dev zeroForOne = true means short position (long token1, short token0)
+    /// @param liquidity The pool liquidity before opening the position
+    /// @param sqrtPriceX96 The pool sqrt price before opening the position
+    /// @param sqrtPriceX96Next The pool sqrt price after opening the position
+    /// @param liquidityDelta The delta in pool liquidity used to collateralize the position
+    /// @param zeroForOne Whether the position is long token1 and short token0 (true), or long token0 and short token1 (false)
+    /// @param tick The pool tick before opening the position
+    /// @param blockTimestampStart The timestamp at which the pool state was last synced before opening the position
+    /// @param tickCumulativeStart The tick cumulative value from the pool at `blockTimestampStart`
+    /// @param oracleTickCumulativeStart The tick cumulative value from the oracle at `blockTimestampStart`
+    /// @return position The assembled position info
     function assemble(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -150,6 +194,12 @@ library Position {
     }
 
     /// @notice Size of position in (x, y) amounts
+    /// @dev Size amount in token1 if zeroForOne = true, or in token0 if zeroForOne = false
+    /// @param liquidity The pool liquidity before opening the position
+    /// @param sqrtPriceX96 The pool sqrt price before opening the position
+    /// @param sqrtPriceX96Next The pool sqrt price after opening the position
+    /// @param zeroForOne Whether the position is long token1 and short token0 (true), or long token0 and short token1 (false)
+    /// @return The position size
     function size(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -177,6 +227,13 @@ library Position {
     }
 
     /// @notice Insurance balances to back position in (x, y) amounts
+    /// @param liquidity The pool liquidity before opening the position
+    /// @param sqrtPriceX96 The pool sqrt price before opening the position
+    /// @param sqrtPriceX96Next The pool sqrt price after opening the position
+    /// @param liquidityDelta The delta in pool liquidity used to collateralize the position
+    /// @param zeroForOne Whether the position is long token1 and short token0 (true), or long token0 and short token1 (false)
+    /// @return insurance0 The insurance reserves in token0 needed to prevent liquidity shortfall for late liquidations
+    /// @return insurance1 The insurance reserves in token1 needed to prevent liquidity shortfall for late liquidations
     function insurances(
         uint128 liquidity,
         uint160 sqrtPriceX96,
@@ -208,6 +265,13 @@ library Position {
     }
 
     /// @notice Debts owed by position in (x, y) amounts
+    /// @dev Uses invariant (insurance0 + debt0) * (insurance1 + debt1) = liquidityDelta * sqrtPriceNext
+    /// @param sqrtPriceX96Next The pool sqrt price after opening the position
+    /// @param liquidityDelta The delta in pool liquidity used to collateralize the position
+    /// @param insurance0 The position insurance reserves in token0
+    /// @param insurance1 The position insurance reserves in token1
+    /// @return debt0 The debt in token0 the position owes to the pool
+    /// @return debt1 The debt in token1 the position owes to the pool
     function debts(
         uint160 sqrtPriceX96Next,
         uint128 liquidityDelta,
@@ -225,8 +289,11 @@ library Position {
         ) - uint256(insurance1)).toUint128();
     }
 
-    /// @notice Fees owed by position in (x, y) amounts
+    /// @notice Fees owed when opening the position in (x, y) amounts
     /// @dev Fees taken proportional to size
+    /// @param size The position size
+    /// @param fee The fee rate charged on position size
+    /// @return The amount of fees charged to open the position
     function fees(uint128 size, uint24 fee) internal pure returns (uint256) {
         return (uint256(size) * fee) / 1e6;
     }
@@ -251,7 +318,11 @@ library Position {
         return (baseFee * gas * uint256(premium)) / 1e6;
     }
 
-    /// @notice Absolute minimum margin requirement
+    /// @notice Absolute minimum margin amount required to be held in position
+    /// @dev Uses `position.tick` prior to position open (alongside insurance balances) to ensure repayment to pool of at least liquidityDelta liability if ignore funding
+    /// @param position The position to check minimum margin amounts for
+    /// @param maintenance The minimum maintenance margin requirement for the pool
+    /// @return The minimum amount of margin the position must hold
     function marginMinimum(
         Info memory position,
         uint24 maintenance
@@ -300,8 +371,11 @@ library Position {
         }
     }
 
-    /// @notice Amounts (x, y) of pool liquidity locked for position
+    /// @notice Amounts (x, y) of pool reserves locked in position
     /// @dev Includes margin in the event position were to be liquidated
+    /// @param position The position
+    /// @return amount0 The amount of token0 set aside for the position
+    /// @return amount1 The amount of token1 set aside for the position
     function amountsLocked(
         Info memory position
     ) internal pure returns (uint256 amount0, uint256 amount1) {
@@ -324,6 +398,15 @@ library Position {
 
     /// @notice Debt adjusted for funding
     /// @dev Ref @with-backed/papr/src/UniswapOracleFundingRateController.sol#L156
+    /// Follows debt0Next = debt0 * (oracleTwap / poolTwap) ** (dt / fundingPeriod) if zeroForOne = true
+    //  or debt1Next = debt1 * (poolTwap / oracleTwap) ** (dt / fundingPeriod) if zeroForOne = false
+    /// @param position The position to update debts for funding
+    /// @param blockTimestampLast The block timestamp at the last pool state sync
+    /// @param tickCumulativeDeltaLast The delta in oracle tick cumulative minus pool tick cumulative values at `blockTimestampLast`
+    /// @param tickCumulativeRateMax The maximum rate of change in tick cumulative between the oracle and pool `tickCumulative` values
+    /// @param fundingPeriod The pool funding period to benchmark funding payments to
+    /// @return debt0 The position debt in token0 after funding
+    /// @return debt1 The position debt in token1 after funding
     function debtsAfterFunding(
         Info memory position,
         uint32 blockTimestampLast,
@@ -378,7 +461,14 @@ library Position {
         }
     }
 
-    /// @notice If not safe, position can be liquidated
+    /// @notice Whether the position is safe from liquidation
+    /// @dev If not safe, position can be liquidated
+    /// Considered safe if (`position.margin` + `position.size`) / oracleTwap >= (1 + `maintenance`) * `position.debt0` when position.zeroForOne = true
+    /// or (`position.margin` + `position.size`) * oracleTwap >= (1 + `maintenance`) * `position.debt1` when position.zeroForOne = false
+    /// @param position The position to check safety of
+    /// @param sqrtPriceX96 The oracle time weighted average sqrt price
+    /// @param maintenance The minimum maintenance margin requirement for the pool
+    /// @return true if safe and false if not safe
     function safe(
         Info memory position,
         uint160 sqrtPriceX96,

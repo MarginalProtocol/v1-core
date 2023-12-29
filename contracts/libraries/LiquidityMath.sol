@@ -8,11 +8,11 @@ import {FixedPoint96} from "./FixedPoint96.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
 
 /// @title Math library for liquidity
-/// @notice Facilitates transformations between (L, sqrtP) space and (X, Y) token reserves
+/// @notice Facilitates transformations between (L, sqrtP) space and (x, y) token reserves
 library LiquidityMath {
     using SafeCast for uint256;
 
-    /// @notice Transforms (L, sqrtP) values into (X, Y) reserve amounts
+    /// @notice Transforms (L, sqrtP) values into (x, y) reserve amounts
     /// @param liquidity Pool liquidity in (L, sqrtP) space
     /// @param sqrtPriceX96 Pool price in (L, sqrtP) space
     /// @return amount0 The amount of token0 associated with the given (L, sqrtP) values
@@ -28,7 +28,7 @@ library LiquidityMath {
         amount1 = Math.mulDiv(liquidity, sqrtPriceX96, FixedPoint96.Q96);
     }
 
-    /// @notice Transforms (X, Y) reserve amounts into (L, sqrtP) values
+    /// @notice Transforms (x, y) reserve amounts into (L, sqrtP) values
     /// @dev Reverts on overflow if reserve0 * reserve1 > type(uint256).max as liquidity must fit into uint128
     /// @param reserve0 The amount of token0 in reserves
     /// @param reserve1 The amount of token1 in reserves
