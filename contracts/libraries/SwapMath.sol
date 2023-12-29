@@ -5,6 +5,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {FixedPoint96} from "./FixedPoint96.sol";
 
+/// @title Math library for swaps
+/// @notice Determines amounts involved in swaps
 library SwapMath {
     /// @notice Computes amounts in and out on swap without fees
     /// @dev amount > 0 is amountIn, amount < 0 is amountOut

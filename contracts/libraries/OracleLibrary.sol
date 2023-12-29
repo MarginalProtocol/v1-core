@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
+/// @title Oracle library
+/// @notice Enables calculation of the geometric time weighted average price
 library OracleLibrary {
     /// @notice Returns the geometric time weighted average sqrtP
     /// @dev Rounds toward zero for both positive and negative tick delta

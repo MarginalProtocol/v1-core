@@ -7,6 +7,8 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {FixedPoint96} from "./FixedPoint96.sol";
 import {SqrtPriceMath} from "./SqrtPriceMath.sol";
 
+/// @title Math library for liquidity
+/// @notice Facilitates transformations between (L, sqrtP) space and (X, Y) token reserves
 library LiquidityMath {
     using SafeCast for uint256;
 

@@ -5,6 +5,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {FixedPoint96} from "./FixedPoint96.sol";
 
+/// @title Math library for sqrt price changes
+/// @notice Determines sqrt price changes after a opening leverage position and swapping on the pool
 library SqrtPriceMath {
     /// @dev Adopts Uni V3 tick limits of (-887272, 887272)
     uint160 internal constant MIN_SQRT_RATIO = 4295128739;
