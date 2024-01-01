@@ -59,6 +59,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     uint256 internal constant gasLiquidate = 150000; // gas required to call liquidate
 
     uint128 internal constant MINIMUM_LIQUIDITY = 10000; // liquidity locked on initial mint always available for swaps
+    uint128 internal constant MINIMUM_SIZE = 10000; // minimum position size, debt, insurance amounts to prevent dust sizes
 
     struct State {
         uint160 sqrtPriceX96;
@@ -316,8 +317,13 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             _state.tickCumulative,
             oracleTickCumulative
         );
-        if (position.size == 0 || position.debt0 == 0 || position.debt1 == 0)
-            revert InvalidPosition();
+        if (
+            position.size < MINIMUM_SIZE ||
+            position.debt0 < MINIMUM_SIZE ||
+            position.debt1 < MINIMUM_SIZE ||
+            position.insurance0 < MINIMUM_SIZE ||
+            position.insurance1 < MINIMUM_SIZE
+        ) revert InvalidPosition();
 
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (marginMinimum == 0 || margin < marginMinimum)

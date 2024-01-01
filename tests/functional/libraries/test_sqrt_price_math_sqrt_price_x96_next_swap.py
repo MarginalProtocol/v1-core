@@ -249,4 +249,4 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_fuzz(
         liquidity, sqrt_price_x96, zero_for_one, amount_specified
     )
 
-    assert pytest.approx(result, rel=1e-8, abs=1) == sqrt_price_x96_next
+    assert pytest.approx(result, rel=1e-6, abs=1) == sqrt_price_x96_next

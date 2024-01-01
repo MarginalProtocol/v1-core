@@ -8,6 +8,7 @@ from utils.constants import (
     FUNDING_PERIOD,
     MIN_SQRT_RATIO,
     MAX_SQRT_RATIO,
+    MINIMUM_SIZE,
     MAINTENANCE_UNIT,
     TICK_CUMULATIVE_RATE_MAX,
     BASE_FEE_MIN,
@@ -815,6 +816,15 @@ def test_pool_adjust__with_fuzz(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
+    if (
+        position.size < MINIMUM_SIZE
+        or position.debt0 < MINIMUM_SIZE
+        or position.debt1 < MINIMUM_SIZE
+        or position.insurance0 < MINIMUM_SIZE
+        or position.insurance1 < MINIMUM_SIZE
+    ):
+        return
+
     rewards = position_lib.liquidationRewards(
         base_fee,
         BASE_FEE_MIN,

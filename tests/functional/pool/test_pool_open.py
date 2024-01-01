@@ -11,6 +11,7 @@ from utils.constants import (
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
     MINIMUM_LIQUIDITY,
+    MINIMUM_SIZE,
 )
 from utils.utils import (
     get_position_key,
@@ -2282,8 +2283,13 @@ def test_pool_open__with_fuzz(
         tick_cumulative,
         oracle_tick_cumulative,
     )
-
-    if position.size == 0 or position.debt0 == 0 or position.debt1 == 0:
+    if (
+        position.size < MINIMUM_SIZE
+        or position.debt0 < MINIMUM_SIZE
+        or position.debt1 < MINIMUM_SIZE
+        or position.insurance0 < MINIMUM_SIZE
+        or position.insurance1 < MINIMUM_SIZE
+    ):
         return
 
     fees = position_lib.fees(position.size, fee)

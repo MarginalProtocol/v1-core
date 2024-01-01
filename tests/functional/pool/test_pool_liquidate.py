@@ -13,6 +13,7 @@ from utils.constants import (
     MAINTENANCE_UNIT,
     SECONDS_AGO,
     TICK_CUMULATIVE_RATE_MAX,
+    MINIMUM_SIZE,
 )
 from utils.utils import (
     get_position_key,
@@ -794,6 +795,15 @@ def test_pool_liquidate__with_fuzz(
         0,  # @dev irrelevant for this test
         0,  # @dev irrelevant for this test
     )
+    if (
+        position.size < MINIMUM_SIZE
+        or position.debt0 < MINIMUM_SIZE
+        or position.debt1 < MINIMUM_SIZE
+        or position.insurance0 < MINIMUM_SIZE
+        or position.insurance1 < MINIMUM_SIZE
+    ):
+        return
+
     rewards = position_lib.liquidationRewards(
         base_fee,
         BASE_FEE_MIN,
