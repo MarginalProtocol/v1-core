@@ -19,7 +19,7 @@ from utils.utils import (
 )
 
 
-def test_pool_open_then_settle_replicates_swap_with_zero_for_one(
+def test_pool_open_then_settle_replicates_swap__with_zero_for_one(
     pool_initialized_with_liquidity,
     callee,
     sqrt_price_math_lib,
@@ -136,7 +136,7 @@ def test_pool_open_then_settle_replicates_swap_with_zero_for_one(
     assert amount1_to_pool == -result.size + fees1
 
 
-def test_pool_open_then_settle_replicates_swap_with_one_for_zero(
+def test_pool_open_then_settle_replicates_swap__with_one_for_zero(
     pool_initialized_with_liquidity,
     callee,
     sqrt_price_math_lib,
