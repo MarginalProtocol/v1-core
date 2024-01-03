@@ -66,7 +66,7 @@ def test_position_debt_plus_insurance_product__with_one_for_zero(position_lib):
 
 @pytest.mark.fuzzing
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
-@settings(deadline=timedelta(milliseconds=1000))
+@settings(deadline=timedelta(milliseconds=1000), max_examples=10000)
 @given(
     liquidity=st.integers(min_value=MINIMUM_LIQUIDITY + 2, max_value=2**128 - 1),
     liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000),
