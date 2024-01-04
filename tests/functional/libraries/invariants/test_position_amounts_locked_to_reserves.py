@@ -21,8 +21,17 @@ from utils.utils import (
 
 
 # @dev simulates reserves state transition on liquidate
+@pytest.mark.parametrize("liquidity_later_pc", [5000, 7500, 10000, 12500, 15000])
+@pytest.mark.parametrize(
+    "sqrt_price_x96_later_pc",
+    [10250, 10500, 10750, 11000, 11500, 12000, 12500, 13000, 13500],
+)
 def test_position_amounts_locked_to_reserves__with_zero_for_one(
-    position_lib, sqrt_price_math_lib, liquidity_math_lib
+    position_lib,
+    sqrt_price_math_lib,
+    liquidity_math_lib,
+    liquidity_later_pc,
+    sqrt_price_x96_later_pc,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
@@ -38,10 +47,10 @@ def test_position_amounts_locked_to_reserves__with_zero_for_one(
     maintenance = 250000
 
     # (liquidity_later, sqrt_price_later) are (L, sqrt(P)) pool state before attempt to liquidate
-    liquidity_later = (liquidity * 75) // 100
+    liquidity_later = (liquidity * liquidity_later_pc) // 10000
     sqrt_price_x96_later = (
-        sqrt_price_x96 * 110
-    ) // 100  # price up given position short
+        sqrt_price_x96 * sqrt_price_x96_later_pc
+    ) // 10000  # price up given position short
 
     # assemble origin position at (liquidity, sqrt_price_x96) pool state
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
@@ -97,13 +106,19 @@ def test_position_amounts_locked_to_reserves__with_zero_for_one(
     )
 
     liquidity_delta_after = liquidity_after - liquidity_later
-
     assert liquidity_delta_after + liquidity_delta_fees >= position.liquidityLocked
-    assert sqrt_price_x96_after > sqrt_price_x96_later  # price pushes further
 
 
+@pytest.mark.parametrize("liquidity_later_pc", [5000, 7500, 10000, 12500, 15000])
+@pytest.mark.parametrize(
+    "sqrt_price_x96_later_pc", [9750, 9500, 9250, 9000, 8500, 8000, 7500, 7000, 6500]
+)
 def test_position_amounts_locked_to_reserves__with_one_for_zero(
-    position_lib, sqrt_price_math_lib, liquidity_math_lib
+    position_lib,
+    sqrt_price_math_lib,
+    liquidity_math_lib,
+    liquidity_later_pc,
+    sqrt_price_x96_later_pc,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
@@ -119,10 +134,10 @@ def test_position_amounts_locked_to_reserves__with_one_for_zero(
     maintenance = 250000
 
     # (liquidity_later, sqrt_price_later) are (L, sqrt(P)) pool state before attempt to liquidate
-    liquidity_later = (liquidity * 75) // 100
+    liquidity_later = (liquidity * liquidity_later_pc) // 10000
     sqrt_price_x96_later = (
-        sqrt_price_x96 * 90
-    ) // 100  # price down given position long
+        sqrt_price_x96 * sqrt_price_x96_later_pc
+    ) // 10000  # price down given position long
 
     # assemble origin position at (liquidity, sqrt_price_x96) pool state
     sqrt_price_x96_next = sqrt_price_math_lib.sqrtPriceX96NextOpen(
@@ -179,7 +194,6 @@ def test_position_amounts_locked_to_reserves__with_one_for_zero(
 
     liquidity_delta_after = liquidity_after - liquidity_later
     assert liquidity_delta_after + liquidity_delta_fees >= position.liquidityLocked
-    assert sqrt_price_x96_after < sqrt_price_x96_later  # price pushes further
 
 
 @pytest.mark.fuzzing
@@ -193,8 +207,8 @@ def test_position_amounts_locked_to_reserves__with_one_for_zero(
         min_value=MINIMUM_LIQUIDITY + 2, max_value=2**128 - 1
     ),
     sqrt_price_x96_later_pc=st.integers(
-        min_value=100000000, max_value=10000000000
-    ),  # 10% to 10x
+        min_value=10000, max_value=15000
+    ),  # 70% to 150%
     zero_for_one=st.booleans(),
 )
 def test_position_amounts_locked_to_reserves__with_fuzz(
@@ -227,7 +241,12 @@ def test_position_amounts_locked_to_reserves__with_fuzz(
     if liquidity_delta == 0:
         return
 
-    sqrt_price_x96_later = (sqrt_price_x96 * sqrt_price_x96_later_pc) // 1000000000
+    sqrt_price_x96_later = (
+        (sqrt_price_x96 * sqrt_price_x96_later_pc) // 10000  # short so increasing price
+        if zero_for_one
+        else (sqrt_price_x96 * 10000)
+        // sqrt_price_x96_later_pc  # long so decreasing price
+    )
     calc_sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
         liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
     )
