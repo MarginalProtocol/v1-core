@@ -101,8 +101,8 @@ def test_position_amounts_locked_to_reserves__with_zero_for_one(
     ) = liquidity_math_lib.liquiditySqrtPriceX96Next(
         liquidity_later,
         sqrt_price_x96_later,
-        amount0 + fees0,
-        amount1 + fees1,
+        amount0,
+        amount1,
     )
 
     liquidity_delta_after = liquidity_after - liquidity_later
@@ -188,8 +188,8 @@ def test_position_amounts_locked_to_reserves__with_one_for_zero(
     ) = liquidity_math_lib.liquiditySqrtPriceX96Next(
         liquidity_later,
         sqrt_price_x96_later,
-        amount0 + fees0,
-        amount1 + fees1,
+        amount0,
+        amount1,
     )
 
     liquidity_delta_after = liquidity_after - liquidity_later
