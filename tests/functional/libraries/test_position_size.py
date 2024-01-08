@@ -1,8 +1,8 @@
 import pytest
 
-from hypothesis import given
-from hypothesis import strategies as st
 from math import sqrt
+from datetime import timedelta
+from hypothesis import given, settings, strategies as st
 
 from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
 from utils.utils import calc_sqrt_price_x96_next_open
@@ -57,27 +57,38 @@ def test_position_size__with_one_for_zero(position_lib):
 
 
 @pytest.mark.fuzzing
+@settings(deadline=timedelta(milliseconds=1000))
 @given(
-    liquidity=st.integers(
-        min_value=1000, max_value=2**128 - 1
-    ),  # TODO: fix min value
-    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
-    sqrt_price_x96_next=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
-    zero_for_one=st.booleans(),
+    liquidity=st.integers(min_value=1, max_value=2**128 - 1),
+    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1),
+    sqrt_price_x96_next=st.integers(
+        min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1
+    ),
 )
 def test_position_size__with_fuzz(
-    position_lib, liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
+    position_lib,
+    liquidity,
+    sqrt_price_x96,
+    sqrt_price_x96_next,
 ):
-    # TODO: fix anvil issues w fuzz
+    if sqrt_price_x96_next == sqrt_price_x96:
+        # check both zero for one and one for zero return 0 size
+        assert position_lib.size(liquidity, sqrt_price_x96, sqrt_price_x96, True) == 0
+        assert position_lib.size(liquidity, sqrt_price_x96, sqrt_price_x96, False) == 0
+        return
+
+    zero_for_one = sqrt_price_x96_next < sqrt_price_x96
+    if not zero_for_one:
+        size = (liquidity * (1 << 96)) // sqrt_price_x96 - (
+            liquidity * (1 << 96)
+        ) // sqrt_price_x96_next
+    else:
+        size = (liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) // (1 << 96)
+
+    if size >= 2**128:
+        return
+
     result = position_lib.size(
         liquidity, sqrt_price_x96, sqrt_price_x96_next, zero_for_one
     )
-
-    if not zero_for_one:
-        size0 = int(liquidity * (1 << 96) / sqrt_price_x96) - int(
-            liquidity * (1 << 96) / sqrt_price_x96_next
-        )
-        assert pytest.approx(result, rel=1e-15) == size0
-    else:
-        size1 = int((liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) / (1 << 96))
-        assert pytest.approx(result, rel=1e-15) == size1
+    assert pytest.approx(result, rel=1e-15) == size

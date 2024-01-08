@@ -89,8 +89,8 @@ def test_pool_open_then_liquidate_returns_liquidity__with_zero_for_one(
         premium,
     )
 
-    # cache balances prior to check sender receives size from pool
-    # for debt sent to pool from sender post open -> settle
+    # cache balances prior to check sender loses margin to pool and rewards to
+    # liquidator post open -> liquidate
     balance0_sender = token0.balanceOf(sender.address)
     balance1_sender = token1.balanceOf(sender.address)
     balancee_sender = sender.balance
@@ -243,8 +243,8 @@ def test_pool_open_then_liquidate_returns_liquidity__with_one_for_zero(
         premium,
     )
 
-    # cache balances prior to check sender receives size from pool
-    # for debt sent to pool from sender post open -> settle
+    # cache balances prior to check sender loses margin to pool and rewards to
+    # liquidator post open -> liquidate
     balance0_sender = token0.balanceOf(sender.address)
     balance1_sender = token1.balanceOf(sender.address)
     balancee_sender = sender.balance
@@ -431,8 +431,8 @@ def test_pool_open_then_liquidate_returns_liquidity__with_fuzz(
         premium,
     )
 
-    # cache balances prior to check sender receives size from pool
-    # for debt sent to pool from sender post open -> settle
+    # cache balances prior to check sender loses margin to pool and rewards to
+    # liquidator post open -> liquidate
     balance0_sender = token0.balanceOf(sender.address)
     balance1_sender = token1.balanceOf(sender.address)
     balancee_sender = sender.balance
