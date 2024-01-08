@@ -87,6 +87,25 @@ def calc_sqrt_price_x96_next_swap(
     )
 
 
+def calc_insurances_from_root(
+    liquidity: int,
+    sqrt_price_x96: int,
+    liquidity_delta: int,
+    maintenance: int,
+) -> (int, int):
+    prod = liquidity_delta * (liquidity - liquidity_delta)
+    prod = (prod * 1e6) // (1e6 + maintenance)
+
+    under = liquidity**2 - 4 * prod
+    root = int(sqrt(under))
+
+    # iy = (sqrt(P) / 2) * (L - sqrt(L**2 - (4/(1+M)) * del L * (L - del L)))
+    # ix = iy / P
+    insurance1 = (((liquidity - root) * sqrt_price_x96) // (1 << 96)) // 2
+    insurance0 = (((liquidity - root) * (1 << 96)) // sqrt_price_x96) // 2
+    return (insurance0, insurance1)
+
+
 def calc_insurances(
     liquidity: int,
     sqrt_price_x96: int,
