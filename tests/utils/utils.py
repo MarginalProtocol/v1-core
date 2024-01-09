@@ -106,6 +106,37 @@ def calc_insurances_from_root(
     return (insurance0, insurance1)
 
 
+def calc_debts_from_root(
+    liquidity: int,
+    sqrt_price_x96: int,
+    liquidity_delta: int,
+    insurance0: int,
+    insurance1: int,
+    zero_for_one: bool,
+) -> (int, int):
+    (x, y) = calc_amounts_from_liquidity_sqrt_price_x96(liquidity, sqrt_price_x96)
+    (x_delta, y_delta) = calc_amounts_from_liquidity_sqrt_price_x96(
+        liquidity_delta, sqrt_price_x96
+    )
+
+    if not zero_for_one:
+        # dx = del L * ((L - del L) / (L * sqrt(P) - iy)) - ix
+        # dy = L * ((del L * sqrt(P) - iy) / (L - del L))
+        debt0 = (liquidity_delta * (liquidity - liquidity_delta)) // (
+            y - insurance1
+        ) - insurance0
+        debt1 = (liquidity * (y_delta - insurance1)) // (liquidity - liquidity_delta)
+    else:
+        # dy = del L * ((L - del L) / (L / sqrt(P) - ix)) - iy
+        # dx = L * ((del L / sqrt(P) - ix) / (L - del L))
+        debt1 = (liquidity_delta * (liquidity - liquidity_delta)) // (
+            x - insurance0
+        ) - insurance1
+        debt0 = (liquidity * (x_delta - insurance0)) // (liquidity - liquidity_delta)
+
+    return (debt0, debt1)
+
+
 def calc_insurances(
     liquidity: int,
     sqrt_price_x96: int,

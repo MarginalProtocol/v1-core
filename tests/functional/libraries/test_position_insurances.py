@@ -85,7 +85,7 @@ def test_position_insurances__with_one_for_zero(position_lib):
 @given(
     liquidity=st.integers(min_value=1, max_value=2**128 - 1),
     sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1),
-    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000),
+    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000 - 1),
     zero_for_one=st.booleans(),
 )
 def test_position_insurances__with_fuzz(
@@ -118,7 +118,7 @@ def test_position_insurances__with_fuzz(
     )
     if insurance0 >= 2**128 or insurance1 >= 2**128:
         return
-    elif insurance0 <= MINIMUM_SIZE or insurance1 <= MINIMUM_SIZE:
+    elif insurance0 < MINIMUM_SIZE or insurance1 < MINIMUM_SIZE:
         # @dev rounding issues for tiny del L / L (1e-17) values can cause negative insurances that underflow revert
         return
 
