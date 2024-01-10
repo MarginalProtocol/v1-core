@@ -7,4 +7,10 @@ contract MockTransferHelper {
     function safeTransfer(address token, address to, uint256 value) external {
         TransferHelper.safeTransfer(token, to, value);
     }
+
+    function safeTransferETH(address to, uint256 value) external {
+        TransferHelper.safeTransferETH(to, value);
+    }
+
+    receive() external payable {}
 }

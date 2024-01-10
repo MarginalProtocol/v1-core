@@ -187,7 +187,6 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
     )  # TODO: rel tol too low?
 
 
-# TODO: fix for anvil issues
 @pytest.mark.fuzzing
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 @given(
