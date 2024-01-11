@@ -5,7 +5,6 @@ from utils.constants import (
     MAX_SQRT_RATIO,
     MAINTENANCE_UNIT,
     FUNDING_PERIOD,
-    TICK_CUMULATIVE_RATE_MAX,
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
 )
@@ -92,7 +91,6 @@ def test_pool_adjust_with_univ3__sets_position(
     dt = FUNDING_PERIOD // 7
     chain.mine(deltatime=dt)
 
-    block_timestamp_next = chain.pending_timestamp
     margin_delta = position.margin  # 2xing margin
     callee.adjust(
         mrglv1_pool_initialized_with_liquidity.address,
@@ -102,18 +100,7 @@ def test_pool_adjust_with_univ3__sets_position(
         sender=sender,
     )
 
-    # sync position for funding
-    state = mrglv1_pool_initialized_with_liquidity.state()
-    oracle_tick_cumulatives, _ = univ3_pool.observe([0])
-    position = position_lib.sync(
-        position,
-        block_timestamp_next,
-        state.tickCumulative,
-        oracle_tick_cumulatives[0],
-        TICK_CUMULATIVE_RATE_MAX,
-        FUNDING_PERIOD,
-    )
-
     # added margin
+    # @dev position *won't* sync for funding to avoid short circuit rounding issues
     position.margin += margin_delta
     assert mrglv1_pool_initialized_with_liquidity.positions(key) == position

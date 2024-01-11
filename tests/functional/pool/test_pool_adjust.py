@@ -201,7 +201,6 @@ def test_pool_adjust__sets_position_with_zero_for_one(
 ):
     key = get_position_key(callee.address, zero_for_one_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
     tx = callee.adjust(
@@ -215,19 +214,8 @@ def test_pool_adjust__sets_position_with_zero_for_one(
     margin0 = return_log.margin0
     margin1 = return_log.margin1
 
-    # sync position for funding
-    state = pool_initialized_with_liquidity.state()
-    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
-    position = position_lib.sync(
-        position,
-        block_timestamp_next,
-        state.tickCumulative,
-        oracle_tick_cumulatives[0],
-        TICK_CUMULATIVE_RATE_MAX,
-        FUNDING_PERIOD,
-    )
-
     # added margin
+    # @dev position *won't* sync for funding to avoid short circuit rounding issues
     position.margin += margin_delta
     assert pool_initialized_with_liquidity.positions(key) == position
     assert margin0 == 0
@@ -249,7 +237,6 @@ def test_pool_adjust__sets_position_with_one_for_zero(
 ):
     key = get_position_key(callee.address, one_for_zero_position_id)
     position = pool_initialized_with_liquidity.positions(key)
-    block_timestamp_next = chain.pending_timestamp
 
     margin_delta = position.margin  # 2xing margin
     tx = callee.adjust(
@@ -263,19 +250,8 @@ def test_pool_adjust__sets_position_with_one_for_zero(
     margin0 = return_log.margin0
     margin1 = return_log.margin1
 
-    # sync position for funding
-    state = pool_initialized_with_liquidity.state()
-    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([0])
-    position = position_lib.sync(
-        position,
-        block_timestamp_next,
-        state.tickCumulative,
-        oracle_tick_cumulatives[0],
-        TICK_CUMULATIVE_RATE_MAX,
-        FUNDING_PERIOD,
-    )
-
     # added margin
+    # @dev position *won't* sync for funding to avoid short circuit rounding issues
     position.margin += margin_delta
     assert pool_initialized_with_liquidity.positions(key) == position
     assert margin0 == position.margin
@@ -924,10 +900,12 @@ def test_pool_adjust__with_fuzz(
     assert result_state == state
 
     # check position set
+    # @dev position *won't* sync for funding so fetch again to simply set new margin
+    _position = pool_initialized_with_liquidity.positions(key)
     state = result_state
-    position.margin = margin
+    _position.margin = margin
     result_position = pool_initialized_with_liquidity.positions(key)
-    assert result_position == position
+    assert result_position == _position
 
     # check balances
     balance0_alice += amount0

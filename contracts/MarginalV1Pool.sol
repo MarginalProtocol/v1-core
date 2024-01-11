@@ -494,7 +494,10 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128();
         }
 
-        positions.set(msg.sender, id, position);
+        // don't update position stored debts for funding to avoid short circuiting issues
+        Position.Info memory _position = positions.get(msg.sender, id);
+        _position.margin = position.margin;
+        positions.set(msg.sender, id, _position);
 
         // update pool state to latest
         state = _state;
