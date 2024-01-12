@@ -177,7 +177,7 @@ interface IMarginalV1Pool is IERC20 {
 
     /// @notice Settles a position on the pool
     /// @dev The caller of this method receives a callback in the form of IMarginalV1SettleCallback#marginalV1SettleCallback.
-    /// The caller of this method must implement a `receive()` function to receive the escrowed liquidation rewards in the native (gas) token from the pool.
+    /// If a contract, `recipient` must implement a `receive()` function to receive the escrowed liquidation rewards in the native (gas) token from the pool.
     /// Position size, margin, and liquidation rewards are flashed out before the callback to allow the caller to swap to repay the debt to the pool
     /// @param recipient The address to receive the size, margin, and liquidation rewards of the settled position
     /// @param id The ID of the position to settle
@@ -196,6 +196,7 @@ interface IMarginalV1Pool is IERC20 {
     /// (`position.margin` + `position.size`) / oracleTwap >= (1 + `maintenance`) * `position.debt0` when position.zeroForOne = true
     /// (`position.margin` + `position.size`) * oracleTwap >= (1 + `maintenance`) * `position.debt1` when position.zeroForOne = false
     /// Safety checks are performed after syncing the position debts for funding payments
+    /// If a contract, `recipient` must implement a `receive()` function to receive the escrowed liquidation rewards in the native (gas) token from the pool.
     /// @param recipient The address to receive liquidation rewards escrowed with the position
     /// @param owner The address of the owner of the position to liquidate
     /// @param id The ID of the position to liquidate

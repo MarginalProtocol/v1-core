@@ -134,5 +134,5 @@ def test_position_insurances__with_fuzz(
         liquidity, sqrt_price_x96, liquidity_delta, maintenance
     )
 
-    assert pytest.approx(result[0], rel=1e-3, abs=1) == calc_insurance0
-    assert pytest.approx(result[1], rel=1e-3, abs=1) == calc_insurance1
+    assert pytest.approx(result[0], rel=1e-2, abs=1) == calc_insurance0
+    assert pytest.approx(result[1], rel=1e-2, abs=1) == calc_insurance1

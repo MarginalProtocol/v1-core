@@ -22,7 +22,9 @@ from utils.utils import (
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_zero_for_one(
-    position_lib, maintenance
+    position_lib,
+    maintenance,
+    tick_math_lib,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
@@ -51,22 +53,41 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_zer
         oracle_tick_cumulative,
     )
 
+    _sqrt_price_x96 = tick_math_lib.getSqrtRatioAtTick(
+        tick
+    )  # @dev slight shift due to gas savings in storing tick
+
     debt0_adjusted = (
         position.debt0 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
     )
-    margin_min = (debt0_adjusted * (sqrt_price_x96**2)) // (1 << 192) - position.size
+    margin_min = (debt0_adjusted * (_sqrt_price_x96**2)) // (1 << 192) - position.size
     if margin_min < 0:
         margin_min = 0
 
-    assert (
-        pytest.approx(position_lib.marginMinimum(position, maintenance), rel=1e-3)
-        == margin_min
-    )  # TODO: rel tol too low?
+    result = position_lib.marginMinimum(position, maintenance)
+    assert pytest.approx(result, rel=1e-6) == margin_min
+
+    # sanity check that margin min >= M * size
+    assert result >= (position.size * maintenance // MAINTENANCE_UNIT)
+
+    # sanity check that min margin is
+    #   cx_min = size * ((1+M) * sqrt(P'/P) - 1) for one for zero
+    #   cy_min = size * ((1+M) * sqrt(P/P') - 1) for zero for one
+    sqrt_price_slippage = (
+        sqrt_price_x96_next / sqrt_price_x96
+        if not zero_for_one
+        else sqrt_price_x96 / sqrt_price_x96_next
+    )
+    margin_slippage = (1 + maintenance / MAINTENANCE_UNIT) * sqrt_price_slippage - 1
+    expected_margin_min = int(position.size * margin_slippage)
+    assert pytest.approx(result, rel=1e-3) == expected_margin_min
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_one_for_zero(
-    position_lib, maintenance
+    position_lib,
+    maintenance,
+    tick_math_lib,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(71.70e21)  # e.g. WETH reserves
@@ -95,22 +116,41 @@ def test_position_margin_minimum__when_sqrt_price_x96_less_than_uint128_with_one
         oracle_tick_cumulative,
     )
 
+    _sqrt_price_x96 = tick_math_lib.getSqrtRatioAtTick(
+        tick
+    )  # @dev slight shift due to gas savings in storing tick
+
     debt1_adjusted = (
         position.debt1 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
     )
-    margin_min = (debt1_adjusted * (1 << 192)) // (sqrt_price_x96**2) - position.size
+    margin_min = (debt1_adjusted * (1 << 192)) // (_sqrt_price_x96**2) - position.size
     if margin_min < 0:
         margin_min = 0
 
-    assert (
-        pytest.approx(position_lib.marginMinimum(position, maintenance), rel=1e-3)
-        == margin_min
-    )  # TODO: rel tol too low?
+    result = position_lib.marginMinimum(position, maintenance)
+    assert pytest.approx(result, rel=1e-6) == margin_min
+
+    # sanity check that margin min >= M * size
+    assert result >= (position.size * maintenance // MAINTENANCE_UNIT)
+
+    # sanity check that min margin is
+    #   cx_min = size * ((1+M) * sqrt(P'/P) - 1) for one for zero
+    #   cy_min = size * ((1+M) * sqrt(P/P') - 1) for zero for one
+    sqrt_price_slippage = (
+        sqrt_price_x96_next / sqrt_price_x96
+        if not zero_for_one
+        else sqrt_price_x96 / sqrt_price_x96_next
+    )
+    margin_slippage = (1 + maintenance / MAINTENANCE_UNIT) * sqrt_price_slippage - 1
+    expected_margin_min = int(position.size * margin_slippage)
+    assert pytest.approx(result, rel=1e-3) == expected_margin_min
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_zero_for_one(
-    position_lib, maintenance
+    position_lib,
+    maintenance,
+    tick_math_lib,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(3.30e39)  # e.g. WETH reserves
@@ -139,22 +179,41 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
         oracle_tick_cumulative,
     )
 
+    _sqrt_price_x96 = tick_math_lib.getSqrtRatioAtTick(
+        tick
+    )  # @dev slight shift due to gas savings in storing tick
+
     debt0_adjusted = (
         position.debt0 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
     )
-    margin_min = (debt0_adjusted * (sqrt_price_x96**2)) // (1 << 192) - position.size
+    margin_min = (debt0_adjusted * (_sqrt_price_x96**2)) // (1 << 192) - position.size
     if margin_min < 0:
         margin_min = 0
 
-    assert (
-        pytest.approx(position_lib.marginMinimum(position, maintenance), rel=1e-3)
-        == margin_min
-    )  # TODO: rel tol too low?
+    result = position_lib.marginMinimum(position, maintenance)
+    assert pytest.approx(result, rel=1e-6) == margin_min
+
+    # sanity check that margin min >= M * size
+    assert result >= (position.size * maintenance // MAINTENANCE_UNIT)
+
+    # sanity check that min margin is
+    #   cx_min = size * ((1+M) * sqrt(P'/P) - 1) for one for zero
+    #   cy_min = size * ((1+M) * sqrt(P/P') - 1) for zero for one
+    sqrt_price_slippage = (
+        sqrt_price_x96_next / sqrt_price_x96
+        if not zero_for_one
+        else sqrt_price_x96 / sqrt_price_x96_next
+    )
+    margin_slippage = (1 + maintenance / MAINTENANCE_UNIT) * sqrt_price_slippage - 1
+    expected_margin_min = int(position.size * margin_slippage)
+    assert pytest.approx(result, rel=1e-3) == expected_margin_min
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_one_for_zero(
-    position_lib, maintenance
+    position_lib,
+    maintenance,
+    tick_math_lib,
 ):
     x = int(125.04e12)  # e.g. USDC reserves
     y = int(3.30e39)  # e.g. WETH reserves
@@ -183,17 +242,34 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
         oracle_tick_cumulative,
     )
 
+    _sqrt_price_x96 = tick_math_lib.getSqrtRatioAtTick(
+        tick
+    )  # @dev slight shift due to gas savings in storing tick
+
     debt1_adjusted = (
         position.debt1 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
     )
-    margin_min = (debt1_adjusted * (1 << 192)) // (sqrt_price_x96**2) - position.size
+    margin_min = (debt1_adjusted * (1 << 192)) // (_sqrt_price_x96**2) - position.size
     if margin_min < 0:
         margin_min = 0
 
-    assert (
-        pytest.approx(position_lib.marginMinimum(position, maintenance), rel=1e-3)
-        == margin_min
-    )  # TODO: rel tol too low?
+    result = position_lib.marginMinimum(position, maintenance)
+    assert pytest.approx(result, rel=1e-6) == margin_min
+
+    # sanity check that margin min >= M * size
+    assert result >= (position.size * maintenance // MAINTENANCE_UNIT)
+
+    # sanity check that min margin is
+    #   cx_min = size * ((1+M) * sqrt(P'/P) - 1) for one for zero
+    #   cy_min = size * ((1+M) * sqrt(P/P') - 1) for zero for one
+    sqrt_price_slippage = (
+        sqrt_price_x96_next / sqrt_price_x96
+        if not zero_for_one
+        else sqrt_price_x96 / sqrt_price_x96_next
+    )
+    margin_slippage = (1 + maintenance / MAINTENANCE_UNIT) * sqrt_price_slippage - 1
+    expected_margin_min = int(position.size * margin_slippage)
+    assert pytest.approx(result, rel=1e-3) == expected_margin_min
 
 
 @pytest.mark.fuzzing
@@ -204,7 +280,7 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
     sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1),
     liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000 - 1),
     zero_for_one=st.booleans(),
-    funding_factor=st.floats(min_value=0.75, max_value=1.25),
+    factor=st.floats(min_value=0.5, max_value=2.0),
 )
 def test_position_margin_minimum__with_fuzz(
     position_lib,
@@ -214,7 +290,7 @@ def test_position_margin_minimum__with_fuzz(
     liquidity_delta_pc,
     zero_for_one,
     maintenance,
-    funding_factor,
+    factor,
 ):
     liquidity_delta = (liquidity * liquidity_delta_pc) // 1000000000
     if liquidity_delta >= liquidity - MINIMUM_LIQUIDITY:
@@ -262,7 +338,6 @@ def test_position_margin_minimum__with_fuzz(
 
     # assemble position
     tick = tick_math_lib.getTickAtSqrtRatio(sqrt_price_x96)
-
     position = position_lib.assemble(
         liquidity,
         sqrt_price_x96,
@@ -285,12 +360,8 @@ def test_position_margin_minimum__with_fuzz(
         return
 
     # manually adjust position for funding with a factor on debt
-    debt0_adjusted = (
-        int(funding_factor * position.debt0) if zero_for_one else position.debt0
-    )
-    debt1_adjusted = (
-        position.debt1 if zero_for_one else int(funding_factor * position.debt1)
-    )
+    debt0_adjusted = int(factor * position.debt0) if zero_for_one else position.debt0
+    debt1_adjusted = position.debt1 if zero_for_one else int(factor * position.debt1)
     if debt0_adjusted >= 2**128 or debt1_adjusted >= 2**128:
         return
 
@@ -298,18 +369,40 @@ def test_position_margin_minimum__with_fuzz(
     position.debt1 = debt1_adjusted
 
     # calc expected margin minimum
+    _sqrt_price_x96 = tick_math_lib.getSqrtRatioAtTick(
+        tick
+    )  # @dev slight shift due to gas savings in storing tick
     margin_min = calc_margin_minimum(
         position.size,
         position.debt0,
         position.debt1,
         zero_for_one,
         maintenance,
-        sqrt_price_x96,
+        _sqrt_price_x96,
     )
     if margin_min < 0:
         margin_min = 0
     elif margin_min >= 2**124:  # to be ultra safe no revert issues
         return
 
+    # sanity check that min margin is
+    #   cx_min = size * ((1+M) * factor * sqrt(P'/P) - 1) for one for zero
+    #   cy_min = size * ((1+M) * factor * sqrt(P/P') - 1) for zero for one
+    sqrt_price_slippage = (
+        sqrt_price_x96_next / sqrt_price_x96
+        if not zero_for_one
+        else sqrt_price_x96 / sqrt_price_x96_next
+    )
+    margin_slippage = (
+        1 + maintenance / MAINTENANCE_UNIT
+    ) * factor * sqrt_price_slippage - 1
+    expected_margin_min = int(position.size * margin_slippage)
+    if expected_margin_min < 0:
+        expected_margin_min = 0
+    elif margin_slippage < 1e-3:
+        # @dev produces near zero margin requirement relative to size so trader can effectively pull almost all margin
+        return
+
     result = position_lib.marginMinimum(position, maintenance)
-    assert pytest.approx(result, rel=1e-2) == margin_min
+    assert pytest.approx(result, rel=1e-6, abs=1) == margin_min
+    assert pytest.approx(result, rel=5e-2, abs=1) == expected_margin_min
