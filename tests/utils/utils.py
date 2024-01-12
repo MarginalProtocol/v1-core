@@ -219,3 +219,31 @@ def calc_debts_after_funding(
 
         debt1 = int(debt1 * (1.0001 ** (tick_cumulative_delta / FUNDING_PERIOD)))
         return (debt0, debt1)
+
+
+def calc_margin_minimum(
+    size: int,
+    debt0: int,
+    debt1: int,
+    zero_for_one: bool,
+    maintenance: int,
+    sqrt_price_x96: int,
+) -> int:
+    if not zero_for_one:
+        # cx = (1 + M) * dy / P - sx
+        debt1_adjusted = debt1 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
+        return (
+            (debt1_adjusted * (1 << 192)) // (sqrt_price_x96**2) - size
+            if sqrt_price_x96 <= 2**128
+            else (debt1_adjusted * (1 << 128)) // (sqrt_price_x96**2 // (1 << 64))
+            - size
+        )
+    else:
+        # cy = (1+M) * dx * P - sy
+        debt0_adjusted = debt0 * (MAINTENANCE_UNIT + maintenance) // MAINTENANCE_UNIT
+        return (
+            (debt0_adjusted * (sqrt_price_x96**2)) // (1 << 192) - size
+            if sqrt_price_x96 <= 2**128
+            else (debt0_adjusted * (sqrt_price_x96**2 // (1 << 64))) // (1 << 128)
+            - size
+        )

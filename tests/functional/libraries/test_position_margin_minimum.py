@@ -1,14 +1,23 @@
 import pytest
 
-from hypothesis import given
-from hypothesis import strategies as st
+from hypothesis import given, settings, strategies as st
+from datetime import timedelta
 from math import sqrt
 
-from utils.constants import MAINTENANCE_UNIT, MIN_SQRT_RATIO, MAX_SQRT_RATIO
-from utils.utils import calc_sqrt_price_x96_next_open, calc_tick_from_sqrt_price_x96
-
-
-# TODO: test for large and small sqrt price x96 values
+from utils.constants import (
+    MAINTENANCE_UNIT,
+    MINIMUM_SIZE,
+    MIN_SQRT_RATIO,
+    MAX_SQRT_RATIO,
+    MINIMUM_LIQUIDITY,
+)
+from utils.utils import (
+    calc_sqrt_price_x96_next_open,
+    calc_tick_from_sqrt_price_x96,
+    calc_debts,
+    calc_insurances,
+    calc_margin_minimum,
+)
 
 
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
@@ -189,23 +198,118 @@ def test_position_margin_minimum__when_sqrt_price_x96_greater_than_uint128_with_
 
 @pytest.mark.fuzzing
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
+@settings(deadline=timedelta(milliseconds=2000), max_examples=10000)
 @given(
-    liquidity=st.integers(
-        min_value=1000, max_value=2**128 - 1
-    ),  # TODO: fix min value
-    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
-    sqrt_price_x96_next=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO),
-    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000 - 1),
+    liquidity=st.integers(min_value=1, max_value=2**128 - 1),
+    sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1),
+    liquidity_delta_pc=st.integers(min_value=1, max_value=1000000000 - 1),
     zero_for_one=st.booleans(),
+    funding_factor=st.floats(min_value=0.75, max_value=1.25),
 )
 def test_position_margin_minimum__with_fuzz(
     position_lib,
+    tick_math_lib,
     liquidity,
     sqrt_price_x96,
-    sqrt_price_x96_next,
     liquidity_delta_pc,
     zero_for_one,
     maintenance,
+    funding_factor,
 ):
-    # TODO: implement
-    pass
+    liquidity_delta = (liquidity * liquidity_delta_pc) // 1000000000
+    if liquidity_delta >= liquidity - MINIMUM_LIQUIDITY:
+        return
+
+    sqrt_price_x96_next = calc_sqrt_price_x96_next_open(
+        liquidity, sqrt_price_x96, liquidity_delta, zero_for_one, maintenance
+    )
+    if (
+        sqrt_price_x96_next <= MIN_SQRT_RATIO
+        or sqrt_price_x96_next >= MAX_SQRT_RATIO - 1
+    ):
+        return
+    elif (sqrt_price_x96_next > sqrt_price_x96 and zero_for_one) or (
+        sqrt_price_x96_next < sqrt_price_x96 and not zero_for_one
+    ):
+        return
+
+    insurance0, insurance1 = calc_insurances(
+        liquidity, sqrt_price_x96, sqrt_price_x96_next, liquidity_delta, zero_for_one
+    )
+    if insurance0 >= 2**128 or insurance1 >= 2**128:
+        return
+    elif insurance0 < MINIMUM_SIZE or insurance1 < MINIMUM_SIZE:
+        # @dev rounding issues for tiny del L / L (1e-17) values can cause negative insurances that underflow revert
+        return
+
+    debt0, debt1 = calc_debts(
+        sqrt_price_x96_next, liquidity_delta, insurance0, insurance1
+    )
+    if debt0 >= 2**128 or debt1 >= 2**128:
+        return
+    elif debt0 < MINIMUM_SIZE or debt1 < MINIMUM_SIZE:
+        return
+
+    if not zero_for_one:
+        size = (liquidity * (1 << 96)) // sqrt_price_x96 - (
+            liquidity * (1 << 96)
+        ) // sqrt_price_x96_next
+    else:
+        size = (liquidity * (sqrt_price_x96 - sqrt_price_x96_next)) // (1 << 96)
+
+    if size < MINIMUM_SIZE or size >= 2**128:
+        return
+
+    # assemble position
+    tick = tick_math_lib.getTickAtSqrtRatio(sqrt_price_x96)
+
+    position = position_lib.assemble(
+        liquidity,
+        sqrt_price_x96,
+        sqrt_price_x96_next,
+        liquidity_delta,
+        zero_for_one,
+        tick,
+        0,
+        0,
+        0,
+    )
+
+    if (
+        position.size < MINIMUM_SIZE
+        or position.debt0 < MINIMUM_SIZE
+        or position.debt1 < MINIMUM_SIZE
+        or position.insurance0 < MINIMUM_SIZE
+        or position.insurance1 < MINIMUM_SIZE
+    ):
+        return
+
+    # manually adjust position for funding with a factor on debt
+    debt0_adjusted = (
+        int(funding_factor * position.debt0) if zero_for_one else position.debt0
+    )
+    debt1_adjusted = (
+        position.debt1 if zero_for_one else int(funding_factor * position.debt1)
+    )
+    if debt0_adjusted >= 2**128 or debt1_adjusted >= 2**128:
+        return
+
+    position.debt0 = debt0_adjusted
+    position.debt1 = debt1_adjusted
+
+    # calc expected margin minimum
+    margin_min = calc_margin_minimum(
+        position.size,
+        position.debt0,
+        position.debt1,
+        zero_for_one,
+        maintenance,
+        sqrt_price_x96,
+    )
+    if margin_min < 0:
+        margin_min = 0
+    elif margin_min >= 2**124:  # to be ultra safe no revert issues
+        return
+
+    result = position_lib.marginMinimum(position, maintenance)
+    assert pytest.approx(result, rel=1e-2) == margin_min

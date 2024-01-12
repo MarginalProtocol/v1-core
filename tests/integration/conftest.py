@@ -39,7 +39,7 @@ def univ3_pool(assert_mainnet_fork, Contract):
 def mrglv1_factory(project, accounts, univ3_factory):
     deployer = project.MarginalV1PoolDeployer.deploy(sender=accounts[0])
     obs_cardinality_min = (
-        150  # @dev: too low for actual deployment, but needed to accomodate all tests
+        300  # @dev: too low for actual deployment, but needed to accomodate all tests
     )
     return project.MarginalV1Factory.deploy(
         deployer.address, univ3_factory.address, obs_cardinality_min, sender=accounts[0]

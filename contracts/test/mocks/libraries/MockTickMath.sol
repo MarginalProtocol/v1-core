@@ -9,4 +9,8 @@ contract MockTickMath {
     ) external pure returns (int24) {
         return TickMath.getTickAtSqrtRatio(sqrtRatioX96);
     }
+
+    function getSqrtRatioAtTick(int24 tick) external pure returns (uint160) {
+        return TickMath.getSqrtRatioAtTick(tick);
+    }
 }
