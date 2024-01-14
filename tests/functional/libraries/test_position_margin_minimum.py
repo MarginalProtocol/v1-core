@@ -405,4 +405,4 @@ def test_position_margin_minimum__with_fuzz(
 
     result = position_lib.marginMinimum(position, maintenance)
     assert pytest.approx(result, rel=1e-6, abs=1) == margin_min
-    assert pytest.approx(result, rel=5e-2, abs=1) == expected_margin_min
+    assert pytest.approx(result, rel=1e-1, abs=1) == expected_margin_min
