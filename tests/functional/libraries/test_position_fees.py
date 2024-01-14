@@ -1,7 +1,7 @@
 import pytest
 
-from hypothesis import given
-from hypothesis import strategies as st
+from hypothesis import given, settings, strategies as st
+from datetime import timedelta
 from math import sqrt
 
 from utils.constants import FEE, FEE_UNIT
@@ -55,6 +55,7 @@ def test_position_fees__with_one_for_zero(position_lib):
 
 
 @pytest.mark.fuzzing
+@settings(deadline=timedelta(milliseconds=1000))
 @given(
     size=st.integers(min_value=0, max_value=2**128 - 1),
     fee=st.integers(min_value=0, max_value=FEE_UNIT - 1),

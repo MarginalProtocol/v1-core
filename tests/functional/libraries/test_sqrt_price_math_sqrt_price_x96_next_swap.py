@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from math import sqrt
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MINIMUM_LIQUIDITY
 from utils.utils import (
     calc_sqrt_price_x96_next_swap,
     calc_amounts_from_liquidity_sqrt_price_x96,
@@ -210,7 +210,7 @@ def test_sqrt_price_math_sqrt_price_x96_next_swap__with_exact_output_one_for_zer
 
 @pytest.mark.fuzzing
 @given(
-    liquidity=st.integers(min_value=1000, max_value=2**128 - 1),
+    liquidity=st.integers(min_value=MINIMUM_LIQUIDITY, max_value=2**128 - 1),
     sqrt_price_x96=st.integers(min_value=MIN_SQRT_RATIO, max_value=MAX_SQRT_RATIO - 1),
     zero_for_one=st.booleans(),
     amount_specified=st.integers(min_value=-(2**255 - 1), max_value=2**255 - 1),

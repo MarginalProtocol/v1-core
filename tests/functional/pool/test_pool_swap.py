@@ -1693,6 +1693,10 @@ def test_pool_swap__with_fuzz(
         MAX_SQRT_RATIO - 1 if not zero_for_one else MIN_SQRT_RATIO + 1
     )
 
+    # cache for later sanity checks
+    _liquidity = state.liquidity
+    _sqrt_price_x96 = state.sqrtPriceX96
+
     # oracle updates
     block_timestamp_next = chain.pending_timestamp
     tick_cumulative = state.tickCumulative + state.tick * (
@@ -1775,6 +1779,37 @@ def test_pool_swap__with_fuzz(
     assert result_state.blockTimestamp == state.blockTimestamp
     assert result_state.tickCumulative == state.tickCumulative
     assert result_state.totalPositions == state.totalPositions
+
+    # sanity check pool state
+    # excluding fees should have after swap
+    #  L = L
+    #  sqrt(P') = sqrt(P) * (1 + dy / y) = sqrt(P) / (1 + dx / x); dx, dy can be > 0 or < 0
+    calc_liquidity_next = _liquidity
+
+    # del x, del y without fees
+    _del_x = amount0 if amount0 < 0 else amount0 - fees0
+    _del_y = amount1 if amount1 < 0 else amount1 - fees1
+
+    _del_sqrt_price_y = 1 + _del_y / reserve1
+    _del_sqrt_price_x = 1 / (1 + _del_x / reserve0)
+
+    # L invariant on swap requires
+    #  1 + dy / y = 1 / (1 + dx / x)
+    assert pytest.approx(_del_sqrt_price_y, rel=1e-6) == _del_sqrt_price_x
+    calc_sqrt_price_x96_next = int(_sqrt_price_x96 * _del_sqrt_price_y)
+
+    # add in the fees
+    (_reserve0_next, _reserve1_next) = calc_amounts_from_liquidity_sqrt_price_x96(
+        calc_liquidity_next, calc_sqrt_price_x96_next
+    )
+    (
+        _liquidity_after,
+        _sqrt_price_x96_after,
+    ) = calc_liquidity_sqrt_price_x96_from_reserves(
+        _reserve0_next + fees0, _reserve1_next + fees1
+    )
+    assert pytest.approx(result_state.liquidity, rel=1e-6) == _liquidity_after
+    assert pytest.approx(result_state.sqrtPriceX96, rel=1e-6) == _sqrt_price_x96_after
 
     state = result_state  # for event checks below
 

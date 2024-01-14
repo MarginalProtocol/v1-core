@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from math import sqrt
 
-from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO
+from utils.constants import MIN_SQRT_RATIO, MAX_SQRT_RATIO, MINIMUM_LIQUIDITY
 from utils.utils import calc_sqrt_price_x96_next_open
 
 
@@ -65,7 +65,7 @@ def test_sqrt_price_math_sqrt_price_x96_next_open__with_one_for_zero(
 @pytest.mark.fuzzing
 @pytest.mark.parametrize("maintenance", [250000, 500000, 1000000])
 @given(
-    liquidity=st.integers(min_value=1000, max_value=2**128 - 1),
+    liquidity=st.integers(min_value=MINIMUM_LIQUIDITY, max_value=2**128 - 1),
     liquidity_delta=st.integers(min_value=1, max_value=2**128 - 1),
     sqrt_price_x96=st.integers(
         min_value=MIN_SQRT_RATIO + 1, max_value=MAX_SQRT_RATIO - 1
