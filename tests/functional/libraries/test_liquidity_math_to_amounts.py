@@ -30,7 +30,6 @@ def test_liquidity_math_to_amounts(liquidity_math_lib):
 def test_liquidity_math_to_amounts__with_fuzz(
     liquidity_math_lib, liquidity, sqrt_price_x96
 ):
-    # TODO: fix for safe cast and anvil issues
     (amount0, amount1) = calc_amounts_from_liquidity_sqrt_price_x96(
         liquidity, sqrt_price_x96
     )

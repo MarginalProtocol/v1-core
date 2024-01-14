@@ -44,7 +44,5 @@ def test_liquidity_math_to_liquidity_sqrt_price_x96__with_fuzz(
         return
 
     result = liquidity_math_lib.toLiquiditySqrtPriceX96(reserve0, reserve1)
-    assert (
-        pytest.approx(liquidity, rel=1e-15) == result[0]
-    )  # TODO: appropriate rel error?
+    assert pytest.approx(liquidity, rel=1e-15) == result[0]
     assert pytest.approx(sqrt_price_x96, rel=1e-15) == result[1]
