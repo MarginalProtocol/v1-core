@@ -2,7 +2,7 @@ name: v1-core
 
 plugins:
   - name: alchemy
-    version: 0.6.2
+    version: 0.6.3
   - name: etherscan
     version: 0.6.11
   - name: solidity
@@ -11,6 +11,8 @@ plugins:
     version: 0.6.12
   - name: arbitrum
     version: 0.6.1
+  - name: base
+    version: 0.6.3
 
 default_ecosystem: ethereum
 
