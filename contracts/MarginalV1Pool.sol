@@ -185,7 +185,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         address _token1,
         uint24 _maintenance,
         address _oracle
-    ) ERC20("Marginal V1 LP Token", "MRGLV1-LP") {
+    ) ERC20("Marginal V1 LP Token", "MARGV1-LP") {
         factory = _factory;
         token0 = _token0;
         token1 = _token1;
