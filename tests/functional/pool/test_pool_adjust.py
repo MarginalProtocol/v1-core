@@ -851,16 +851,6 @@ def test_pool_adjust__with_fuzz(
     tick_cumulative = state.tickCumulative + state.tick * (
         block_timestamp_next - state.blockTimestamp
     )
-    obs = rando_univ3_observations[-1]  # @dev last obs
-    oracle_tick_cumulative = obs[1]
-    position = position_lib.sync(
-        position,
-        block_timestamp_next,
-        tick_cumulative,
-        oracle_tick_cumulative,
-        TICK_CUMULATIVE_RATE_MAX,
-        FUNDING_PERIOD,
-    )
     margin_min = position_lib.marginMinimum(position, maintenance)
 
     # prep for call to adjust
