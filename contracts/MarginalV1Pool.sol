@@ -442,17 +442,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         Position.Info memory position = positions.get(msg.sender, id);
         if (position.size == 0) revert InvalidPosition();
 
-        // zero seconds ago for oracle tickCumulative
-        int56 oracleTickCumulative = oracleTickCumulatives(new uint32[](1))[0];
-
-        // update debts for funding
-        position = position.sync(
-            _state.blockTimestamp,
-            _state.tickCumulative,
-            oracleTickCumulative,
-            tickCumulativeRateMax,
-            fundingPeriod
-        );
+        // don't update position stored debts for funding to avoid short circuiting and min margin zero issues
         uint128 marginMinimum = position.marginMinimum(maintenance);
         if (
             int256(uint256(position.margin)) + int256(marginDelta) <
@@ -494,10 +484,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128();
         }
 
-        // don't update position stored debts for funding to avoid short circuiting issues
-        Position.Info memory _position = positions.get(msg.sender, id);
-        _position.margin = position.margin;
-        positions.set(msg.sender, id, _position);
+        positions.set(msg.sender, id, position);
 
         // update pool state to latest
         state = _state;
