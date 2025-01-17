@@ -22,7 +22,6 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 import {IMarginalV1SettleCallback} from "./interfaces/callback/IMarginalV1SettleCallback.sol";
 import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
-import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
 contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
@@ -95,12 +94,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         unlocked = 2;
     }
 
-    modifier onlyFactoryOwner() {
-        if (msg.sender != IMarginalV1Factory(factory).owner())
-            revert Unauthorized();
-        _;
-    }
-
     event Initialize(uint160 sqrtPriceX96, int24 tick);
     event Open(
         address sender,
@@ -157,16 +150,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint256 amount0,
         uint256 amount1
     );
-    event SetFeeProtocol(uint8 oldFeeProtocol, uint8 newFeeProtocol);
-    event CollectProtocol(
-        address sender,
-        address indexed recipient,
-        uint128 amount0,
-        uint128 amount1
-    );
 
     error Locked();
-    error Unauthorized();
     error InvalidLiquidityDelta();
     error InvalidSqrtPriceLimitX96();
     error SqrtPriceX96ExceedsLimit();
@@ -177,7 +162,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error InvalidPosition();
     error PositionSafe();
     error InvalidAmountSpecified();
-    error InvalidFeeProtocol();
 
     constructor(
         address _factory,
@@ -918,35 +902,5 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         _burn(msg.sender, shares);
 
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
-    }
-
-    /// @inheritdoc IMarginalV1Pool
-    function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
-        if (!(feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10)))
-            revert InvalidFeeProtocol();
-        emit SetFeeProtocol(state.feeProtocol, feeProtocol);
-        state.feeProtocol = feeProtocol;
-    }
-
-    /// @inheritdoc IMarginalV1Pool
-    function collectProtocol(
-        address recipient
-    )
-        external
-        lock
-        onlyFactoryOwner
-        returns (uint128 amount0, uint128 amount1)
-    {
-        // no zero check on protocolFees as will revert in amounts calculation
-        amount0 = protocolFees.token0 - 1; // ensure slot not cleared for gas savings
-        amount1 = protocolFees.token1 - 1;
-
-        protocolFees.token0 = 1;
-        TransferHelper.safeTransfer(token0, recipient, amount0);
-
-        protocolFees.token1 = 1;
-        TransferHelper.safeTransfer(token1, recipient, amount1);
-
-        emit CollectProtocol(msg.sender, recipient, amount0, amount1);
     }
 }
