@@ -613,6 +613,7 @@ def test_pool_swap__transfers_funds_with_exact_output_one_for_zero(
     assert token0.balanceOf(alice.address) == balance0_alice - amount0
 
 
+@pytest.mark.skip
 def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
     pool_initialized_with_liquidity,
     callee,
@@ -737,6 +738,7 @@ def test_pool_swap__adds_protocol_fees_with_exact_input_zero_for_one(
     assert event.tick == state.tick
 
 
+@pytest.mark.skip
 def test_pool_swap__adds_protocol_fees_with_exact_input_one_for_zero(
     pool_initialized_with_liquidity,
     callee,

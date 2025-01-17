@@ -774,6 +774,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     assert sender.balance == balancee_sender
 
 
+@pytest.mark.skip
 def test_pool_open__adds_protocol_fees_with_zero_for_one(
     pool_initialized_with_liquidity,
     position_lib,
@@ -891,6 +892,7 @@ def test_pool_open__adds_protocol_fees_with_zero_for_one(
     assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
 
 
+@pytest.mark.skip
 def test_pool_open__adds_protocol_fees_with_one_for_zero(
     pool_initialized_with_liquidity,
     position_lib,

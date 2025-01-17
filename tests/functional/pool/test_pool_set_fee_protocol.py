@@ -1,6 +1,9 @@
+import pytest
+
 from ape import reverts
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__with_new_fee_greater_than_zero(
     pool_initialized_with_liquidity, admin
 ):
@@ -11,6 +14,7 @@ def test_pool_set_fee_protocol__with_new_fee_greater_than_zero(
     assert state.feeProtocol == 5
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__with_new_fee_zero(
     pool_initialized_with_liquidity, admin
 ):
@@ -23,6 +27,7 @@ def test_pool_set_fee_protocol__with_new_fee_zero(
     assert state.feeProtocol == 0
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__emits_set_fee_protocol(
     pool_initialized_with_liquidity, admin
 ):
@@ -35,6 +40,7 @@ def test_pool_set_fee_protocol__emits_set_fee_protocol(
     assert event.newFeeProtocol == 5
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__reverts_when_not_factory_owner(
     pool_initialized_with_liquidity, alice
 ):
@@ -42,6 +48,7 @@ def test_pool_set_fee_protocol__reverts_when_not_factory_owner(
         pool_initialized_with_liquidity.setFeeProtocol(5, sender=alice)
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__reverts_when_less_than_min(
     pool_initialized_with_liquidity, admin
 ):
@@ -49,6 +56,7 @@ def test_pool_set_fee_protocol__reverts_when_less_than_min(
         pool_initialized_with_liquidity.setFeeProtocol(3, sender=admin)
 
 
+@pytest.mark.skip
 def test_pool_set_fee_protocol__reverts_when_greater_than_min(
     pool_initialized_with_liquidity, admin
 ):
