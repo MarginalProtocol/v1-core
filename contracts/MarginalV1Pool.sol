@@ -426,26 +426,26 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         Position.Info memory position = positions.get(msg.sender, id);
         if (position.size == 0) revert InvalidPosition();
 
-        // oracle price averaged over seconds ago for min margin calc
-        uint32[] memory secondsAgos = new uint32[](2);
-        secondsAgos[0] = secondsAgo;
-
-        int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
-            secondsAgos
-        );
-
-        // update debts for funding but won't store to avoid frequent sync issues
-        position = position.sync(
-            _state.blockTimestamp,
-            _state.tickCumulative,
-            oracleTickCumulativesLast[1], // zero seconds ago
-            tickCumulativeRateMax,
-            fundingPeriod
-        );
-
-        // check min margin requirements
+        // check min margin requirements accounting for position pnl
         {
             uint128 marginMinimum = position.marginMinimum(maintenance); // enforces max leverage
+
+            // oracle price averaged over seconds ago for min margin calc
+            uint32[] memory secondsAgos = new uint32[](2);
+            secondsAgos[0] = secondsAgo;
+
+            int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
+                secondsAgos
+            );
+
+            // update debts for funding but won't store to avoid frequent sync issues
+            position = position.sync(
+                _state.blockTimestamp,
+                _state.tickCumulative,
+                oracleTickCumulativesLast[1], // zero seconds ago
+                tickCumulativeRateMax,
+                fundingPeriod
+            );
 
             int24 oracleTick = int24(
                 OracleLibrary.oracleTickCumulativeDelta(
