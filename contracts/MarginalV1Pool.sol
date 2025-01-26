@@ -426,12 +426,44 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         Position.Info memory position = positions.get(msg.sender, id);
         if (position.size == 0) revert InvalidPosition();
 
-        // don't update position stored debts for funding to avoid short circuiting and min margin zero issues
-        uint128 marginMinimum = position.marginMinimum(maintenance);
-        if (
-            int256(uint256(position.margin)) + int256(marginDelta) <
-            int256(uint256(marginMinimum))
-        ) revert MarginLessThanMin();
+        // oracle price averaged over seconds ago for min margin calc
+        uint32[] memory secondsAgos = new uint32[](2);
+        secondsAgos[0] = secondsAgo;
+
+        int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
+            secondsAgos
+        );
+
+        // update debts for funding but won't store to avoid frequent sync issues
+        position = position.sync(
+            _state.blockTimestamp,
+            _state.tickCumulative,
+            oracleTickCumulativesLast[1], // zero seconds ago
+            tickCumulativeRateMax,
+            fundingPeriod
+        );
+
+        // check min margin requirements
+        {
+            uint128 marginMinimum = position.marginMinimum(maintenance); // enforces max leverage
+
+            int24 oracleTick = int24(
+                OracleLibrary.oracleTickCumulativeDelta(
+                    oracleTickCumulativesLast[0],
+                    oracleTickCumulativesLast[1]
+                ) / int56(uint56(secondsAgo))
+            );
+
+            position.tick = oracleTick; // won't store either
+            uint128 safeMarginMinimum = position.marginMinimum(maintenance);
+            if (safeMarginMinimum > marginMinimum)
+                marginMinimum = safeMarginMinimum;
+
+            if (
+                int256(uint256(position.margin)) + int256(marginDelta) <
+                int256(uint256(marginMinimum))
+            ) revert MarginLessThanMin();
+        }
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
@@ -468,12 +500,16 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128();
         }
 
-        positions.set(msg.sender, id, position);
+        // reload position to avoid funding sync issues
+        Position.Info memory _position = positions.get(msg.sender, id);
+        _position.margin = position.margin;
+
+        positions.set(msg.sender, id, _position);
 
         // update pool state to latest
         state = _state;
 
-        emit Adjust(msg.sender, uint256(id), recipient, position.margin);
+        emit Adjust(msg.sender, uint256(id), recipient, _position.margin);
     }
 
     /// @inheritdoc IMarginalV1Pool
