@@ -54,7 +54,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     uint32 public constant fundingPeriod = 604800; // 7 day funding period
 
     // @dev varies for different chains
-    uint256 internal constant blockBaseFeeMin = 40e9; // min base fee for liquidation rewards
+    uint256 internal constant blockBaseFeeMin = 4e8; // min base fee for liquidation rewards
     uint256 internal constant gasLiquidate = 150000; // gas required to call liquidate
 
     uint128 internal constant MINIMUM_LIQUIDITY = 10000; // liquidity locked on initial mint always available for swaps
