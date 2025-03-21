@@ -2,7 +2,7 @@
 pragma solidity 0.8.17;
 
 import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {IUniswapV3Pool} from "./interfaces/vendor/kodiak/IUniswapV3Pool.sol";
 
 import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1PoolDeployer} from "./interfaces/IMarginalV1PoolDeployer.sol";

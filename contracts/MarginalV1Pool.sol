@@ -7,7 +7,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
-import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {IUniswapV3Pool} from "./interfaces/vendor/kodiak/IUniswapV3Pool.sol";
 
 import {LiquidityMath} from "./libraries/LiquidityMath.sol";
 import {OracleLibrary} from "./libraries/OracleLibrary.sol";
