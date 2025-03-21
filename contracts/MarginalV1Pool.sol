@@ -22,7 +22,6 @@ import {IMarginalV1OpenCallback} from "./interfaces/callback/IMarginalV1OpenCall
 import {IMarginalV1SettleCallback} from "./interfaces/callback/IMarginalV1SettleCallback.sol";
 import {IMarginalV1SwapCallback} from "./interfaces/callback/IMarginalV1SwapCallback.sol";
 
-import {IMarginalV1Factory} from "./interfaces/IMarginalV1Factory.sol";
 import {IMarginalV1Pool} from "./interfaces/IMarginalV1Pool.sol";
 
 contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
@@ -95,12 +94,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         unlocked = 2;
     }
 
-    modifier onlyFactoryOwner() {
-        if (msg.sender != IMarginalV1Factory(factory).owner())
-            revert Unauthorized();
-        _;
-    }
-
     event Initialize(uint160 sqrtPriceX96, int24 tick);
     event Open(
         address sender,
@@ -157,16 +150,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         uint256 amount0,
         uint256 amount1
     );
-    event SetFeeProtocol(uint8 oldFeeProtocol, uint8 newFeeProtocol);
-    event CollectProtocol(
-        address sender,
-        address indexed recipient,
-        uint128 amount0,
-        uint128 amount1
-    );
 
     error Locked();
-    error Unauthorized();
     error InvalidLiquidityDelta();
     error InvalidSqrtPriceLimitX96();
     error SqrtPriceX96ExceedsLimit();
@@ -177,7 +162,6 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
     error InvalidPosition();
     error PositionSafe();
     error InvalidAmountSpecified();
-    error InvalidFeeProtocol();
 
     constructor(
         address _factory,
@@ -280,7 +264,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         State memory _state = stateSynced();
         if (
             liquidityDelta == 0 ||
-            liquidityDelta + MINIMUM_LIQUIDITY >= _state.liquidity
+            liquidityDelta + MINIMUM_LIQUIDITY > _state.liquidity
         ) revert InvalidLiquidityDelta();
         if (
             zeroForOne
@@ -442,12 +426,44 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         Position.Info memory position = positions.get(msg.sender, id);
         if (position.size == 0) revert InvalidPosition();
 
-        // don't update position stored debts for funding to avoid short circuiting and min margin zero issues
-        uint128 marginMinimum = position.marginMinimum(maintenance);
-        if (
-            int256(uint256(position.margin)) + int256(marginDelta) <
-            int256(uint256(marginMinimum))
-        ) revert MarginLessThanMin();
+        // check min margin requirements accounting for position pnl
+        {
+            uint128 marginMinimum = position.marginMinimum(maintenance); // enforces max leverage
+
+            // oracle price averaged over seconds ago for min margin calc
+            uint32[] memory secondsAgos = new uint32[](2);
+            secondsAgos[0] = secondsAgo;
+
+            int56[] memory oracleTickCumulativesLast = oracleTickCumulatives(
+                secondsAgos
+            );
+
+            // update debts for funding but won't store to avoid frequent sync issues
+            position = position.sync(
+                _state.blockTimestamp,
+                _state.tickCumulative,
+                oracleTickCumulativesLast[1], // zero seconds ago
+                tickCumulativeRateMax,
+                fundingPeriod
+            );
+
+            int24 oracleTick = int24(
+                OracleLibrary.oracleTickCumulativeDelta(
+                    oracleTickCumulativesLast[0],
+                    oracleTickCumulativesLast[1]
+                ) / int56(uint56(secondsAgo))
+            );
+
+            position.tick = oracleTick; // won't store either
+            uint128 safeMarginMinimum = position.marginMinimum(maintenance);
+            if (safeMarginMinimum > marginMinimum)
+                marginMinimum = safeMarginMinimum;
+
+            if (
+                int256(uint256(position.margin)) + int256(marginDelta) <
+                int256(uint256(marginMinimum))
+            ) revert MarginLessThanMin();
+        }
 
         // flash margin out then callback for margin in
         if (!position.zeroForOne) {
@@ -484,12 +500,16 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
             position.margin = margin1.toUint128();
         }
 
-        positions.set(msg.sender, id, position);
+        // reload position to avoid funding sync issues
+        Position.Info memory _position = positions.get(msg.sender, id);
+        _position.margin = position.margin;
+
+        positions.set(msg.sender, id, _position);
 
         // update pool state to latest
         state = _state;
 
-        emit Adjust(msg.sender, uint256(id), recipient, position.margin);
+        emit Adjust(msg.sender, uint256(id), recipient, _position.margin);
     }
 
     /// @inheritdoc IMarginalV1Pool
@@ -899,7 +919,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         liquidityDelta = uint128(
             Math.mulDiv(totalLiquidityBefore, shares, _totalSupply)
         );
-        if (liquidityDelta > _state.liquidity) revert InvalidLiquidityDelta();
+        if (liquidityDelta + MINIMUM_LIQUIDITY > _state.liquidity)
+            revert InvalidLiquidityDelta();
 
         (amount0, amount1) = LiquidityMath.toAmounts(
             liquidityDelta,
@@ -918,35 +939,5 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         _burn(msg.sender, shares);
 
         emit Burn(msg.sender, recipient, liquidityDelta, amount0, amount1);
-    }
-
-    /// @inheritdoc IMarginalV1Pool
-    function setFeeProtocol(uint8 feeProtocol) external lock onlyFactoryOwner {
-        if (!(feeProtocol == 0 || (feeProtocol >= 4 && feeProtocol <= 10)))
-            revert InvalidFeeProtocol();
-        emit SetFeeProtocol(state.feeProtocol, feeProtocol);
-        state.feeProtocol = feeProtocol;
-    }
-
-    /// @inheritdoc IMarginalV1Pool
-    function collectProtocol(
-        address recipient
-    )
-        external
-        lock
-        onlyFactoryOwner
-        returns (uint128 amount0, uint128 amount1)
-    {
-        // no zero check on protocolFees as will revert in amounts calculation
-        amount0 = protocolFees.token0 - 1; // ensure slot not cleared for gas savings
-        amount1 = protocolFees.token1 - 1;
-
-        protocolFees.token0 = 1;
-        TransferHelper.safeTransfer(token0, recipient, amount0);
-
-        protocolFees.token1 = 1;
-        TransferHelper.safeTransfer(token1, recipient, amount1);
-
-        emit CollectProtocol(msg.sender, recipient, amount0, amount1);
     }
 }

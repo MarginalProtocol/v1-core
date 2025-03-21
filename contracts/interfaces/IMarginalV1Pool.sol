@@ -253,16 +253,4 @@ interface IMarginalV1Pool is IERC20 {
     )
         external
         returns (uint128 liquidityDelta, uint256 amount0, uint256 amount1);
-
-    /// @notice Set the denominator of the protocol's % share of the fees
-    /// @param feeProtocol new protocol fee denominator for the pool
-    function setFeeProtocol(uint8 feeProtocol) external;
-
-    /// @notice Collect the protocol fee accrued to the pool
-    /// @param recipient The address to which collected protocol fees should be sent
-    /// @return amount0 The protocol fee collected in token0
-    /// @return amount1 The protocol fee collected in token1
-    function collectProtocol(
-        address recipient
-    ) external returns (uint128 amount0, uint128 amount1);
 }

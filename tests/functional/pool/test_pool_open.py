@@ -774,6 +774,7 @@ def test_pool_open__transfers_funds_with_one_for_zero(
     assert sender.balance == balancee_sender
 
 
+@pytest.mark.skip
 def test_pool_open__adds_protocol_fees_with_zero_for_one(
     pool_initialized_with_liquidity,
     position_lib,
@@ -891,6 +892,7 @@ def test_pool_open__adds_protocol_fees_with_zero_for_one(
     assert pool_initialized_with_liquidity.protocolFees() == protocol_fees
 
 
+@pytest.mark.skip
 def test_pool_open__adds_protocol_fees_with_one_for_zero(
     pool_initialized_with_liquidity,
     position_lib,
@@ -1413,7 +1415,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY + 1
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
@@ -1469,7 +1471,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY + 1
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 

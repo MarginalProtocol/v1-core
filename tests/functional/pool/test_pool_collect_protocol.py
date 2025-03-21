@@ -47,6 +47,7 @@ def pool_after_swaps(pool_initialized_with_liquidity_and_protocol_fee, callee, s
     return pool_initialized_with_liquidity_and_protocol_fee
 
 
+@pytest.mark.skip
 def test_pool_collect_protocol__updates_protocol_fees(pool_after_swaps, admin, alice):
     protocol_fees = pool_after_swaps.protocolFees()
     amount0 = protocol_fees.token0 - 1
@@ -60,6 +61,7 @@ def test_pool_collect_protocol__updates_protocol_fees(pool_after_swaps, admin, a
     assert pool_after_swaps.protocolFees() == protocol_fees
 
 
+@pytest.mark.skip
 def test_pool_collect_protocol__transfers_funds(
     pool_after_swaps, admin, alice, token0, token1
 ):
@@ -81,6 +83,7 @@ def test_pool_collect_protocol__transfers_funds(
     assert token1.balanceOf(alice.address) == balance1_alice + amount1
 
 
+@pytest.mark.skip
 def test_pool_collect_protocol__emits_collect_protocol(pool_after_swaps, admin, alice):
     protocol_fees = pool_after_swaps.protocolFees()
     amount0 = protocol_fees.token0 - 1
@@ -97,11 +100,13 @@ def test_pool_collect_protocol__emits_collect_protocol(pool_after_swaps, admin, 
     assert event.amount1 == amount1
 
 
+@pytest.mark.skip
 def test_pool_collect_protocol__reverts_when_not_factory_owner(pool_after_swaps, alice):
     with reverts(pool_after_swaps.Unauthorized):
         pool_after_swaps.collectProtocol(alice.address, sender=alice)
 
 
+@pytest.mark.skip
 def test_pool_collect_protocol__reverts_when_protocol_fees_less_than_min(
     pool_initialized_with_liquidity_and_protocol_fee, admin, alice
 ):

@@ -13,11 +13,27 @@ from utils.constants import (
     TICK_CUMULATIVE_RATE_MAX,
     BASE_FEE_MIN,
     GAS_LIQUIDATE,
+    SECONDS_AGO,
 )
 from utils.utils import (
     get_position_key,
     calc_amounts_from_liquidity_sqrt_price_x96,
 )
+
+
+@pytest.fixture
+def oracle_next_obs(rando_univ3_observations):
+    def oracle_next_obs(tick: int):
+        obs_last = rando_univ3_observations[-1]
+        obs_before = rando_univ3_observations[-2]
+
+        obs_timestamp = obs_last[0] + SECONDS_AGO
+        obs_tick_cumulative = obs_last[1] + SECONDS_AGO * tick
+        obs_liquidity_cumulative = obs_last[2]  # @dev irrelevant for test
+        obs = (obs_timestamp, obs_tick_cumulative, obs_liquidity_cumulative, True)
+        return obs
+
+    yield oracle_next_obs
 
 
 @pytest.fixture
@@ -588,6 +604,218 @@ def test_pool_adjust__reverts_when_margin_out_greater_than_position_margin(
             alice.address,
             one_for_zero_position_id,
             -(position.margin + 1),
+            sender=sender,
+        )
+
+
+def test_pool_adjust__reverts_when_margin_after_less_than_margin_min_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+    position_lib,
+    mock_univ3_pool,
+    zero_for_one_position_id,
+    oracle_next_obs,
+):
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # first change oracle price to position.tick
+    oracle_tick_cumulatives_start, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick_start = (
+        oracle_tick_cumulatives_start[1] - oracle_tick_cumulatives_start[0]
+    ) // SECONDS_AGO
+    assert oracle_tick_start == position.tick
+
+    # change the oracle price down 5% to make the position profitable so check max leverage constraint enforced
+    obs_next = oracle_next_obs(position.tick - 500)
+    mock_univ3_pool.pushObservation(*obs_next, sender=sender)
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+
+    # calculate twat given oracle move
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick = (
+        oracle_tick_cumulatives[1] - oracle_tick_cumulatives[0]
+    ) // SECONDS_AGO
+
+    position.tick = oracle_tick
+    safe_margin_min = position_lib.marginMinimum(position, maintenance)
+    assert margin_min > safe_margin_min
+
+    # now attempt to remove margin so less than margin_min
+    margin_delta = margin_min - 1 - position.margin
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
+        callee.adjust(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one_position_id,
+            margin_delta,
+            sender=sender,
+        )
+
+
+def test_pool_adjust__reverts_when_margin_after_less_than_margin_min_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+    position_lib,
+    mock_univ3_pool,
+    one_for_zero_position_id,
+    oracle_next_obs,
+):
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # first change oracle price to position.tick
+    oracle_tick_cumulatives_start, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick_start = (
+        oracle_tick_cumulatives_start[1] - oracle_tick_cumulatives_start[0]
+    ) // SECONDS_AGO
+    assert oracle_tick_start == position.tick
+
+    # change the oracle price up 5% to make the position profitable so check max leverage constraint enforced
+    obs_next = oracle_next_obs(position.tick + 500)
+    mock_univ3_pool.pushObservation(*obs_next, sender=sender)
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+
+    # calculate twat given oracle move
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick = (
+        oracle_tick_cumulatives[1] - oracle_tick_cumulatives[0]
+    ) // SECONDS_AGO
+
+    position.tick = oracle_tick
+    safe_margin_min = position_lib.marginMinimum(position, maintenance)
+    assert margin_min > safe_margin_min
+
+    # now attempt to remove margin so less than margin_min
+    margin_delta = margin_min - 1 - position.margin
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
+        callee.adjust(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            one_for_zero_position_id,
+            margin_delta,
+            sender=sender,
+        )
+
+
+def test_pool_adjust__reverts_when_margin_after_less_than_safe_margin_min_with_zero_for_one(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+    position_lib,
+    mock_univ3_pool,
+    zero_for_one_position_id,
+    oracle_next_obs,
+):
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    key = get_position_key(callee.address, zero_for_one_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # first change oracle price to position.tick
+    oracle_tick_cumulatives_start, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick_start = (
+        oracle_tick_cumulatives_start[1] - oracle_tick_cumulatives_start[0]
+    ) // SECONDS_AGO
+    assert oracle_tick_start == position.tick
+
+    # change the oracle price up 5% to make the position unprofitable so check min margin increased
+    obs = oracle_next_obs(position.tick + 500)
+    mock_univ3_pool.pushObservation(*obs, sender=sender)
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+
+    # calculate twat given oracle move
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick = (
+        oracle_tick_cumulatives[1] - oracle_tick_cumulatives[0]
+    ) // SECONDS_AGO
+
+    position.tick = oracle_tick
+    safe_margin_min = position_lib.marginMinimum(position, maintenance)
+    assert safe_margin_min > margin_min
+
+    # now attempt to remove margin so less than safe_margin_min
+    margin_delta = safe_margin_min - 1 - position.margin
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
+        callee.adjust(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            zero_for_one_position_id,
+            margin_delta,
+            sender=sender,
+        )
+
+
+def test_pool_adjust__reverts_when_margin_after_less_than_safe_margin_min_with_one_for_zero(
+    pool_initialized_with_liquidity,
+    callee,
+    sender,
+    alice,
+    token0,
+    token1,
+    chain,
+    position_lib,
+    mock_univ3_pool,
+    one_for_zero_position_id,
+    oracle_next_obs,
+):
+    maintenance = pool_initialized_with_liquidity.maintenance()
+
+    key = get_position_key(callee.address, one_for_zero_position_id)
+    position = pool_initialized_with_liquidity.positions(key)
+
+    # first change oracle price to position.tick
+    oracle_tick_cumulatives_start, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick_start = (
+        oracle_tick_cumulatives_start[1] - oracle_tick_cumulatives_start[0]
+    ) // SECONDS_AGO
+    assert oracle_tick_start == position.tick
+
+    # change the oracle price down 5% to make the position unprofitable so check min margin increased
+    obs = oracle_next_obs(position.tick - 500)
+    mock_univ3_pool.pushObservation(*obs, sender=sender)
+
+    margin_min = position_lib.marginMinimum(position, maintenance)
+
+    # calculate twat given oracle move
+    oracle_tick_cumulatives, _ = mock_univ3_pool.observe([SECONDS_AGO, 0])
+    oracle_tick = (
+        oracle_tick_cumulatives[1] - oracle_tick_cumulatives[0]
+    ) // SECONDS_AGO
+
+    position.tick = oracle_tick
+    safe_margin_min = position_lib.marginMinimum(position, maintenance)
+    assert safe_margin_min > margin_min
+
+    # now attempt to remove margin so less than safe_margin_min
+    margin_delta = safe_margin_min - 1 - position.margin
+    with reverts(pool_initialized_with_liquidity.MarginLessThanMin):
+        callee.adjust(
+            pool_initialized_with_liquidity.address,
+            alice.address,
+            one_for_zero_position_id,
+            margin_delta,
             sender=sender,
         )
 
