@@ -544,16 +544,21 @@ def test_pool_burn__reverts_when_shares_greater_than_total_supply(
         )
 
 
-def test_pool_burn__reverts_when_liquidity_delta_greater_than_liquidity(
+def test_pool_burn__reverts_when_liquidity_delta_greater_than_minimum_liquidity(
     pool_initialized_with_liquidity,
     callee,
     sender,
     alice,
     token0,
     token1,
-    zero_for_one_position_id,
 ):
-    shares = pool_initialized_with_liquidity.balanceOf(sender.address)
+    shares = (
+        pool_initialized_with_liquidity.totalSupply()
+        - pool_initialized_with_liquidity.balanceOf(
+            pool_initialized_with_liquidity.address
+        )
+        + 1
+    )
     with reverts(pool_initialized_with_liquidity.InvalidLiquidityDelta):
         pool_initialized_with_liquidity.burn(alice.address, shares, sender=sender)
 

@@ -1415,7 +1415,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_zer
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY + 1
     zero_for_one = True
     sqrt_price_limit_x96 = MIN_SQRT_RATIO + 1
 
@@ -1471,7 +1471,7 @@ def test_pool_open__reverts_when_liquidity_delta_greater_than_liquidity_with_one
         -1
     ].base_fee  # comes in ~ 280 gwei given 10,000 gwei initial ape-config.yaml
 
-    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY
+    liquidity_delta = state.liquidity - MINIMUM_LIQUIDITY + 1
     zero_for_one = False
     sqrt_price_limit_x96 = MAX_SQRT_RATIO - 1
 

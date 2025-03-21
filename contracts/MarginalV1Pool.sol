@@ -264,7 +264,7 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         State memory _state = stateSynced();
         if (
             liquidityDelta == 0 ||
-            liquidityDelta + MINIMUM_LIQUIDITY >= _state.liquidity
+            liquidityDelta + MINIMUM_LIQUIDITY > _state.liquidity
         ) revert InvalidLiquidityDelta();
         if (
             zeroForOne
@@ -919,7 +919,8 @@ contract MarginalV1Pool is IMarginalV1Pool, ERC20 {
         liquidityDelta = uint128(
             Math.mulDiv(totalLiquidityBefore, shares, _totalSupply)
         );
-        if (liquidityDelta > _state.liquidity) revert InvalidLiquidityDelta();
+        if (liquidityDelta + MINIMUM_LIQUIDITY > _state.liquidity)
+            revert InvalidLiquidityDelta();
 
         (amount0, amount1) = LiquidityMath.toAmounts(
             liquidityDelta,
